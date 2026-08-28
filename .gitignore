@@ -1,0 +1,9 @@
+@"
+.env
+__pycache__/
+*.log
+*.json
+serviceAccountKey.json
+venv/
+.vscode/
+"@ | Out-File -FilePath .gitignore -Encoding utf8
