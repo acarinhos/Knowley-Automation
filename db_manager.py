@@ -57,10 +57,20 @@ def save_question_to_firestore(db, question_obj) -> bool:
             print(f"⚠️ Bu soru zaten kayıtlı, atlandı: {hash_seed[:40]}...")
             return False
         
-        # Meta veriler ekle
+        # Meta veriler ve doğru şık/süre eşleşmesi
         q_dict["question_hash"] = q_hash
         q_dict["created_at"] = datetime.now(timezone.utc).isoformat()
         q_dict["status"] = "published"
+        if "correct_option" not in q_dict or not q_dict["correct_option"]:
+            q_dict["correct_option"] = q_dict.get("correct_answer")
+        if "correct_answer" not in q_dict or not q_dict["correct_answer"]:
+            q_dict["correct_answer"] = q_dict.get("correct_option")
+        if "duration_local" not in q_dict or "duration_global" not in q_dict or "duration_seconds" not in q_dict:
+            from timer_calculator import calculate_durations_from_obj
+            durations = calculate_durations_from_obj(q_dict)
+            q_dict.setdefault("duration_local", durations["duration_local"])
+            q_dict.setdefault("duration_global", durations["duration_global"])
+            q_dict.setdefault("duration_seconds", durations["duration_seconds"])
         
         doc_ref.set(q_dict)
         print(f"✅ Soru Firestore'a kaydedildi: {hash_seed[:45]}...")

@@ -89,6 +89,10 @@ class GeneratedQuestion(BaseModel):
     countries: List[str] = Field(default_factory=lambda: ["Global"], description="İlgili ülkeler")
     difficulty_profile: DifficultyProfile = Field(description="Zorluk profili (yerel ve küresel)")
     correct_answer: Literal["A", "B", "C", "D"] = Field(description="Doğru cevap şıkkı")
+    correct_option: Optional[Literal["A", "B", "C", "D"]] = Field(default=None, description="Hedef doğru cevap şıkkı")
+    duration_local: int = Field(default=15, description="Yerel soru süresi (saniye)")
+    duration_global: int = Field(default=15, description="Küresel soru süresi (saniye)")
+    duration_seconds: int = Field(default=15, description="Varsayılan soru süresi (saniye)")
     supported_languages: List[str] = Field(default=["tr", "en", "es", "pt", "de"], description="Desteklenen diller")
     translations: Dict[str, LocalizedContent] = Field(description="5 dilde çeviriler")
 
@@ -242,7 +246,9 @@ def generate_question_with_fallback(
     primary_category: str,
     secondary_category: Optional[str] = None,
     target_country: Optional[str] = None,
-    base_difficulty: Optional[str] = None
+    base_difficulty: Optional[str] = None,
+    balancer: Optional[Any] = None,
+    balance_options: bool = True
 ) -> GeneratedQuestion:
     prompt = build_prompt(
         primary_category=primary_category,
@@ -257,12 +263,25 @@ def generate_question_with_fallback(
         model = item["model"]
         
         try:
+            q: Optional[GeneratedQuestion] = None
             if provider == "gemini" and gemini_client:
                 q = generate_with_gemini(gemini_client, model, prompt)
-                return populate_question_meta(q, primary_category)
             elif provider == "groq" and groq_client:
                 q = generate_with_groq(groq_client, model, prompt)
-                return populate_question_meta(q, primary_category)
+
+            if q:
+                q = populate_question_meta(q, primary_category)
+                if balance_options:
+                    from option_balancer import get_option_balancer
+                    b = balancer or get_option_balancer()
+                    q = b.balance_question(q)
+                
+                from timer_calculator import calculate_durations_from_obj
+                durations = calculate_durations_from_obj(q)
+                q.duration_local = durations["duration_local"]
+                q.duration_global = durations["duration_global"]
+                q.duration_seconds = durations["duration_seconds"]
+                return q
         except Exception as e:
             last_error = e
             continue
@@ -278,12 +297,16 @@ def generate_single_question(
     category: str = "Bilim",
     sub_category: Optional[str] = None,
     filter_tag: Optional[str] = None,
-    difficulty: str = "Orta"
+    difficulty: str = "Orta",
+    balancer: Optional[Any] = None,
+    balance_options: bool = True
 ) -> GeneratedQuestion:
     """Geriye dönük uyumluluk fonksiyonu."""
     return generate_question_with_fallback(
         primary_category=category,
         secondary_category=None,
         target_country=None,
-        base_difficulty=difficulty
+        base_difficulty=difficulty,
+        balancer=balancer,
+        balance_options=balance_options
     )

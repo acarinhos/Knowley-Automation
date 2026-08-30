@@ -69,9 +69,22 @@ def save_worker_question(db: Any, question_obj: GeneratedQuestion) -> bool:
         q_dict["status"] = "published"
         q_dict["times_served"] = 0
         q_dict["is_active"] = True
+        if "correct_option" not in q_dict or not q_dict["correct_option"]:
+            q_dict["correct_option"] = q_dict.get("correct_answer")
+        if "correct_answer" not in q_dict or not q_dict["correct_answer"]:
+            q_dict["correct_answer"] = q_dict.get("correct_option")
+        if "duration_local" not in q_dict or "duration_global" not in q_dict or "duration_seconds" not in q_dict:
+            from timer_calculator import calculate_durations_from_obj
+            durations = calculate_durations_from_obj(q_dict)
+            q_dict.setdefault("duration_local", durations["duration_local"])
+            q_dict.setdefault("duration_global", durations["duration_global"])
+            q_dict.setdefault("duration_seconds", durations["duration_seconds"])
 
         doc_ref.set(q_dict)
         
+        correct_letter = q_dict.get("correct_option") or q_dict.get("correct_answer", "-")
+        dur_local = q_dict.get("duration_local", q_dict.get("duration_seconds", 15))
+        dur_global = q_dict.get("duration_global", q_dict.get("duration_seconds", 15))
         cat_str = " + ".join(q_dict.get("categories", []))
         prof = q_dict.get("difficulty_profile", {})
         local_scope = prof.get("local", {}) if isinstance(prof.get("local"), dict) else {}
@@ -88,7 +101,7 @@ def save_worker_question(db: Any, question_obj: GeneratedQuestion) -> bool:
         tr_q = q_dict.get("translations", {}).get("tr", {}).get("question", "")[:35]
         
         logging.info(
-            f"✅ [5-Dil] [{'COMBO' if q_dict.get('is_combo') else 'TEK'}] "
+            f"✅ [5-Dil] [{'COMBO' if q_dict.get('is_combo') else 'TEK'}] [Cevap: {correct_letter} | Süre: Yerel {dur_local}s / Global {dur_global}s] "
             f"[{cat_str}{sub_str} | Ülke: {q_dict.get('countries')} | {local_info} vs {global_info}]: "
             f"{tr_q}..."
         )
