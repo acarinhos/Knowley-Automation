@@ -117,6 +117,7 @@ MODEL_CASCADE = [
 
 def build_prompt(
     primary_category: str,
+    target_subcategory: Optional[str] = None,
     secondary_category: Optional[str] = None,
     target_country: Optional[str] = None,
     base_difficulty: Optional[str] = None
@@ -125,7 +126,19 @@ def build_prompt(
     country_rule = target_country if target_country else "Global"
 
     primary_sub_cats = list(CATEGORIES_META.get(primary_category, {}).get("sub_categories", {}).keys())
-    sub_cat_hint = f" (Önerilen alt dallar: {', '.join(primary_sub_cats)})" if primary_sub_cats else ""
+
+    if target_subcategory:
+        subcategory_instruction = (
+            f"- Hedef Alt Kategori (ZORUNLU): {target_subcategory}\n"
+            f"- Soru içeriği KESİNLİKLE ve DOĞRUDAN '{primary_category}' ana kategorisinin '{target_subcategory}' alt dalına ait olmalıdır.\n"
+            f"- Çıktı JSON'ındaki 'sub_categories' alanında ilk ve ana eleman olarak tam olarak '[\"{target_subcategory}\"]' yer almalıdır."
+        )
+        sub_schema_val = f'"{target_subcategory}"'
+    else:
+        sub_cat_hint = f" (Önerilen alt dallar: {', '.join(primary_sub_cats)})" if primary_sub_cats else ""
+        subcategory_instruction = f"- Alt Kategori Kılavuzu: Serbest{sub_cat_hint}"
+        sub_schema_val = '"Alt Dal"'
+
     difficulty_hint = f"- Genel Zorluk Kılavuzu: {base_difficulty}" if base_difficulty else "- Genel Zorluk Kılavuzu: Serbest (Konuya göre sen belirle)"
 
     return f"""
@@ -133,7 +146,8 @@ Sen profesyonel ve çok dilli bir soru hazırlama uzmanısın.
 Aşağıdaki kriterlere göre yüksek kaliteli, özgün tek bir çoktan seçmeli soru üret ve 5 dilde ('tr', 'en', 'es', 'pt', 'de') hazırla.
 
 Kriterler:
-- Birincil Kategori: {primary_category}{sub_cat_hint}
+- Birincil Kategori: {primary_category}
+{subcategory_instruction}
 {f"- İkincil Kategori (Combo): {secondary_category}" if is_combo else "- Tip: Standart (Tek Kategori)"}
 - Odak Ülke/Bölge: {country_rule}
 {difficulty_hint}
@@ -171,7 +185,7 @@ Seçilen etiket (`label`) ile puan (`score`) birbiriyle uyumlu tam sayılar olma
 Zorunlu JSON Şeması:
 {{
   "categories": ["{primary_category}"{f', "{secondary_category}"' if is_combo else ''}],
-  "sub_categories": ["Alt Dal"],
+  "sub_categories": [{sub_schema_val}],
   "is_combo": {str(is_combo).lower()},
   "countries": ["{country_rule}"],
   "difficulty_profile": {{
@@ -243,15 +257,50 @@ def populate_question_meta(q: GeneratedQuestion, primary_cat: str) -> GeneratedQ
     return q
 
 def generate_question_with_fallback(
-    primary_category: str,
+    primary_category: Optional[str] = None,
     secondary_category: Optional[str] = None,
+    target_subcategory: Optional[str] = None,
     target_country: Optional[str] = None,
     base_difficulty: Optional[str] = None,
     balancer: Optional[Any] = None,
-    balance_options: bool = True
+    balance_options: bool = True,
+    is_combo: Optional[bool] = None,
+    category_balancer: Optional[Any] = None,
+    balance_categories: bool = True
 ) -> GeneratedQuestion:
+    """
+    Kategori ve şık dengeleme mekanizması destekli soru üretim fonksiyonu.
+    Kategori veya alt kategori belirtilmemişse CategoryBalancer üzerinden dengeli hedef seçer.
+    """
+    # Kategori dengelemesi aktifse ve kategori veya alt kategori eksikse
+    if balance_categories:
+        try:
+            from category_balancer import get_category_balancer
+            cb = category_balancer or get_category_balancer()
+
+            if primary_category is None:
+                target = cb.get_next_target(is_combo=bool(is_combo or secondary_category))
+                primary_category = target.primary_category
+                target_subcategory = target.target_subcategory
+                if is_combo or secondary_category:
+                    secondary_category = target.secondary_category
+            elif target_subcategory is None:
+                subs = cb.subcategory_counts.get(primary_category, {})
+                if subs:
+                    min_s = min(subs.values())
+                    candidates = [s for s, sc in subs.items() if sc == min_s]
+                    import random
+                    target_subcategory = random.choice(candidates)
+        except Exception:
+            pass
+
+    # Fallback varsayılan
+    if not primary_category:
+        primary_category = "Bilim"
+
     prompt = build_prompt(
         primary_category=primary_category,
+        target_subcategory=target_subcategory,
         secondary_category=secondary_category,
         target_country=target_country,
         base_difficulty=base_difficulty
@@ -270,6 +319,10 @@ def generate_question_with_fallback(
                 q = generate_with_groq(groq_client, model, prompt)
 
             if q:
+                # Hedef alt kategori varsa ve model döndürmediyse başa ekle
+                if target_subcategory and (not q.sub_categories or target_subcategory not in q.sub_categories):
+                    q.sub_categories = [target_subcategory] + [s for s in q.sub_categories if s != target_subcategory]
+
                 q = populate_question_meta(q, primary_category)
                 if balance_options:
                     from option_balancer import get_option_balancer
@@ -294,19 +347,24 @@ def create_gemini_client() -> Optional[genai.Client]:
 
 def generate_single_question(
     client: Any = None,
-    category: str = "Bilim",
+    category: Optional[str] = "Bilim",
     sub_category: Optional[str] = None,
     filter_tag: Optional[str] = None,
     difficulty: str = "Orta",
     balancer: Optional[Any] = None,
-    balance_options: bool = True
+    balance_options: bool = True,
+    category_balancer: Optional[Any] = None,
+    balance_categories: bool = True
 ) -> GeneratedQuestion:
     """Geriye dönük uyumluluk fonksiyonu."""
     return generate_question_with_fallback(
         primary_category=category,
         secondary_category=None,
+        target_subcategory=sub_category,
         target_country=None,
         base_difficulty=difficulty,
         balancer=balancer,
-        balance_options=balance_options
-    )
+        balance_options=balance_options,
+        category_balancer=category_balancer,
+        balance_categories=balance_categories
+    )

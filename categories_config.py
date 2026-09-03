@@ -69,6 +69,31 @@ CATEGORIES_META = {
 DEFAULT_FALLBACK_IMAGE = "https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?auto=format&fit=crop&w=800&q=80"
 DEFAULT_FALLBACK_COLOR = "#6366F1"
 
+# Olası Combo Eşleşmeleri Tablosu (Possible Combo Pairings)
+POSSIBLE_COMBO_MATCHES = {
+    "Bilim": ["Tarih", "Felsefe ve Mantık", "Coğrafya", "Sanat ve Edebiyat", "Popüler Kültür"],
+    "Tarih": ["Sanat ve Edebiyat", "Coğrafya", "Felsefe ve Mantık", "Bilim", "Spor", "Popüler Kültür"],
+    "Coğrafya": ["Tarih", "Bilim", "Popüler Kültür", "Spor", "Sanat ve Edebiyat"],
+    "Sanat ve Edebiyat": ["Tarih", "Felsefe ve Mantık", "Popüler Kültür", "Bilim", "Coğrafya"],
+    "Spor": ["Tarih", "Popüler Kültür", "Coğrafya", "Bilim"],
+    "Popüler Kültür": ["Sanat ve Edebiyat", "Spor", "Tarih", "Bilim", "Felsefe ve Mantık"],
+    "Felsefe ve Mantık": ["Bilim", "Tarih", "Sanat ve Edebiyat", "Popüler Kültür"]
+}
+OLASI_COMBO_ESLESMELERI = POSSIBLE_COMBO_MATCHES
+
+# Zorluk dereceleri
+DIFFICULTIES = ["Kolay", "Orta", "Zor"]
+
+# Geriye dönük uyumluluk için CATEGORIES_DATA
+CATEGORIES_DATA = {
+    cat: {
+        "color": meta.get("color", DEFAULT_FALLBACK_COLOR),
+        "sub_categories": list(meta.get("sub_categories", {}).keys()),
+        "filters": list(meta.get("sub_categories", {}).keys())
+    }
+    for cat, meta in CATEGORIES_META.items()
+}
+
 def get_category_color(category_name: str) -> str:
     """Kategoriye ait HEX renk kodunu getirir."""
     return CATEGORIES_META.get(category_name, {}).get("color", DEFAULT_FALLBACK_COLOR)
@@ -77,4 +102,4 @@ def get_subcategory_image(category_name: str, subcategory_name: str) -> str:
     """Alt kategoriye ait doğrudan görsel linkini getirir."""
     cat_data = CATEGORIES_META.get(category_name, {})
     sub_data = cat_data.get("sub_categories", {})
-    return sub_data.get(subcategory_name, DEFAULT_FALLBACK_IMAGE)
+    return sub_data.get(subcategory_name, DEFAULT_FALLBACK_IMAGE)

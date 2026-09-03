@@ -10,6 +10,7 @@ from categories_config import (
     get_category_color,
     get_subcategory_image,
 )
+from category_balancer import get_category_balancer
 from generator import (
     generate_question_with_fallback,
     GeneratedQuestion,
@@ -119,7 +120,7 @@ def start_infinite_worker() -> None:
     logging.info("🚀 Bağımsız Zorluk Analizi & Görsel Meta Destekli Soru Motoru Başlatıldı!")
     
     db = init_firebase()
-    categories = list(CATEGORIES_META.keys())
+    cat_balancer = get_category_balancer(db=db)
     produced_count = 0
 
     while True:
@@ -127,12 +128,10 @@ def start_infinite_worker() -> None:
         random.shuffle(block_pattern)
 
         for is_combo in block_pattern:
-            primary_cat = random.choice(categories)
-            secondary_cat: Optional[str] = None
-
-            if is_combo:
-                available_secondary = [c for c in categories if c != primary_cat]
-                secondary_cat = random.choice(available_secondary)
+            target = cat_balancer.get_next_target(is_combo=is_combo)
+            primary_cat = target.primary_category
+            target_sub = target.target_subcategory
+            secondary_cat = target.secondary_category
 
             target_country = random.choice(TARGET_COUNTRIES)
             is_global = (target_country == "Global")
@@ -144,9 +143,11 @@ def start_infinite_worker() -> None:
                 try:
                     q_data = generate_question_with_fallback(
                         primary_category=primary_cat,
+                        target_subcategory=target_sub,
                         secondary_category=secondary_cat,
                         target_country=None if is_global else target_country,
-                        base_difficulty=base_diff
+                        base_difficulty=base_diff,
+                        category_balancer=cat_balancer
                     )
                     
                     # 1. Ana kategoriler için get_category_color(cat) ile HEX renklerini ekle
@@ -163,6 +164,11 @@ def start_infinite_worker() -> None:
                     
                     # 3. Firestore'a meta verileriyle birlikte kaydet
                     if save_worker_question(db, q_data):
+                        cat_balancer.record_success(
+                            primary_category=primary_cat,
+                            subcategory=target_sub,
+                            secondary_category=secondary_cat
+                        )
                         produced_count += 1
                         logging.info(f"📊 Toplam Başarılı Soru: {produced_count}")
                     break
