@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import logging
 from pathlib import Path
 from typing import List, Literal, Optional, Dict, Any
 from dotenv import load_dotenv
@@ -87,6 +88,12 @@ class GeneratedQuestion(BaseModel):
     sub_categories_meta: List[SubCategoryMeta] = Field(default_factory=list, description="Alt kategori meta bilgileri (isim ve görsel URL)")
     is_combo: bool = Field(default=False, description="Hibrit soru mu")
     countries: List[str] = Field(default_factory=lambda: ["Global"], description="İlgili ülkeler")
+    version: str = Field(default="1.0.1", description="Soru veri şeması versiyonu")
+    difficulty_local: str = Field(default="Orta", description="Yerel zorluk seviyesi (Kolay, Orta, Zor)")
+    difficulty_local_score: int = Field(default=5, description="Yerel zorluk puanı (1-10)")
+    difficulty_global: str = Field(default="Orta", description="Küresel zorluk seviyesi (Kolay, Orta, Zor)")
+    difficulty_global_score: int = Field(default=5, description="Küresel zorluk puanı (1-10)")
+    difficulty_meta: Optional[Dict[str, Any]] = Field(default=None, description="Yerel ve küresel zorluk meta sözlüğü")
     difficulty_profile: DifficultyProfile = Field(description="Zorluk profili (yerel ve küresel)")
     correct_answer: Literal["A", "B", "C", "D"] = Field(description="Doğru cevap şıkkı")
     correct_option: Optional[Literal["A", "B", "C", "D"]] = Field(default=None, description="Hedef doğru cevap şıkkı")
@@ -139,7 +146,18 @@ def build_prompt(
         subcategory_instruction = f"- Alt Kategori Kılavuzu: Serbest{sub_cat_hint}"
         sub_schema_val = '"Alt Dal"'
 
-    difficulty_hint = f"- Genel Zorluk Kılavuzu: {base_difficulty}" if base_difficulty else "- Genel Zorluk Kılavuzu: Serbest (Konuya göre sen belirle)"
+    target_diff = base_difficulty if base_difficulty else "Orta"
+    sample_score = 2 if target_diff == "Kolay" else (6 if target_diff == "Orta" else 9)
+
+    difficulty_instruction = (
+        f"ZORLUK SEVİYESİ VE PUANLAMA TALİMATI (ZORUNLU):\n"
+        f"- Üretilecek sorunun Yerel Zorluk Seviyesi: {target_diff}.\n"
+        f"- Lütfen yerel puanı ('difficulty_local_score') kesinlikle buna göre ver:\n"
+        f"  * Kolay için: 1-4 puan arası (temel bilgi, genel bilinirlik)\n"
+        f"  * Orta için: 5-8 puan arası (çeldirici güçlü, orta düzey bilgi)\n"
+        f"  * Zor için: 9-10 puan arası (spesifik, derinlemesine uzmanlık bilgisi)\n"
+        f"- Global zorluğu ('difficulty_global') ve puanını ('difficulty_global_score') ise sorunun evrensel zorluğuna göre bağımsız belirle (Kolay: 1-4, Orta: 5-8, Zor: 9-10)."
+    )
 
     return f"""
 Sen profesyonel ve çok dilli bir soru hazırlama uzmanısın.
@@ -150,7 +168,7 @@ Kriterler:
 {subcategory_instruction}
 {f"- İkincil Kategori (Combo): {secondary_category}" if is_combo else "- Tip: Standart (Tek Kategori)"}
 - Odak Ülke/Bölge: {country_rule}
-{difficulty_hint}
+{difficulty_instruction}
 
 ZORLUK DEĞERLENDİRME VE 4 DİNAMİK SENARYO KURALI:
 Model olarak sorunun içeriğini ve hedef kitlesini analiz ederek aşağıdaki 4 senaryodan hangisine uyduğunu tespit et; hem `local` hem de `global` zorluk ve puanını dinamik olarak ata.
@@ -159,28 +177,28 @@ Hiçbir zorluk seviyesini varsayılan (default) kabul etme! `global` seviyesi de
 1. **Evrensel Kolay (Global: Kolay | Local: Kolay):**
    - Tüm dünyada ve yerelde hemen herkesin bildiği popüler kültür, temel coğrafya veya genel kültür soruları.
    - Örnekler: "Fransa'nın başkenti neresidir?", "Güneş sisteminin en büyük gezegeni hangisidir?", "Titanic filminin yönetmeni kimdir?"
-   - Skor Aralığı: Local: 1-3 | Global: 1-3
+   - Skor Aralığı: Local: 1-4 | Global: 1-4
 
 2. **Küresel Orta / Popüler (Global: Orta | Local: Kolay veya Orta):**
    - Dünya çapında tanınan ama temel düzeyin bir tık üstündeki spor, sinema, tarih veya bilim soruları.
    - Örnekler: "Real Madrid'in Şampiyonlar Ligi şampiyonlukları", "Mitoz bölünme evreleri", "Newton'ın hareket yasaları".
-   - Skor Aralığı: Local: 2-5 | Global: 4-6
+   - Skor Aralığı: Local: 2-6 | Global: 5-8
 
 3. **Yerel Niş / Küresel Zor (Global: Zor | Local: Kolay veya Orta):**
    - Sadece o ülkenin ({country_rule}) vatandaşlarının bilebileceği yerel ligler, yerel diziler, mahalli tarih veya yazarlar.
    - Örnekler: "Türkiye Süper Liginde 2010 şampiyonu kimdir?", "İspanya yerel bayramı La Tomatina hangi kasabada kutlanır?"
-   - Skor Aralığı: Local: 1-4 | Global: 8-10
+   - Skor Aralığı: Local: 1-6 | Global: 9-10
 
 4. **Evrensel İleri Düzey (Global: Zor | Local: Zor):**
    - Dünyanın her yerinde uzmanlık, ileri bilim veya detaylı bilgi gerektiren sorular.
    - Örnekler: "Kuantum elektrodinamiğinde Feynman diyagramları", "17. yüzyıl Avrupa felsefesi epistemoloji detayları".
-   - Skor Aralığı: Local: 8-10 | Global: 8-10
+   - Skor Aralığı: Local: 9-10 | Global: 9-10
 
 Etiket ve Puan Eşleşme Skalası:
-- "Kolay": 1 - 3 puan
-- "Orta": 4 - 7 puan
-- "Zor": 8 - 10 puan
-Seçilen etiket (`label`) ile puan (`score`) birbiriyle uyumlu tam sayılar olmalıdır.
+- "Kolay": 1 - 4 puan
+- "Orta": 5 - 8 puan
+- "Zor": 9 - 10 puan
+Seçilen etiket ile puan birbiriyle uyumlu tam sayılar olmalıdır.
 
 Zorunlu JSON Şeması:
 {{
@@ -188,9 +206,18 @@ Zorunlu JSON Şeması:
   "sub_categories": [{sub_schema_val}],
   "is_combo": {str(is_combo).lower()},
   "countries": ["{country_rule}"],
+  "version": "1.0.1",
+  "difficulty_local": "{target_diff}",
+  "difficulty_local_score": {sample_score},
+  "difficulty_global": "Orta",
+  "difficulty_global_score": 6,
+  "difficulty_meta": {{
+    "local": {{ "level": "{target_diff}", "score": {sample_score} }},
+    "global": {{ "level": "Orta", "score": 6 }}
+  }},
   "difficulty_profile": {{
-    "local": {{ "label": "Kolay", "score": 2 }},
-    "global": {{ "label": "Orta", "score": 5 }}
+    "local": {{ "label": "{target_diff}", "score": {sample_score} }},
+    "global": {{ "label": "Orta", "score": 6 }}
   }},
   "correct_answer": "A",
   "supported_languages": ["tr", "en", "es", "pt", "de"],
@@ -243,7 +270,7 @@ def generate_with_groq(client: Groq, model_name: str, prompt: str) -> GeneratedQ
     return GeneratedQuestion.model_validate(json.loads(cleaned))
 
 def populate_question_meta(q: GeneratedQuestion, primary_cat: str) -> GeneratedQuestion:
-    """Kategori rengi ve alt kategori görsellerini bağlar."""
+    """Kategori rengi, alt kategori görselleri ve zorluk meta verilerini bağlar."""
     if not q.categories_meta:
         q.categories_meta = [
             CategoryMeta(name=cat, color=get_category_color(cat))
@@ -254,6 +281,17 @@ def populate_question_meta(q: GeneratedQuestion, primary_cat: str) -> GeneratedQ
             SubCategoryMeta(name=sub, image_url=get_subcategory_image(primary_cat, sub))
             for sub in q.sub_categories
         ]
+    if not q.difficulty_meta:
+        q.difficulty_meta = {
+            "local": {
+                "level": q.difficulty_local,
+                "score": q.difficulty_local_score
+            },
+            "global": {
+                "level": q.difficulty_global,
+                "score": q.difficulty_global_score
+            }
+        }
     return q
 
 def generate_question_with_fallback(
@@ -266,13 +304,14 @@ def generate_question_with_fallback(
     balance_options: bool = True,
     is_combo: Optional[bool] = None,
     category_balancer: Optional[Any] = None,
-    balance_categories: bool = True
+    balance_categories: bool = True,
+    difficulty_balancer: Optional[Any] = None,
+    balance_difficulty: bool = True
 ) -> GeneratedQuestion:
     """
-    Kategori ve şık dengeleme mekanizması destekli soru üretim fonksiyonu.
-    Kategori veya alt kategori belirtilmemişse CategoryBalancer üzerinden dengeli hedef seçer.
+    Kategori, şık ve zorluk (4-4-2 kotası) dengeleme mekanizması destekli soru üretim fonksiyonu.
     """
-    # Kategori dengelemesi aktifse ve kategori veya alt kategori eksikse
+    # 1. Kategori dengelemesi aktifse ve kategori veya alt kategori eksikse
     if balance_categories:
         try:
             from category_balancer import get_category_balancer
@@ -298,12 +337,22 @@ def generate_question_with_fallback(
     if not primary_category:
         primary_category = "Bilim"
 
+    # 2. Zorluk dengelemesi (4-4-2 kuralı)
+    from difficulty_balancer import get_difficulty_balancer, DifficultyBalancer
+    diff_balancer = difficulty_balancer or get_difficulty_balancer()
+
+    target_diff = base_difficulty
+    if balance_difficulty and not target_diff:
+        target_diff = diff_balancer.get_next_target()
+    if not target_diff:
+        target_diff = "Orta"
+
     prompt = build_prompt(
         primary_category=primary_category,
         target_subcategory=target_subcategory,
         secondary_category=secondary_category,
         target_country=target_country,
-        base_difficulty=base_difficulty
+        base_difficulty=target_diff
     )
     
     last_error: Optional[Exception] = None
@@ -323,6 +372,45 @@ def generate_question_with_fallback(
                 if target_subcategory and (not q.sub_categories or target_subcategory not in q.sub_categories):
                     q.sub_categories = [target_subcategory] + [s for s in q.sub_categories if s != target_subcategory]
 
+                # Zorluk doğrulaması ve sınırlandırma (Clamping)
+                local_level = target_diff
+                raw_local_score = getattr(q, "difficulty_local_score", None)
+                if (not raw_local_score or raw_local_score == 5) and q.difficulty_profile and q.difficulty_profile.local:
+                    raw_local_score = q.difficulty_profile.local.score
+                clamped_local_score = DifficultyBalancer.validate_and_clamp_score(local_level, raw_local_score)
+
+                raw_global_level = getattr(q, "difficulty_global", None)
+                if not raw_global_level and q.difficulty_profile and q.difficulty_profile.global_scope:
+                    raw_global_level = q.difficulty_profile.global_scope.label
+                if not raw_global_level:
+                    raw_global_level = "Orta"
+
+                raw_global_score = getattr(q, "difficulty_global_score", None)
+                if (not raw_global_score or raw_global_score == 5) and q.difficulty_profile and q.difficulty_profile.global_scope:
+                    raw_global_score = q.difficulty_profile.global_scope.score
+                clamped_global_score = DifficultyBalancer.validate_and_clamp_score(raw_global_level, raw_global_score)
+                final_global_level = DifficultyBalancer.score_to_level(clamped_global_score)
+
+                q.version = "1.0.1"
+                q.difficulty_local = local_level
+                q.difficulty_local_score = clamped_local_score
+                q.difficulty_global = final_global_level
+                q.difficulty_global_score = clamped_global_score
+                q.difficulty_meta = {
+                    "local": {
+                        "level": local_level,
+                        "score": clamped_local_score
+                    },
+                    "global": {
+                        "level": final_global_level,
+                        "score": clamped_global_score
+                    }
+                }
+                q.difficulty_profile = DifficultyProfile(
+                    local=DifficultyScope(label=local_level, score=clamped_local_score),
+                    global_scope=DifficultyScope(label=final_global_level, score=clamped_global_score)
+                )
+
                 q = populate_question_meta(q, primary_category)
                 if balance_options:
                     from option_balancer import get_option_balancer
@@ -334,6 +422,14 @@ def generate_question_with_fallback(
                 q.duration_local = durations["duration_local"]
                 q.duration_global = durations["duration_global"]
                 q.duration_seconds = durations["duration_seconds"]
+
+                # Zorluk kotası logu
+                remaining_quota = diff_balancer.get_remaining_summary()
+                logging.info(
+                    f"🎯 [Zorluk] Yerel: {q.difficulty_local} ({q.difficulty_local_score}/10) | "
+                    f"Global: {q.difficulty_global} ({q.difficulty_global_score}/10) | "
+                    f"Kalan Blok Kotası: {remaining_quota}"
+                )
                 return q
         except Exception as e:
             last_error = e

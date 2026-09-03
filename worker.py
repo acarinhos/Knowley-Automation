@@ -70,6 +70,7 @@ def save_worker_question(db: Any, question_obj: GeneratedQuestion) -> bool:
         q_dict["status"] = "published"
         q_dict["times_served"] = 0
         q_dict["is_active"] = True
+        q_dict.setdefault("version", "1.0.1")
         if "correct_option" not in q_dict or not q_dict["correct_option"]:
             q_dict["correct_option"] = q_dict.get("correct_answer")
         if "correct_answer" not in q_dict or not q_dict["correct_answer"]:
@@ -121,6 +122,8 @@ def start_infinite_worker() -> None:
     
     db = init_firebase()
     cat_balancer = get_category_balancer(db=db)
+    from difficulty_balancer import get_difficulty_balancer
+    diff_balancer = get_difficulty_balancer()
     produced_count = 0
 
     while True:
@@ -135,9 +138,6 @@ def start_infinite_worker() -> None:
 
             target_country = random.choice(TARGET_COUNTRIES)
             is_global = (target_country == "Global")
-            
-            # İsteğe bağlı genel zorluk seviyesi
-            base_diff = random.choice(["Kolay", "Orta", "Zor"])
 
             for attempt in range(1, MAX_BLOCK_RETRIES + 1):
                 try:
@@ -146,8 +146,8 @@ def start_infinite_worker() -> None:
                         target_subcategory=target_sub,
                         secondary_category=secondary_cat,
                         target_country=None if is_global else target_country,
-                        base_difficulty=base_diff,
-                        category_balancer=cat_balancer
+                        category_balancer=cat_balancer,
+                        difficulty_balancer=diff_balancer
                     )
                     
                     # 1. Ana kategoriler için get_category_color(cat) ile HEX renklerini ekle

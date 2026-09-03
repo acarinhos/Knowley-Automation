@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from dotenv import load_dotenv
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, storage
 
 env_path = Path(__file__).parent / ".env"
 load_dotenv(dotenv_path=env_path)
@@ -16,9 +16,18 @@ def init_firebase():
         if not cred_path or not os.path.exists(cred_path):
             raise FileNotFoundError(f"Firebase kimlik dosyası bulunamadı: {cred_path}")
         
+        storage_bucket = os.getenv("FIREBASE_STORAGE_BUCKET", "knowley-1-categories")
         cred = credentials.Certificate(cred_path)
-        firebase_admin.initialize_app(cred)
+        firebase_admin.initialize_app(cred, {
+            "storageBucket": storage_bucket
+        })
     return firestore.client()
+
+def get_storage_bucket(bucket_name: str = None):
+    """Firebase Storage bucket nesnesini döndürür."""
+    init_firebase()
+    target_bucket = bucket_name or os.getenv("FIREBASE_STORAGE_BUCKET", "knowley-1-categories")
+    return storage.bucket(target_bucket)
 
 def generate_question_hash(question_text: str) -> str:
     """Soru metninden benzersiz bir hash üretir (Tekrar kontrolü için)."""
@@ -61,6 +70,7 @@ def save_question_to_firestore(db, question_obj) -> bool:
         q_dict["question_hash"] = q_hash
         q_dict["created_at"] = datetime.now(timezone.utc).isoformat()
         q_dict["status"] = "published"
+        q_dict.setdefault("version", "1.0.1")
         if "correct_option" not in q_dict or not q_dict["correct_option"]:
             q_dict["correct_option"] = q_dict.get("correct_answer")
         if "correct_answer" not in q_dict or not q_dict["correct_answer"]:
