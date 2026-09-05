@@ -1,6 +1,7 @@
-from collections import Counter
+import sys
 import logging
-from db_manager import init_firebase
+from category_balancer import get_category_balancer
+from categories_config import CATEGORIES_META
 
 logging.basicConfig(
     level=logging.INFO,
@@ -8,74 +9,59 @@ logging.basicConfig(
 )
 
 def analyze_category_distribution():
-    logging.info("🔍 Firestore soruları taranıyor...")
-    
-    db = init_firebase()
-    questions_ref = db.collection("questions")
-    docs = questions_ref.stream()
+    # Konsol UTF-8 desteği
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
 
-    category_counts = Counter()
-    subcategory_counts = Counter()
-    combo_count = 0
-    total_questions = 0
+    logging.info("🔍 Firestore soruları CategoryBalancer ile taranıyor...")
+    balancer = get_category_balancer()
+    summary = balancer.get_distribution_summary()
 
-    for doc in docs:
-        total_questions += 1
-        data = doc.to_dict()
+    total_questions = summary["total_questions"]
+    cat_counts = summary["category_counts"]
+    cat_percentages = summary["category_percentages"]
+    sub_counts = summary["subcategory_counts"]
+    is_equalized = summary["is_equalized"]
 
-        # Ana kategorileri kontrol et (liste veya tekil string olabilir)
-        categories = data.get("categories") or []
-        if isinstance(categories, str):
-            categories = [categories]
-        elif not categories and data.get("category"):
-            categories = [data.get("category")]
+    # 1. Ana Kategori Raporu
+    print("\n" + "=" * 70)
+    print(" 📊 ANA KATEGORİ DAĞILIM RAPORU (20 ANA KATEGORİ)")
+    print("=" * 70)
+    print(f"Toplam Veritabanı Soru Puanı : {total_questions}")
+    print(f"Kategoriler Arası Denge Durumu : {'⚖️ TAM DENGEDE' if is_equalized else '🎯 Catch-up (Dengeleme Modu)'}")
+    print("-" * 70)
+    print(f"{'Ana Kategori':<30} | {'Soru Sayısı':<15} | {'Oran (%)':<10}")
+    print("-" * 70)
 
-        if len(categories) > 1:
-            combo_count += 1
+    for cat, count in sorted(cat_counts.items(), key=lambda x: x[1], reverse=True):
+        pct = cat_percentages.get(cat, 0.0)
+        print(f"{cat:<30} | {count:<15} | %{pct:.1f}")
 
-        for cat in categories:
-            clean_cat = str(cat).strip()
-            category_counts[clean_cat] += 1
+    print("=" * 70)
 
-        # Alt kategorileri kontrol et
-        subcategories = data.get("sub_categories") or []
-        if isinstance(subcategories, str):
-            subcategories = [subcategories]
-        elif not subcategories and data.get("sub_category"):
-            subcategories = [data.get("sub_category")]
+    # 2. Kategori Bazlı Tüm Alt Dalların Raporu
+    print("\n" + "=" * 70)
+    print(f" 📑 TÜM ALT DALLARIN DAĞILIMI (20 KATEGORİ)")
+    print("=" * 70)
 
-        for sub in subcategories:
-            clean_sub = str(sub).strip()
-            subcategory_counts[clean_sub] += 1
+    total_configured_subs = sum(len(meta.get("sub_categories", {})) for meta in CATEGORIES_META.values())
 
-    # Raporlama
-    print("\n" + "=" * 65)
-    print(" 📊 KATEGORİ DAĞILIM RAPORU ")
-    print("=" * 65)
-    print(f"Toplam Soru Sayısı : {total_questions}")
-    print(f"Combo (Çoklu Kategori) Soru Sayısı : {combo_count}")
-    print("-" * 65)
-    print(f"{'Ana Kategori':<35} | {'Soru Sayısı':<12} | {'Oran (%)':<10}")
-    print("-" * 65)
+    for cat, meta in CATEGORIES_META.items():
+        cat_subs = sub_counts.get(cat, {})
+        cat_total_subs = sum(cat_subs.values())
+        print(f"\n📂 {cat.upper()} (Toplam Alt Dal Sorusu: {cat_total_subs} | Ana Kategori Soru: {cat_counts.get(cat, 0)})")
+        print("-" * 70)
+        print(f"  {'Alt Dal (Sub-Category)':<35} | {'Soru Sayısı':<12}")
+        print("  " + "-" * 50)
 
-    for cat, count in category_counts.most_common():
-        pct = (count / total_questions * 100) if total_questions > 0 else 0
-        print(f"{cat:<35} | {count:<12} | %{pct:.1f}")
+        # En azdan en çoğa sırala (böylece eksik kalanlar hemen görülür)
+        for sub_name in meta.get("sub_categories", {}).keys():
+            count = cat_subs.get(sub_name, 0)
+            print(f"  {sub_name:<35} | {count:<12}")
 
-    if not category_counts:
-        print("Veritabanında kategori verisi bulunamadı.")
-
-    print("=" * 65)
-    print("\n" + "=" * 65)
-    print(" 📑 ALT KATEGORİ (SUB-CATEGORY) DAĞILIMI (İLK 25)")
-    print("=" * 65)
-    print(f"{'Alt Kategori':<35} | {'Soru Sayısı':<12}")
-    print("-" * 65)
-
-    for sub, count in subcategory_counts.most_common(25):
-        print(f"{sub:<35} | {count:<12}")
-
-    print("=" * 65 + "\n")
+    print("\n" + "=" * 70)
+    print(f"✅ Toplam {len(CATEGORIES_META)} Ana Kategori ve {total_configured_subs} Alt Dalın Tamamı İzlendi.")
+    print("=" * 70 + "\n")
 
 if __name__ == "__main__":
     analyze_category_distribution()

@@ -17,30 +17,89 @@ if not logger.handlers:
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
 
-# Eski veya alternatif kategori / alt kategori isimlerini standart forma eşleme
+# Eski veya alternatif kategori / alt kategori isimlerini standart 20 forma eşleme
 CATEGORY_ALIASES: Dict[str, str] = {
-    "Felsefe & Mantık": "Felsefe ve Mantık",
-    "Fizik": "Bilim",
-    "Kimya": "Bilim",
-    "Biyoloji": "Bilim",
-    "Astronomi & Uzay": "Bilim",
-    "Astronomi": "Bilim",
-    "Sinema & Dizi": "Popüler Kültür",
-    "Sinema": "Popüler Kültür",
-    "Müzik": "Popüler Kültür",
-    "Video Oyunları": "Popüler Kültür",
-    "Oyun & Espor": "Popüler Kültür",
-    "Edebiyat": "Sanat ve Edebiyat",
-    "Mimarlık & Sanat": "Sanat ve Edebiyat",
-    "Mimari": "Sanat ve Edebiyat",
-    "Sanat": "Sanat ve Edebiyat",
+    "Felsefe ve Mantık": "Felsefe & Mantık",
+    "Felsefe": "Felsefe & Mantık",
+    "Astronomi": "Astronomi & Uzay",
+    "Uzay": "Astronomi & Uzay",
+    "Sinema": "Sinema & Dizi",
+    "Diziler": "Sinema & Dizi",
+    "Video Oyunları": "Oyun & Espor",
+    "Oyun": "Oyun & Espor",
+    "Espor": "Oyun & Espor",
+    "Mimarlık": "Mimarlık & Sanat",
+    "Mimari": "Mimarlık & Sanat",
+    "Sanat": "Mimarlık & Sanat",
+    "Mitoloji": "Genel Kültür & Mitoloji",
+    "Genel Kültür": "Genel Kültür & Mitoloji",
+    "Genel": "Genel Kültür & Mitoloji",
+    "Teknoloji": "Bilgisayar & Yazılım",
+    "Yazılım": "Bilgisayar & Yazılım",
+    "Bilgisayar": "Bilgisayar & Yazılım",
+    "Tıp": "Tıp & Sağlık",
+    "Sağlık": "Tıp & Sağlık",
+    "Sosyoloji": "Sosyoloji & Psikoloji",
+    "Psikoloji": "Sosyoloji & Psikoloji",
+    "Hukuk": "Hukuk & Siyaset",
+    "Siyaset": "Hukuk & Siyaset",
+    "Gastronomi": "Gastronomi & Mutfak",
+    "Mutfak": "Gastronomi & Mutfak",
+    "Ekonomi": "Ekonomi & Finans",
+    "Finans": "Ekonomi & Finans",
 }
 
 SUBCATEGORY_ALIASES: Dict[str, str] = {
-    "Astronomi & Uzay": "Astronomi",
-    "Sinema & Dizi": "Sinema",
-    "Oyun & Espor": "Video Oyunları",
-    "Mimarlık & Sanat": "Mimari",
+    "Antik Çağ": "Arkeoloji",
+    "Orta Çağ": "Kültürel Tarih",
+    "Dünya Savaşları": "Askeri Tarih",
+    "Osmanlı Tarihi": "Siyasi Tarih",
+    "Modern Tarih": "Siyasi Tarih",
+    "Başkentler ve Ülkeler": "Beşeri",
+    "Fiziki Coğrafya": "Fiziki",
+    "Harita ve Bayraklar": "Ekonomik Coğrafya",
+    "İklim ve Doğa Olayları": "Fiziki",
+    "Motor Sporları": "Formula 1",
+    "Olimpiyatlar": "Atletizm",
+    "Klasik Mekanik": "Mekanik",
+    "Kuantum ve Atom": "Kuantum",
+    "Elektrik ve Manyetizma": "Elektromanyetizma",
+    "Termodinamik ve Enerji": "Termodinamik",
+    "Optik ve Dalgalar": "Optik",
+    "Periyodik Tablo ve Elementler": "Anorganik",
+    "Kimya": "Anorganik",
+    "Organik Kimya": "Organik",
+    "Kimyasal Tepkimeler": "Fizikokimya",
+    "Biyoloji": "Hücre",
+    "İnsan Anatomisi ve Tıp": "İnsan Fizyolojisi",
+    "Hücre ve Mikrobiyoloji": "Hücre",
+    "Hayvanlar Alemi": "Ekoloji",
+    "Şiir ve Şairler": "Şiir",
+    "Tiyatro ve Sahne": "Tiyatro & Drama",
+    "Ahlak Felsefesi": "Etik",
+    "Mantık ve Akıl Yürütme": "Klasik Mantık",
+    "Sinema": "Yönetmen Sineması",
+    "Diziler ve TV": "Kült Diziler",
+    "Diziler": "Kült Diziler",
+    "Müzik": "Pop & Hip-Hop",
+    "Rock ve Metal": "Rock & Metal",
+    "Caz ve Blues": "Caz & Blues",
+    "Popüler Müzik": "Pop & Hip-Hop",
+    "Video Oyunları": "Oyun Tarihi",
+    "Mimari": "Mimari Akımlar",
+    "Resim ve Heykel": "Heykel",
+    "Yunan ve Roma Mitolojisi": "Yunan",
+    "İskandinav Mitolojisi": "İskandinav",
+    "Mısır Mitolojisi": "Mısır/Doğu Mitolojisi",
+    "Türk ve Doğu Mitolojileri": "Mısır/Doğu Mitolojisi",
+    "Yapay Zeka ve Gelecek": "Yapay Zeka",
+    "Yazılım ve Kodlama": "Web Geliştirme",
+    "Akıllı Cihazlar ve Donanım": "Veritabanları",
+    "Astronomi": "Astrofizik",
+    "Güneş Sistemi ve Gezegenler": "Güneş Sistemi",
+    "Yıldızlar ve Galaksiler": "Yıldızlar & Karadelikler",
+    "Uzay Keşifleri ve Roketler": "Uzay Görevleri",
+    "Astrofizik ve Kara Delikler": "Astrofizik",
 }
 
 
@@ -174,11 +233,48 @@ class CategoryBalancer:
                 elif not subs and data.get("sub_category"):
                     subs = [data.get("sub_category")]
 
+                first_sub = str(subs[0]).strip() if subs else ""
+                first_sub = SUBCATEGORY_ALIASES.get(first_sub, first_sub)
+
                 cleaned_cats: List[str] = []
                 for c in cats:
                     clean_c = str(c).strip()
-                    # Alias kontrolü
-                    normalized_cat = CATEGORY_ALIASES.get(clean_c, clean_c)
+                    if clean_c == "Sanat ve Edebiyat":
+                        if first_sub in ["Dünya Edebiyatı", "Türk Edebiyatı", "Şiir", "Tiyatro & Drama", "Mitolojik Metinler"]:
+                            normalized_cat = "Edebiyat"
+                        else:
+                            normalized_cat = "Mimarlık & Sanat"
+                    elif clean_c in ["Sanat", "Mimarlık", "Mimari"]:
+                        normalized_cat = "Mimarlık & Sanat"
+                    elif clean_c == "Popüler Kültür":
+                        if first_sub in ["Sinema", "Diziler ve TV", "Diziler", "Yönetmen Sineması", "Gişe", "Animasyon", "Kült Diziler", "Belgesel"]:
+                            normalized_cat = "Sinema & Dizi"
+                        elif first_sub in ["Müzik", "Klasik", "Rock & Metal", "Caz & Blues", "Pop & Hip-Hop"]:
+                            normalized_cat = "Müzik"
+                        elif first_sub in ["Video Oyunları", "Oyun Tarihi", "RPG & Macera", "FPS & Rekabetçi", "Strateji", "Espor Turnuvaları"]:
+                            normalized_cat = "Oyun & Espor"
+                        else:
+                            normalized_cat = "Genel Kültür & Mitoloji"
+                    elif clean_c == "Bilim":
+                        if first_sub in ["Mekanik", "Termodinamik", "Optik", "Elektromanyetizma", "Kuantum", "Fizik"]:
+                            normalized_cat = "Fizik"
+                        elif first_sub in ["Organik", "Anorganik", "Fizikokimya", "Biyokimya", "Analitik Kimya", "Kimya"]:
+                            normalized_cat = "Kimya"
+                        elif first_sub in ["Genetik", "Hücre", "İnsan Fizyolojisi", "Ekoloji", "Evrim", "Biyoloji"]:
+                            normalized_cat = "Biyoloji"
+                        elif first_sub in ["Güneş Sistemi", "Yıldızlar & Karadelikler", "Uzay Görevleri", "Astrofizik", "Astronomi"]:
+                            normalized_cat = "Astronomi & Uzay"
+                        else:
+                            normalized_cat = "Bilgisayar & Yazılım"
+                    elif clean_c in ["Felsefe ve Mantık", "Felsefe"]:
+                        normalized_cat = "Felsefe & Mantık"
+                    elif clean_c in ["Genel Kültür", "Mitoloji", "Genel"]:
+                        normalized_cat = "Genel Kültür & Mitoloji"
+                    elif clean_c in ["Teknoloji", "Yazılım", "Bilgisayar"]:
+                        normalized_cat = "Bilgisayar & Yazılım"
+                    else:
+                        normalized_cat = CATEGORY_ALIASES.get(clean_c, clean_c)
+
                     if normalized_cat in self.category_counts:
                         cleaned_cats.append(normalized_cat)
                         cat_counter[normalized_cat] += 1
@@ -193,12 +289,19 @@ class CategoryBalancer:
                     if primary_cat and primary_cat in self.subcategory_counts:
                         if clean_s in self.subcategory_counts[primary_cat]:
                             sub_counter[primary_cat][clean_s] += 1
-                        else:
-                            # Eğer alt kategori konfigürasyonda varsa say
-                            for known_cat, sub_dict in self.subcategory_counts.items():
-                                if clean_s in sub_dict:
-                                    sub_counter[known_cat][clean_s] += 1
-                                    break
+                            continue
+
+                    matched = False
+                    for known_cat, sub_dict in self.subcategory_counts.items():
+                        if clean_s in sub_dict:
+                            sub_counter[known_cat][clean_s] += 1
+                            matched = True
+                            break
+
+                    if not matched and primary_cat and primary_cat in self.subcategory_counts:
+                        sub_keys = list(self.subcategory_counts[primary_cat].keys())
+                        if sub_keys:
+                            sub_counter[primary_cat][sub_keys[0]] += 1
 
             with self.lock:
                 for cat in self.category_counts.keys():
@@ -246,11 +349,14 @@ class CategoryBalancer:
         Dengeleme kurallarına göre sıradaki üretilecek ana kategori, alt kategori ve (eğer combo ise) ikincil kategoriyi belirler.
 
         Adım 1 (Ana Kategori Seçimi):
-          - Döngü modunda veya eşitlenmişse döngü havuzundan (cycle_pool) sıradaki çekilir.
-          - Eşitlenmemişse (Catch-up): Soru sayısı en az olan ana kategoriler arasından rastgele seçilir.
+          - Her zaman o anki sayaçlar üzerinden soru sayısı en az olan ana kategoriler tespit edilir.
+          - En az soruya sahip kategoriler arasından rastgele seçim yapılır.
+          - Tüm ana kategoriler eşit olduğunda hepsi aday olur ve aralarından rastgele seçilerek bir sonraki seviyeye dengeli ilerlenir.
 
         Adım 2 (Alt Kategori Seçimi):
-          - Seçilen ana kategorinin alt kategorileri taranır; o ana kategori içinde soru sayısı en az olan alt kategori seçilir.
+          - Seçilen ana kategorinin alt dalları taranır; o ana kategori içinde soru sayısı en az olan alt dallar tespit edilir.
+          - En az soruya sahip alt kategoriler arasından rastgele dağıtım yapılır.
+          - Böylece bir ana kategorinin genel alt dalları da kendi arasında dengeli olur.
 
         Adım 3 (Combo Desteği):
           - is_combo=True ise 'POSSIBLE_COMBO_MATCHES' listesinde yer alan alternatifler arasından soru sayısı en az olan ikincil kategori seçilir.
@@ -260,44 +366,40 @@ class CategoryBalancer:
             auto_increment: Seçim anında sayaçları hemen artırsın mı? (Varsayılan: False - kayıt sonrası güncellenir)
         """
         with self.lock:
-            # --- Adım 1: Ana Kategori Seçimi ---
-            if self.cycle_pool or self.is_equalized():
-                if not self.cycle_pool:
-                    self.cycle_pool = list(self.category_counts.keys())
-                    random.shuffle(self.cycle_pool)
-                    logger.info(f"🔄 [Category Cycle] Yeni dengeli kategori döngü havuzu karıştırıldı: {self.cycle_pool}")
+            # --- Adım 1: Ana Kategori Seçimi (Dinamik Minimum + Rastgele Dağıtım) ---
+            min_cat_count = min(self.category_counts.values()) if self.category_counts else 0
+            cat_candidates = [c for c, count in self.category_counts.items() if count == min_cat_count]
+            primary_cat = random.choice(cat_candidates)
 
-                primary_cat = self.cycle_pool.pop(0)
-                logger.info(f"🎯 [Category Cycle] Atanan Ana Kategori: {primary_cat} (Kalan Döngü: {self.cycle_pool})")
+            # Geriye dönük uyumluluk / özet için cycle_pool'u kalan adaylarla senkron tut
+            self.cycle_pool = [c for c in cat_candidates if c != primary_cat]
+
+            if self.is_equalized():
+                logger.info(f"⚖️ [Category Equalized] Tüm ana kategoriler eşit ({min_cat_count} soru). Rastgele Seçilen: {primary_cat}")
             else:
-                # Catch-up modu: Soru sayısı en az olan ana kategorileri tespit et
-                min_count = min(self.category_counts.values())
-                candidates = [c for c, count in self.category_counts.items() if count == min_count]
-                primary_cat = random.choice(candidates)
-                logger.info(f"🎯 [Category Catch-up] Atanan Ana Kategori: {primary_cat} (Adaylar: {candidates}, En Az: {min_count})")
+                logger.info(f"🎯 [Category Catch-up] Atanan Ana Kategori: {primary_cat} (En Az Soru: {min_cat_count} | Adaylar: {cat_candidates})")
 
-            # --- Adım 2: Alt Kategori Seçimi ---
+            # --- Adım 2: Alt Kategori Seçimi (Dinamik Minimum + Rastgele Dağıtım) ---
             subs = self.subcategory_counts.get(primary_cat, {})
             if not subs:
-                # Konfigürasyondan doğrudan alt kategorileri çek
                 cat_meta = CATEGORIES_META.get(primary_cat, {})
                 available_subs = list(cat_meta.get("sub_categories", {}).keys())
                 target_sub = random.choice(available_subs) if available_subs else "Genel"
             else:
-                # Alt kategoriler eşitlendiğinde alt kategori döngü havuzunu kullan
-                sub_pool = self.sub_cycle_pools.get(primary_cat, [])
-                if sub_pool or self.is_subcategory_equalized(primary_cat):
-                    if not sub_pool:
-                        sub_pool = list(subs.keys())
-                        random.shuffle(sub_pool)
-                        self.sub_cycle_pools[primary_cat] = sub_pool
-                        logger.info(f"🔄 [SubCategory Cycle] '{primary_cat}' alt kategori havuzu yenilendi: {sub_pool}")
+                min_sub_count = min(subs.values())
+                sub_candidates = [s for s, count in subs.items() if count == min_sub_count]
+                target_sub = random.choice(sub_candidates)
 
-                    target_sub = self.sub_cycle_pools[primary_cat].pop(0)
+                # Geriye dönük uyumluluk için sub_cycle_pools güncelle
+                self.sub_cycle_pools[primary_cat] = [s for s in sub_candidates if s != target_sub]
+
+                if self.is_subcategory_equalized(primary_cat):
+                    logger.info(f"⚖️ [SubCategory Equalized] '{primary_cat}' alt dalları dengede ({min_sub_count} soru). Rastgele Seçilen: {target_sub}")
                 else:
-                    min_sub_count = min(subs.values())
-                    sub_candidates = [s for s, count in subs.items() if count == min_sub_count]
-                    target_sub = random.choice(sub_candidates)
+                    logger.info(
+                        f"🎯 [SubCategory Catch-up] '{primary_cat}' için Alt Kategori: {target_sub} "
+                        f"(En Az Soru: {min_sub_count} | Adaylar: {sub_candidates})"
+                    )
 
             # --- Adım 3: Combo İkincil Kategori Seçimi ---
             secondary_cat: Optional[str] = None
@@ -385,7 +487,7 @@ class CategoryBalancer:
         if self.is_equalized():
             logger.info(
                 f"🎉 Tüm ana kategoriler eşitlendi! (Her biri: {self.category_counts[primary_category]} soru). "
-                f"Bundan sonra Döngü Havuzu (Cycle Pool) modu kullanılacak."
+                f"Sistem dinamik eşit dengeleme ile devam ediyor."
             )
 
     def record_question(self, question: Any) -> None:

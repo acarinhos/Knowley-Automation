@@ -1,4 +1,5 @@
 import os
+import random
 import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
@@ -68,9 +69,16 @@ def save_question_to_firestore(db, question_obj) -> bool:
         
         # Meta veriler ve doğru şık/süre eşleşmesi
         q_dict["question_hash"] = q_hash
-        q_dict["created_at"] = datetime.now(timezone.utc).isoformat()
+        q_dict["created_at"] = q_dict.get("created_at") or datetime.now(timezone.utc).isoformat()
         q_dict["status"] = "published"
-        q_dict.setdefault("version", "1.0.1")
+        q_dict["version"] = "1.0.2"
+        q_dict.setdefault("scope", "global")
+        q_dict.setdefault("target_country", (q_dict.get("countries") or ["Global"])[0])
+        q_dict.setdefault("target_country_credit", 10)
+        q_dict.setdefault("is_global_eligible", True)
+        q_dict.setdefault("correct_count", 0)
+        q_dict.setdefault("wrong_count", 0)
+        q_dict.setdefault("shuffle_key", round(random.random(), 6))
         if "correct_option" not in q_dict or not q_dict["correct_option"]:
             q_dict["correct_option"] = q_dict.get("correct_answer")
         if "correct_answer" not in q_dict or not q_dict["correct_answer"]:

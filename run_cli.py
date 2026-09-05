@@ -5,7 +5,7 @@ from categories_config import CATEGORIES_DATA, DIFFICULTIES
 from generator import create_gemini_client, generate_single_question
 from db_manager import init_firebase, save_question_to_firestore
 
-def generate_with_retry(client, category, sub_category, filter_tag, difficulty, max_retries=3):
+def generate_with_retry(client, category, sub_category, filter_tag, difficulty, scope=None, target_country=None, max_retries=3):
     """API hatalarına karşı kademeli bekleme (exponential backoff) ile güvenli üretim."""
     delay = 2
     for attempt in range(1, max_retries + 1):
@@ -15,7 +15,9 @@ def generate_with_retry(client, category, sub_category, filter_tag, difficulty, 
                 category=category,
                 sub_category=sub_category,
                 filter_tag=filter_tag,
-                difficulty=difficulty
+                difficulty=difficulty,
+                scope=scope,
+                target_country=target_country
             )
         except Exception as e:
             print(f"  ⚠️ Hata oluştu (Deneme {attempt}/{max_retries}): {e}")
@@ -25,14 +27,14 @@ def generate_with_retry(client, category, sub_category, filter_tag, difficulty, 
             else:
                 raise e
 
-def run_targeted_generation(count: int, category: str = None, sub_category: str = None, difficulty: str = None):
-    """Belirli veya rastgele filtrelerle soru üretir."""
+def run_targeted_generation(count: int, category: str = None, sub_category: str = None, difficulty: str = None, scope: str = None, country: str = None):
+    """Belirli veya rastgele filtrelerle soru üretir (v1.0.2)."""
     client = create_gemini_client()
     db = init_firebase()
     categories_list = list(CATEGORIES_DATA.keys())
     
     saved_count = 0
-    print(f"\n🚀 Soru Üretimi Başlıyor | Hedef: {count} Soru\n" + "="*50)
+    print(f"\n🚀 Soru Üretimi Başlıyor (v1.0.2) | Hedef: {count} Soru\n" + "="*50)
 
     for i in range(count):
         # Parametre seçimi
@@ -51,7 +53,9 @@ def run_targeted_generation(count: int, category: str = None, sub_category: str 
                 category=selected_cat,
                 sub_category=selected_sub,
                 filter_tag=selected_filter,
-                difficulty=selected_diff
+                difficulty=selected_diff,
+                scope=scope,
+                target_country=country
             )
             
             if save_question_to_firestore(db, q_data):
@@ -105,6 +109,8 @@ if __name__ == "__main__":
     parser.add_argument("--category", type=str, default=None, help="Belirli bir ana kategori")
     parser.add_argument("--subcategory", type=str, default=None, help="Belirli bir alt kategori")
     parser.add_argument("--difficulty", type=str, choices=["Kolay", "Orta", "Zor"], default=None, help="Zorluk seviyesi")
+    parser.add_argument("--scope", type=str, choices=["global", "local"], default=None, help="Kapsam: global veya local")
+    parser.add_argument("--country", type=str, default=None, help="Hedef odak ülke")
     parser.add_argument("--matrix", action="store_true", help="Tüm kategorilerden dengeli havuz üretir")
     parser.add_argument("--matrix_count", type=int, default=2, help="Matris modunda her zorluk için üretilecek adet")
 
@@ -117,5 +123,7 @@ if __name__ == "__main__":
             count=args.count,
             category=args.category,
             sub_category=args.subcategory,
-            difficulty=args.difficulty
+            difficulty=args.difficulty,
+            scope=args.scope,
+            country=args.country
         )

@@ -12,11 +12,12 @@ class TestCategoryBalancer(unittest.TestCase):
     def test_bootstrap_initialization(self):
         """
         Bootstrap Testi:
-        Tüm konfigüre edilmiş kategoriler ve alt kategoriler başlangıçta 0 olarak sayaçlara eklenmelidir.
+        Tüm konfigüre edilmiş 20 kategori ve alt kategoriler başlangıçta 0 olarak sayaçlara eklenmelidir.
         """
         balancer = CategoryBalancer(auto_scan=False)
 
-        # Tüm ana kategoriler mevcut ve 0 mı?
+        # 20 ana kategori mevcut ve 0 mı?
+        self.assertEqual(len(self.all_categories), 20)
         for cat in self.all_categories:
             self.assertIn(cat, balancer.category_counts)
             self.assertEqual(balancer.category_counts[cat], 0)
@@ -37,9 +38,8 @@ class TestCategoryBalancer(unittest.TestCase):
         öncelikli olarak seçilmeli; yüksek olanlar asla seçilmemelidir.
         """
         initial_counts = {cat: 50 for cat in self.all_categories}
-        # Bilim ve Popüler Kültür'ü az soruya sahip yap
-        initial_counts["Bilim"] = 5
-        initial_counts["Popüler Kültür"] = 5
+        initial_counts["Fizik"] = 5
+        initial_counts["Kimya"] = 5
 
         balancer = CategoryBalancer(
             auto_scan=False,
@@ -48,12 +48,12 @@ class TestCategoryBalancer(unittest.TestCase):
 
         self.assertFalse(balancer.is_equalized())
 
-        # İlk seçimlerde sadece Bilim veya Popüler Kültür seçilmeli
+        # İlk seçimlerde sadece Fizik veya Kimya seçilmeli
         for _ in range(20):
             target = balancer.get_next_target(is_combo=False)
             self.assertIn(
                 target.primary_category,
-                ["Bilim", "Popüler Kültür"],
+                ["Fizik", "Kimya"],
                 f"Beklenen az sorulu kategori iken {target.primary_category} geldi!"
             )
             self.assertNotIn(
@@ -71,22 +71,69 @@ class TestCategoryBalancer(unittest.TestCase):
             cat: {sub: 20 for sub in CATEGORIES_META[cat]["sub_categories"].keys()}
             for cat in self.all_categories
         }
-        # Bilim altındaki Genetik'i 1 yap
-        initial_subs["Bilim"]["Genetik"] = 1
+        # Biyoloji altındaki Genetik'i 1 yap
+        initial_subs["Biyoloji"]["Genetik"] = 1
+
+        initial_counts = {cat: 10 for cat in self.all_categories}
+        initial_counts["Biyoloji"] = 2  # Biyoloji en az soruya sahip olsun
 
         balancer = CategoryBalancer(
             auto_scan=False,
-            initial_category_counts={cat: 10 for cat in self.all_categories},
+            initial_category_counts=initial_counts,
             initial_subcategory_counts=initial_subs
         )
 
-        # Bilim kategorisi için hedef üretildiğinde alt kategori Genetik olmalı
-        # Mock olarak cycle_pool'a sadece Bilim koy
-        balancer.cycle_pool = ["Bilim"]
         target = balancer.get_next_target(is_combo=False)
-
-        self.assertEqual(target.primary_category, "Bilim")
+        self.assertEqual(target.primary_category, "Biyoloji")
         self.assertEqual(target.target_subcategory, "Genetik")
+
+    def test_subcategory_catch_up_and_balance(self):
+        """
+        Alt Dallar Kendi Arasında Dengeleme Testi:
+        Tarih kategorisinde Siyasi Tarih (27) yüksek iken;
+        Askeri Tarih (3), Kültürel Tarih (3), Antlaşmalar (3) eşitlenene kadar
+        bu az olanlar arasından rastgele seçilmeli, Siyasi Tarih asla seçilmemelidir.
+        """
+        initial_counts = {cat: 20 for cat in self.all_categories}
+        initial_counts["Tarih"] = 2  # Tarih seçilecek
+
+        initial_subs = {
+            cat: {sub: 10 for sub in CATEGORIES_META[cat]["sub_categories"].keys()}
+            for cat in self.all_categories
+        }
+        initial_subs["Tarih"] = {
+            "Siyasi Tarih": 27,
+            "Arkeoloji": 4,
+            "Askeri Tarih": 3,
+            "Kültürel Tarih": 3,
+            "Antlaşmalar": 3
+        }
+
+        balancer = CategoryBalancer(
+            auto_scan=False,
+            initial_category_counts=initial_counts,
+            initial_subcategory_counts=initial_subs
+        )
+
+        # İlk 3 seçimde Askeri Tarih, Kültürel Tarih veya Antlaşmalar seçilmeli (min=3)
+        chosen_subs = []
+        for _ in range(3):
+            target = balancer.get_next_target(is_combo=False, auto_increment=True)
+            self.assertEqual(target.primary_category, "Tarih")
+            self.assertIn(target.target_subcategory, ["Askeri Tarih", "Kültürel Tarih", "Antlaşmalar"])
+            self.assertNotEqual(target.target_subcategory, "Siyasi Tarih")
+            chosen_subs.append(target.target_subcategory)
+
+        # 3 seçim sonunda Askeri Tarih, Kültürel Tarih, Antlaşmalar hepsi 4 oldu
+        self.assertEqual(balancer.subcategory_counts["Tarih"]["Askeri Tarih"], 4)
+        self.assertEqual(balancer.subcategory_counts["Tarih"]["Kültürel Tarih"], 4)
+        self.assertEqual(balancer.subcategory_counts["Tarih"]["Antlaşmalar"], 4)
+        self.assertEqual(balancer.subcategory_counts["Tarih"]["Arkeoloji"], 4)
+
+        # Bir sonraki seçimde artık Arkeoloji de adaya katılır (hepsi 4), ama Siyasi Tarih (27) hala seçilemez
+        target = balancer.get_next_target(is_combo=False, auto_increment=True)
+        self.assertIn(target.target_subcategory, ["Askeri Tarih", "Kültürel Tarih", "Antlaşmalar", "Arkeoloji"])
+        self.assertNotEqual(target.target_subcategory, "Siyasi Tarih")
 
     def test_equalized_cycle_mode(self):
         """
@@ -120,11 +167,9 @@ class TestCategoryBalancer(unittest.TestCase):
         ve soru sayısı en az olan alternatifler arasından seçilmelidir.
         """
         initial_counts = {cat: 30 for cat in self.all_categories}
-        # Bilim ana kategori olacak şekilde en az yapalım
-        initial_counts["Bilim"] = 2
-        # Bilim'in olası eşleşmeleri: ["Tarih", "Felsefe ve Mantık", "Coğrafya", "Sanat ve Edebiyat", "Popüler Kültür"]
-        # Eşleşmeler arasından Coğrafya'yı en az yapalım
-        initial_counts["Coğrafya"] = 10
+        initial_counts["Fizik"] = 2
+        # Fizik'in olası eşleşmeleri: ["Astronomi & Uzay", "Kimya", "Bilgisayar & Yazılım", "Felsefe & Mantık"]
+        initial_counts["Kimya"] = 10
 
         balancer = CategoryBalancer(
             auto_scan=False,
@@ -132,10 +177,10 @@ class TestCategoryBalancer(unittest.TestCase):
         )
 
         target = balancer.get_next_target(is_combo=True)
-        self.assertEqual(target.primary_category, "Bilim")
+        self.assertEqual(target.primary_category, "Fizik")
         self.assertTrue(target.is_combo)
-        # Coğrafya olası eşleşmeler içinde en az olan olduğu için seçilmeli
-        self.assertEqual(target.secondary_category, "Coğrafya")
+        # Kimya olası eşleşmeler içinde en az olan olduğu için seçilmeli
+        self.assertEqual(target.secondary_category, "Kimya")
 
     def test_record_success_counter_updates(self):
         """
@@ -144,19 +189,19 @@ class TestCategoryBalancer(unittest.TestCase):
         """
         balancer = CategoryBalancer(auto_scan=False)
 
-        initial_bilim = balancer.category_counts["Bilim"]
-        initial_fizik = balancer.subcategory_counts["Bilim"]["Fizik"]
-        initial_tarih = balancer.category_counts["Tarih"]
+        initial_fizik = balancer.category_counts["Fizik"]
+        initial_sub = balancer.subcategory_counts["Fizik"]["Mekanik"]
+        initial_kimya = balancer.category_counts["Kimya"]
 
         balancer.record_success(
-            primary_category="Bilim",
-            subcategory="Fizik",
-            secondary_category="Tarih"
+            primary_category="Fizik",
+            subcategory="Mekanik",
+            secondary_category="Kimya"
         )
 
-        self.assertEqual(balancer.category_counts["Bilim"], initial_bilim + 1)
-        self.assertEqual(balancer.subcategory_counts["Bilim"]["Fizik"], initial_fizik + 1)
-        self.assertEqual(balancer.category_counts["Tarih"], initial_tarih + 1)
+        self.assertEqual(balancer.category_counts["Fizik"], initial_fizik + 1)
+        self.assertEqual(balancer.subcategory_counts["Fizik"]["Mekanik"], initial_sub + 1)
+        self.assertEqual(balancer.category_counts["Kimya"], initial_kimya + 1)
 
     def test_record_question_helper(self):
         """
