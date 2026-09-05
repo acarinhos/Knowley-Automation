@@ -3,9 +3,9 @@ import random
 import threading
 from collections import Counter
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Any, Union, Tuple
+from typing import Dict, List, Optional, Any
 
-from categories_config import (
+from config.categories_config import (
     CATEGORIES_META,
     POSSIBLE_COMBO_MATCHES,
 )
@@ -201,7 +201,7 @@ class CategoryBalancer:
         """Firestore'daki soruları tarayarak ana ve alt kategori sayılarını tespit eder."""
         try:
             if db is None:
-                from db_manager import init_firebase
+                from database.db_manager import init_firebase
                 db = init_firebase()
 
             logger.info("🔍 Firestore 'questions' koleksiyonu kategoriler için taranıyor...")

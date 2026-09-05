@@ -1,24 +1,22 @@
 """
-Knowley Soru Üretim Motoru v1.0.2
+Knowley Soru Üretim Motoru v1.0.3
 Generation Planner ve Ülke Kredi Matrisi Birim Testleri
 """
 
 import unittest
 from collections import Counter
-from datetime import datetime
 
-from country_credit_config import (
+from config.country_credit_config import (
     CATEGORY_COUNTRY_MATRIX,
-    get_category_matrix_config,
     normalize_category_name
 )
-from generation_planner import (
+from core.generation_planner import (
     GenerationPlanner,
     GenerationPlan,
     get_generation_planner
 )
-from difficulty_balancer import DifficultyBalancer
-from generator import GeneratedQuestion, populate_question_meta
+from core.difficulty_balancer import DifficultyBalancer
+from core.generator import GeneratedQuestion, populate_question_meta
 
 
 class TestCountryCreditConfig(unittest.TestCase):
@@ -161,9 +159,9 @@ class TestGenerationPlanner(unittest.TestCase):
 class TestV102SchemaAndDifficulty(unittest.TestCase):
 
     def test_v102_firestore_payload_structure(self):
-        """v1.0.2 şeması scope, target_country, target_country_credit, created_at ve 1-10 puanlarını taşımalıdır."""
+        """v1.0.3 şeması scope, target_country, target_country_credit, created_at ve 1-10 puanlarını taşımalıdır."""
         sample_payload = {
-            "version": "1.0.2",
+            "version": "1.0.3",
             "scope": "global",
             "target_country": "ABD",
             "target_country_credit": 10,
@@ -196,7 +194,7 @@ class TestV102SchemaAndDifficulty(unittest.TestCase):
         q = populate_question_meta(q, "Sinema & Dizi")
         dump = q.model_dump(by_alias=True)
 
-        self.assertEqual(dump["version"], "1.0.2")
+        self.assertEqual(dump["version"], "1.0.3")
         self.assertEqual(dump["scope"], "global")
         self.assertEqual(dump["target_country"], "ABD")
         self.assertEqual(dump["target_country_credit"], 10)

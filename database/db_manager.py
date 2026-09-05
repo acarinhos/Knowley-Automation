@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
 
-env_path = Path(__file__).parent / ".env"
+env_path = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
 def init_firebase():
@@ -69,22 +69,22 @@ def save_question_to_firestore(db, question_obj) -> bool:
         
         # Meta veriler ve doğru şık/süre eşleşmesi
         q_dict["question_hash"] = q_hash
-        q_dict["created_at"] = q_dict.get("created_at") or datetime.now(timezone.utc).isoformat()
+        q_dict["created_at"] = firestore.SERVER_TIMESTAMP
         q_dict["status"] = "published"
-        q_dict["version"] = "1.0.2"
+        q_dict["version"] = "1.0.3"
         q_dict.setdefault("scope", "global")
         q_dict.setdefault("target_country", (q_dict.get("countries") or ["Global"])[0])
         q_dict.setdefault("target_country_credit", 10)
         q_dict.setdefault("is_global_eligible", True)
-        q_dict.setdefault("correct_count", 0)
-        q_dict.setdefault("wrong_count", 0)
-        q_dict.setdefault("shuffle_key", round(random.random(), 6))
+        q_dict["correct_count"] = 0
+        q_dict["wrong_count"] = 0
+        q_dict["shuffle_key"] = random.random()
         if "correct_option" not in q_dict or not q_dict["correct_option"]:
             q_dict["correct_option"] = q_dict.get("correct_answer")
         if "correct_answer" not in q_dict or not q_dict["correct_answer"]:
             q_dict["correct_answer"] = q_dict.get("correct_option")
         if "duration_local" not in q_dict or "duration_global" not in q_dict or "duration_seconds" not in q_dict:
-            from timer_calculator import calculate_durations_from_obj
+            from core.timer_calculator import calculate_durations_from_obj
             durations = calculate_durations_from_obj(q_dict)
             q_dict.setdefault("duration_local", durations["duration_local"])
             q_dict.setdefault("duration_global", durations["duration_global"])

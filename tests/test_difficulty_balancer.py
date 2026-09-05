@@ -1,6 +1,6 @@
 import unittest
 from collections import Counter
-from difficulty_balancer import DifficultyBalancer, get_difficulty_balancer, TargetDifficulty
+from core.difficulty_balancer import DifficultyBalancer, get_difficulty_balancer, TargetDifficulty
 
 
 class TestDifficultyBalancer(unittest.TestCase):
@@ -134,8 +134,8 @@ class TestDifficultyBalancer(unittest.TestCase):
         self.assertEqual(DifficultyBalancer.normalize_level(None), "Orta")
 
     def test_generated_question_difficulty_schema(self):
-        """GeneratedQuestion nesnesi yeni standart Firestore v1.0.2 zorluk şemasını taşımalı."""
-        from generator import GeneratedQuestion, populate_question_meta
+        """GeneratedQuestion nesnesi yeni standart Firestore v1.0.3 zorluk şemasını taşımalı."""
+        from core.generator import GeneratedQuestion, populate_question_meta
 
         sample_payload = {
             "categories": ["Fizik"],
@@ -144,7 +144,7 @@ class TestDifficultyBalancer(unittest.TestCase):
             "scope": "global",
             "target_country": "Almanya",
             "target_country_credit": 10,
-            "version": "1.0.2",
+            "version": "1.0.3",
             "difficulty_local": "Kolay",
             "difficulty_local_score": 3,
             "difficulty_global": "Orta",
@@ -167,7 +167,7 @@ class TestDifficultyBalancer(unittest.TestCase):
         q = populate_question_meta(q, "Fizik")
         dump = q.model_dump(by_alias=True)
 
-        self.assertEqual(dump["version"], "1.0.2")
+        self.assertEqual(dump["version"], "1.0.3")
         self.assertEqual(dump["scope"], "global")
         self.assertEqual(dump["target_country"], "Almanya")
         self.assertEqual(dump["target_country_credit"], 10)

@@ -1,14 +1,11 @@
 import unittest
-from collections import Counter
-from option_balancer import OptionBalancer
-from generator import (
+from core.option_balancer import OptionBalancer
+from core.generator import (
     GeneratedQuestion,
     LocalizedContent,
     Options,
     DifficultyProfile,
     DifficultyScope,
-    CategoryMeta,
-    SubCategoryMeta,
 )
 
 

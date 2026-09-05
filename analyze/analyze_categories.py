@@ -1,7 +1,10 @@
 import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import logging
-from category_balancer import get_category_balancer
-from categories_config import CATEGORIES_META
+from core.category_balancer import get_category_balancer
+from config.categories_config import CATEGORIES_META
 
 logging.basicConfig(
     level=logging.INFO,
@@ -41,7 +44,7 @@ def analyze_category_distribution():
 
     # 2. Kategori Bazlı Tüm Alt Dalların Raporu
     print("\n" + "=" * 70)
-    print(f" 📑 TÜM ALT DALLARIN DAĞILIMI (20 KATEGORİ)")
+    print(" 📑 TÜM ALT DALLARIN DAĞILIMI (20 KATEGORİ)")
     print("=" * 70)
 
     total_configured_subs = sum(len(meta.get("sub_categories", {})) for meta in CATEGORIES_META.values())

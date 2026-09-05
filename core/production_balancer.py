@@ -1,5 +1,5 @@
 """
-Knowley Soru Üretim Motoru v1.0.2
+Knowley Soru Üretim Motoru v1.0.3
 Production Balancer: Kategori Bazlı Global / Local Üretim Kotası Takipçisi
 """
 
@@ -9,7 +9,7 @@ import logging
 from collections import defaultdict
 from typing import Dict, List, Optional, Any
 
-from country_credit_config import (
+from config.country_credit_config import (
     CATEGORY_COUNTRY_MATRIX,
     get_category_matrix_config,
     normalize_category_name

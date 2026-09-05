@@ -1,6 +1,10 @@
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import logging
-from db_manager import init_firebase
-from categories_config import get_category_color, get_subcategory_image
+from database.db_manager import init_firebase
+from config.categories_config import get_category_color, get_subcategory_image
 
 # Loglama yapılandırması
 logging.basicConfig(
@@ -91,7 +95,7 @@ def sync_existing_questions_metadata():
     if updated_count % BATCH_LIMIT != 0:
         batch.commit()
 
-    logging.info(f"🎯 Senkronizasyon Tamamlandı!")
+    logging.info("🎯 Senkronizasyon Tamamlandı!")
     logging.info(f"📊 Toplam Taranan Soru: {total_scanned}")
     logging.info(f"✨ Güncellenen Soru Sayısı: {updated_count}")
 

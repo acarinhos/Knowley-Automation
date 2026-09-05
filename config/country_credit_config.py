@@ -1,9 +1,9 @@
 """
-Knowley Soru Üretim Motoru v1.0.2
+Knowley Soru Üretim Motoru v1.0.3
 Kategori - Ülke Kredi Matrisi ve Dağılım Oranları Konfigürasyonu
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 CATEGORY_COUNTRY_MATRIX: Dict[str, Dict[str, Any]] = {
     "Tarih": {

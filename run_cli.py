@@ -1,9 +1,9 @@
 import argparse
 import time
 import random
-from categories_config import CATEGORIES_DATA, DIFFICULTIES
-from generator import create_gemini_client, generate_single_question
-from db_manager import init_firebase, save_question_to_firestore
+from config.categories_config import CATEGORIES_DATA, DIFFICULTIES
+from core.generator import create_gemini_client, generate_single_question
+from database.db_manager import init_firebase, save_question_to_firestore
 
 def generate_with_retry(client, category, sub_category, filter_tag, difficulty, scope=None, target_country=None, max_retries=3):
     """API hatalarına karşı kademeli bekleme (exponential backoff) ile güvenli üretim."""
@@ -28,13 +28,13 @@ def generate_with_retry(client, category, sub_category, filter_tag, difficulty, 
                 raise e
 
 def run_targeted_generation(count: int, category: str = None, sub_category: str = None, difficulty: str = None, scope: str = None, country: str = None):
-    """Belirli veya rastgele filtrelerle soru üretir (v1.0.2)."""
+    """Belirli veya rastgele filtrelerle soru üretir (v1.0.3)."""
     client = create_gemini_client()
     db = init_firebase()
     categories_list = list(CATEGORIES_DATA.keys())
     
     saved_count = 0
-    print(f"\n🚀 Soru Üretimi Başlıyor (v1.0.2) | Hedef: {count} Soru\n" + "="*50)
+    print(f"\n🚀 Soru Üretimi Başlıyor (v1.0.3) | Hedef: {count} Soru\n" + "="*50)
 
     for i in range(count):
         # Parametre seçimi
@@ -65,7 +65,7 @@ def run_targeted_generation(count: int, category: str = None, sub_category: str 
             time.sleep(1.2)
             
         except Exception as e:
-            print(f"  ❌ Bu soru üretilemedi, atlanıyor...")
+            print(f"  ❌ Bu soru üretilemedi ({e}), atlanıyor...")
             continue
 
     print("="*50 + f"\n🎉 Tamamlandı! {saved_count}/{count} soru başarıyla Firestore'a kaydedildi.\n")
@@ -76,7 +76,7 @@ def run_matrix_generation(questions_per_category: int = 3):
     db = init_firebase()
     
     total_target = len(CATEGORIES_DATA) * questions_per_category * len(DIFFICULTIES)
-    print(f"\n🌍 Matris Havuz Üretimi Başlıyor!")
+    print("\n🌍 Matris Havuz Üretimi Başlıyor!")
     print(f"Toplam 20 Kategori x 3 Zorluk x {questions_per_category} Soru = {total_target} Soru Hedefleniyor.\n" + "="*50)
 
     saved_count = 0

@@ -2,9 +2,7 @@ import logging
 import random
 import threading
 from collections import Counter
-from typing import Dict, List, Optional, Any, Union
-
-from pydantic import BaseModel
+from typing import Dict, List, Optional, Any
 
 logger = logging.getLogger("OptionBalancer")
 if not logger.handlers:
@@ -62,7 +60,7 @@ class OptionBalancer:
         """Firestore'daki soruları tarayarak mevcut doğru cevap şıklarının dağılımını okur."""
         try:
             if db is None:
-                from db_manager import init_firebase
+                from database.db_manager import init_firebase
                 db = init_firebase()
 
             logger.info("🔍 Firestore 'questions' koleksiyonu taranıyor...")
@@ -103,7 +101,6 @@ class OptionBalancer:
     def _log_initial_status(self) -> None:
         """Başlangıç durumunu loglar."""
         c = self.counts
-        total = sum(c.values())
         if self.is_equalized():
             logger.info(f"⚖️ Dağılım tam dengede! (A={c['A']}, B={c['B']}, C={c['C']}, D={c['D']}) -> 4'lü Döngü Modu aktif.")
         else:
@@ -239,7 +236,7 @@ class OptionBalancer:
                     }
 
                     # Options modelini içe aktar veya yeniden oluştur
-                    from generator import Options
+                    from core.generator import Options
                     content.options = Options(**new_opts_dict)
 
             setattr(question, "correct_answer", target_option)

@@ -1,8 +1,8 @@
 import time
 import random
-from categories_config import CATEGORIES_DATA, DIFFICULTIES
-from generator import create_gemini_client, generate_single_question
-from db_manager import init_firebase, save_question_to_firestore
+from config.categories_config import CATEGORIES_DATA, DIFFICULTIES
+from core.generator import create_gemini_client, generate_single_question
+from database.db_manager import init_firebase, save_question_to_firestore
 
 def run_automation(total_questions: int = 5, target_category: str = None, target_difficulty: str = None):
     """

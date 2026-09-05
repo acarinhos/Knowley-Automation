@@ -1,11 +1,11 @@
 """
-Knowley Soru Üretim Motoru v1.0.2
+Knowley Soru Üretim Motoru v1.0.3
 Evrensel "Kültürel Tanınırlık & Trivia" Standartı (Anti-Bürokrasi Kuralı) Birim Testleri
 """
 
 import unittest
-from categories_config import CATEGORIES_META
-from generator import (
+from config.categories_config import CATEGORIES_META
+from core.generator import (
     BUREAUCRACY_BLACKLIST,
     SELF_VERIFICATION_RULE,
     TRIVIA_GUIDELINES,
@@ -78,7 +78,7 @@ class TestTriviaAntiBureaucracyStandards(unittest.TestCase):
         self.assertIn(SELF_VERIFICATION_RULE, TRIVIA_SYSTEM_PROMPT)
         self.assertIn("ANTİ-BÜROKRASİ", TRIVIA_SYSTEM_PROMPT)
 
-        from generator import normalize_text_for_search
+        from core.generator import normalize_text_for_search
         norm_sys = normalize_text_for_search(TRIVIA_SYSTEM_PROMPT)
         for word in BUREAUCRACY_BLACKLIST:
             self.assertIn(normalize_text_for_search(word), norm_sys)
@@ -121,7 +121,7 @@ class TestTriviaAntiBureaucracyStandards(unittest.TestCase):
             target_country_credit=8,
             is_global_eligible=True,
             countries=["İngiltere"],
-            version="1.0.2",
+            version="1.0.3",
             difficulty_local="Orta",
             difficulty_local_score=5,
             difficulty_global="Orta",
@@ -205,6 +205,31 @@ class TestTriviaAntiBureaucracyStandards(unittest.TestCase):
         with self.assertRaises(ValueError) as ctx:
             validate_trivia_compliance(q2)
         self.assertIn("yönetmelik", str(ctx.exception).lower())
+
+    def test_question_exceeding_character_limit_fails_validation(self):
+        """150-160 karakterden uzun soru kökü mobil sınırını aştığı için ValueError fırlatmalıdır."""
+        long_text = (
+            "1832 yılında İngiltere Parlamentosu tarafından büyük tartışmalar neticesinde kabul edilen "
+            "ve sanayi devrimi sonrasında hızla büyüyen şehirlere ilk kez mecliste temsil hakkı sağlayan reform kanunu hangisidir?"
+        )
+        self.assertGreater(len(long_text), 160)
+        q = self._create_sample_question(question_text=long_text)
+        with self.assertRaises(ValueError) as ctx:
+            validate_trivia_compliance(q)
+        self.assertIn("150 karakterlik mobil sınırını aştı", str(ctx.exception))
+
+    def test_question_exceeding_word_limit_fails_validation(self):
+        """25 kelimeden fazla olan soru kökü ValueError fırlatmalıdır."""
+        wordy_text = (
+            "Bir iki üç dört beş altı yedi sekiz dokuz on "
+            "onbir oniki onüç ondört onbeş onaltı onyedi onsekiz ondokuz yirmi "
+            "yirmibir yirmiiki yirmiüç yirmidört yirmibeş yirmialtı nedir?"
+        )
+        self.assertGreater(len(wordy_text.split()), 25)
+        q = self._create_sample_question(question_text=wordy_text)
+        with self.assertRaises(ValueError) as ctx:
+            validate_trivia_compliance(q)
+        self.assertIn("150 karakterlik mobil sınırını aştı", str(ctx.exception))
 
 
 if __name__ == "__main__":

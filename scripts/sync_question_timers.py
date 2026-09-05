@@ -1,7 +1,6 @@
 import sys
 import logging
 from collections import Counter
-from typing import Dict, Any
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -9,8 +8,11 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
-from db_manager import init_firebase
-from timer_calculator import calculate_durations_from_obj
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from database.db_manager import init_firebase
+from core.timer_calculator import calculate_durations_from_obj
 
 logging.basicConfig(
     level=logging.INFO,

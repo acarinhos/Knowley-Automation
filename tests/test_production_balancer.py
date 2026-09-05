@@ -1,19 +1,15 @@
 import unittest
-from country_credit_config import (
+from config.country_credit_config import (
     is_country_global_eligible,
-    get_country_credit,
     get_category_ratio,
 )
-from production_balancer import ProductionBalancer, get_production_balancer
-from generator import (
+from core.production_balancer import ProductionBalancer
+from core.generator import (
     GeneratedQuestion,
     DifficultyProfile,
     DifficultyScope,
-    CategoryMeta,
-    SubCategoryMeta,
     populate_question_meta,
 )
-from difficulty_balancer import DifficultyBalancer
 
 
 class TestProductionBalancer(unittest.TestCase):
@@ -98,7 +94,7 @@ class TestAsymmetricQuestionModel(unittest.TestCase):
             target_country_credit=10,
             is_global_eligible=True,
             scope="local",
-            version="1.0.2",
+            version="1.0.3",
             difficulty_local="Kolay",
             difficulty_local_score=3,
             difficulty_global="Zor",
@@ -136,7 +132,7 @@ class TestAsymmetricQuestionModel(unittest.TestCase):
             target_country_credit=4,
             is_global_eligible=False,
             scope="local",
-            version="1.0.2",
+            version="1.0.3",
             difficulty_local="Orta",
             difficulty_local_score=6,
             difficulty_global=None,

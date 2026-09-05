@@ -3,7 +3,10 @@ import re
 import logging
 from collections import Counter
 from typing import Optional, Any
-from db_manager import init_firebase
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from database.db_manager import init_firebase
 
 logging.basicConfig(
     level=logging.INFO,

@@ -2,22 +2,21 @@ import time
 import random
 import re
 import logging
-from datetime import datetime, timezone
-from typing import Optional, List, Any
+from typing import List, Any
 
-from categories_config import (
-    CATEGORIES_META,
+from config.categories_config import (
     get_category_color,
     get_subcategory_image,
 )
-from category_balancer import get_category_balancer
-from generator import (
+from core.category_balancer import get_category_balancer
+from core.generator import (
     generate_question_with_fallback,
     GeneratedQuestion,
     CategoryMeta,
     SubCategoryMeta,
 )
-from db_manager import init_firebase, generate_question_hash
+from database.db_manager import init_firebase, generate_question_hash
+from firebase_admin import firestore
 
 logging.basicConfig(
     level=logging.INFO,
@@ -66,24 +65,24 @@ def save_worker_question(db: Any, question_obj: GeneratedQuestion) -> bool:
             return False
 
         q_dict["question_hash"] = q_hash
-        q_dict["created_at"] = q_dict.get("created_at") or datetime.now(timezone.utc).isoformat()
+        q_dict["created_at"] = firestore.SERVER_TIMESTAMP
         q_dict["status"] = "published"
         q_dict["times_served"] = 0
         q_dict["is_active"] = True
-        q_dict["version"] = "1.0.2"
+        q_dict["version"] = "1.0.3"
         q_dict.setdefault("scope", "global")
         q_dict.setdefault("target_country", (q_dict.get("countries") or ["Global"])[0])
         q_dict.setdefault("target_country_credit", 10)
         q_dict.setdefault("is_global_eligible", True)
-        q_dict.setdefault("correct_count", 0)
-        q_dict.setdefault("wrong_count", 0)
-        q_dict.setdefault("shuffle_key", round(random.random(), 6))
+        q_dict["correct_count"] = 0
+        q_dict["wrong_count"] = 0
+        q_dict["shuffle_key"] = random.random()
         if "correct_option" not in q_dict or not q_dict["correct_option"]:
             q_dict["correct_option"] = q_dict.get("correct_answer")
         if "correct_answer" not in q_dict or not q_dict["correct_answer"]:
             q_dict["correct_answer"] = q_dict.get("correct_option")
         if "duration_local" not in q_dict or "duration_global" not in q_dict or "duration_seconds" not in q_dict:
-            from timer_calculator import calculate_durations_from_obj
+            from core.timer_calculator import calculate_durations_from_obj
             durations = calculate_durations_from_obj(q_dict)
             q_dict.setdefault("duration_local", durations["duration_local"])
             q_dict.setdefault("duration_global", durations["duration_global"])
@@ -108,13 +107,12 @@ def save_worker_question(db: Any, question_obj: GeneratedQuestion) -> bool:
         scope_val = str(q_dict.get("scope", "global")).capitalize()
         focus_country = q_dict.get("target_country", "Global")
         focus_credit = q_dict.get("target_country_credit", 10)
-        c_at = q_dict.get("created_at")
 
         logging.info(
-            f"✅ [v1.0.2] [{'COMBO' if q_dict.get('is_combo') else 'TEK'}] "
+            f"✅ [v1.0.3] [{'COMBO' if q_dict.get('is_combo') else 'TEK'}] "
             f"🌍 Kapsam: {scope_val} | Odak: {focus_country} (Kredi: {focus_credit}) | "
             f"Global Uygun: {'Evet' if is_glob_elig else 'Hayır'} | "
-            f"Local: {local_label} ({local_score}/10) | Global: {global_str} | Tarih: {c_at}"
+            f"Local: {local_label} ({local_score}/10) | Global: {global_str}"
         )
         return True
     except Exception as e:
@@ -127,13 +125,13 @@ def extract_retry_delay(err_str: str) -> int:
     return int(float(match.group(1))) + 2 if match else 45
 
 def start_infinite_worker() -> None:
-    logging.info("🚀 Soru Üretim Motoru v1.0.2 Başlatıldı!")
+    logging.info("🚀 Soru Üretim Motoru v1.0.3 Başlatıldı!")
     
     db = init_firebase()
     cat_balancer = get_category_balancer(db=db)
-    from difficulty_balancer import get_difficulty_balancer
+    from core.difficulty_balancer import get_difficulty_balancer
     diff_balancer = get_difficulty_balancer()
-    from generation_planner import get_generation_planner
+    from core.generation_planner import get_generation_planner
     gen_planner = get_generation_planner()
     produced_count = 0
 

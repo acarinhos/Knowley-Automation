@@ -1,21 +1,21 @@
 """
-Knowley Soru Üretim Motoru v1.0.2
+Knowley Soru Üretim Motoru v1.0.3
 Generation Planner: Dinamik Kapsam (Global/Local) ve Ülke Kredi Ağırlıklı Planlayıcı
 """
 
 import random
 import logging
 from dataclasses import dataclass
-from typing import Optional, Tuple, Dict, Any, Literal, List
+from typing import Optional, Tuple, Dict, Any, Literal
 
-from country_credit_config import (
+from config.country_credit_config import (
     CATEGORY_COUNTRY_MATRIX,
     get_category_matrix_config,
     normalize_category_name,
     is_country_global_eligible,
     get_country_credit
 )
-from production_balancer import get_production_balancer
+from core.production_balancer import get_production_balancer
 
 logger = logging.getLogger("GenerationPlanner")
 if not logger.handlers:

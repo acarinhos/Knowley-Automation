@@ -1,7 +1,6 @@
 import unittest
-from collections import Counter
-from category_balancer import CategoryBalancer, TargetCategory
-from categories_config import CATEGORIES_META, POSSIBLE_COMBO_MATCHES
+from core.category_balancer import CategoryBalancer
+from config.categories_config import CATEGORIES_META
 
 
 class TestCategoryBalancer(unittest.TestCase):

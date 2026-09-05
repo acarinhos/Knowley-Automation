@@ -1,16 +1,11 @@
 import unittest
-from timer_calculator import (
+from core.timer_calculator import (
     calculate_question_durations,
     calculate_question_duration,
     calculate_durations_from_obj,
     calculate_duration_from_obj,
-    BASE_TIME,
-    CHARS_PER_SECOND,
-    MIN_TIME,
-    MAX_TIME,
-    DIFFICULTY_BONUS
 )
-from generator import (
+from core.generator import (
     GeneratedQuestion,
     LocalizedContent,
     Options,

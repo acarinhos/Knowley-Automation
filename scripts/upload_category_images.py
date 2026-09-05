@@ -1,4 +1,3 @@
-import io
 import os
 import re
 import sys
@@ -7,8 +6,11 @@ import urllib.parse
 import urllib.request
 from typing import Dict, Tuple
 
-from db_manager import get_storage_bucket
-import categories_config
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from database.db_manager import get_storage_bucket
+from config import categories_config
 
 logging.basicConfig(
     level=logging.INFO,

@@ -18,14 +18,20 @@ from google import genai
 from google.genai import types
 from groq import Groq
 from pydantic import BaseModel, Field, ConfigDict, field_validator
+try:
+    from firebase_admin import firestore
+    SERVER_TIMESTAMP = firestore.SERVER_TIMESTAMP
+except Exception:
+    SERVER_TIMESTAMP = None
+from core.llm_manager import MultiLLMManager
 
-from categories_config import (
+from config.categories_config import (
     CATEGORIES_META,
     get_category_color,
     get_subcategory_image,
 )
 
-env_path = Path(__file__).parent / ".env"
+env_path = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
 # --- Pydantic Şemaları ---
@@ -91,6 +97,7 @@ class DifficultyProfile(BaseModel):
     global_scope: Optional[DifficultyScope] = Field(default=None, alias="global", description="Dünya geneli kullanıcılara göre zorluk")
 
 class GeneratedQuestion(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True, extra="allow")
     categories: List[str] = Field(description="Ana kategori listesi")
     categories_meta: List[CategoryMeta] = Field(default_factory=list, description="Kategori meta bilgileri (isim ve renk)")
     sub_categories: List[str] = Field(default_factory=list, description="Alt dallar")
@@ -101,7 +108,7 @@ class GeneratedQuestion(BaseModel):
     target_country_credit: Optional[int] = Field(default=None, description="Hedef ülke kredi puanı")
     is_global_eligible: bool = Field(default=True, description="Küresel elit ülke mi (çift zorluk mu)")
     countries: List[str] = Field(default_factory=lambda: ["Global"], description="İlgili ülkeler")
-    version: str = Field(default="1.0.2", description="Soru veri şeması versiyonu")
+    version: str = Field(default="1.0.3", description="Soru veri şeması versiyonu")
     difficulty_local: str = Field(default="Orta", description="Yerel zorluk seviyesi (Kolay, Orta, Zor)")
     difficulty_local_score: int = Field(default=5, description="Yerel zorluk puanı (1-10)")
     difficulty_global: Optional[str] = Field(default=None, description="Küresel zorluk seviyesi (Kolay, Orta, Zor veya None)")
@@ -115,7 +122,7 @@ class GeneratedQuestion(BaseModel):
     duration_seconds: int = Field(default=15, description="Varsayılan soru süresi (saniye)")
     correct_count: int = Field(default=0, description="Doğru cevaplanma sayısı")
     wrong_count: int = Field(default=0, description="Yanlış cevaplanma sayısı")
-    created_at: Optional[str] = Field(default=None, description="ISO-8601 UTC oluşturulma zaman damgası")
+    created_at: Optional[Any] = Field(default=None, description="ISO-8601 UTC veya firestore.SERVER_TIMESTAMP")
     shuffle_key: float = Field(default_factory=lambda: round(random.random(), 6), description="Rastgele sorgulama ve çekim anahtarı (0.0 - 1.0)")
     supported_languages: List[str] = Field(default=["tr", "en", "es", "pt", "de"], description="Desteklenen diller")
     translations: Dict[str, LocalizedContent] = Field(description="5 dilde çeviriler")
@@ -163,90 +170,99 @@ SELF_VERIFICATION_RULE = (
     "resmi evrakı mıdır? Eğer resmi evraksa soruyu anında sil ve ülkenin/konunun dünya çapında bilinen ikonik unsurlarıyla yeniden üret."
 )
 
-TRIVIA_GUIDELINES = """20 KATEGORİNİN TAMAMI İÇİN DOĞRU / YANLIŞ TRIVIA KILAVUZU:
+TRIVIA_GUIDELINES = """20 KATEGORİ İÇİN KISA & TEMEL TRIVIA REFERANS KILAVUZU:
 
 1. Tarih:
-   - ❌ Yanlış: "1832 İngiltere Seçim Reformu Kanunu'nun 3. maddesi hangi bölgeyi kapsar?"
-   - ✅ Doğru: "1215 yılında İngiltere Kralı Yurtsuz John'a imzalatılarak kralın yetkilerini tarihte ilk kez kısıtlayan belge hangisidir?" (Magna Carta)
+   - ❌ Yanlış: "1832 yılında İngiliz parlamentosunda kabul edilen ve sanayi şehirlerine temsil hakkı tanıyan reform kanunu nedir?"
+   - ✅ Doğru: "1215'te kralın yetkilerini tarihte ilk kez kısıtlayan İngiliz belgesi hangisidir?" (Magna Carta)
 
 2. Coğrafya:
-   - ❌ Yanlış: "Brezilya Çevre Bakanlığı'nın 2021 Amazon koruma tebliğindeki hedef nedir?"
-   - ✅ Doğru: "Dünyanın en büyük tatlı su debisine sahip olan ve Atlas Okyanusu'na dökülen Güney Amerika nehri hangisidir?" (Amazon Nehri)
+   - ❌ Yanlış: "Brezilya Ulusal Coğrafya Enstitüsü'nün hidrolojik havza raporunda debisi en yüksek ölçülen nehir hangisidir?"
+   - ✅ Doğru: "Dünyanın en çok su taşıyan ve Atlas Okyanusu'na dökülen nehri hangisidir?" (Amazon)
 
 3. Spor:
-   - ❌ Yanlış: "Fransa Spor Federasyonu'nun 2018 antrenör lisans yönergesi neyi şart koşar?"
-   - ✅ Doğru: "Brezilya formasıyla üç kez FIFA Dünya Kupası şampiyonluğu kazanan tek futbolcu kimdir?" (Pelé)
+   - ❌ Yanlış: "Fransa Futbol Federasyonu tarafından 1998 yılında onur madalyası verilen dönemin milli takım kaptanı kimdir?"
+   - ✅ Doğru: "FIFA Dünya Kupası'nı futbolcu olarak 3 kez kazanan tek isim kimdir?" (Pelé)
 
 4. Fizik:
-   - ❌ Yanlış: "Almanya Federal Fizik Enstitüsü'nün 2015 ölçüm hassasiyeti standartı nedir?"
-   - ✅ Doğru: "Işığın parçacık özelliği gösterdiğini fotoelektrik olayla açıklayarak Nobel Ödülü kazanan kuramsal fizikçi kimdir?" (Albert Einstein)
+   - ❌ Yanlış: "Almanya Fizik Derneği'nin 1905 bülteninde kuantum teorisinin temeli sayılan fotoelektrik makalesini kim yazmıştır?"
+   - ✅ Doğru: "Fotoelektrik etkiyi açıklayarak Nobel Fizik Ödülü'nü kazanan bilim insanı kimdir?" (Albert Einstein)
 
 5. Kimya:
-   - ❌ Yanlış: "Fransız Kimya Kurumu'nun tehlikeli atık sınıflandırma yönetmeliği nasıldır?"
-   - ✅ Doğru: "Radyoaktivite alanındaki çığır açan çalışmalarıyla iki farklı bilim dalında Nobel kazanan tek bilim insanı kimdir?" (Marie Curie)
+   - ❌ Yanlış: "Fransız Bilimler Akademisi'nce 1911'de saf metal olarak izole edildiği tescillenen radyoaktif element hangisidir?"
+   - ✅ Doğru: "İki farklı bilim dalında Nobel Ödülü kazanan tek bilim insanı kimdir?" (Marie Curie)
 
 6. Biyoloji:
-   - ❌ Yanlış: "ABD Tarım Bakanlığı'nın 2020 bitki tohumu ihracat kriteri nedir?"
-   - ✅ Doğru: "Galapagos Adaları'ndaki ispinoz kuşlarını gözlemleyerek doğal seçilim yoluyla evrim kuramını geliştiren doğa bilimci kimdir?" (Charles Darwin)
+   - ❌ Yanlış: "İngiliz Doğa Tarihi Müzesi arşivlerine göre 1835'te adalardaki kuş gagalarını çizen doğa bilimci kimdir?"
+   - ✅ Doğru: "Doğal seçilim yoluyla evrim kuramını ortaya atan İngiliz doğa bilimci kimdir?" (Charles Darwin)
 
 7. Ekonomi & Finans:
-   - ❌ Yanlış: "Almanya Maliye Bakanlığı'nın 2022 vergi uyum kılavuzu fıkrası nedir?"
-   - ✅ Doğru: "1923 yılında Almanya Weimar Cumhuriyeti'nde paranın sobalarda yakılacak kadar değersizleşmesine yol açan ekonomik kriz fenomeni hangisidir?" (Hiperenflasyon)
+   - ❌ Yanlış: "1923 Weimar Almanyası'nda Reichsbank tarafından basılan paranın değer kaybı oranını belirten ekonomik terim nedir?"
+   - ✅ Doğru: "Paranın aşırı değer kaybedip fiyatların kontrolden çıktığı duruma ne ad verilir?" (Hiperenflasyon)
 
 8. Edebiyat:
-   - ❌ Yanlış: "Rusya Eğitim Bakanlığı'nın 2016 lise zorunlu okuma müfredatı yönergesi nedir?"
-   - ✅ Doğru: "Napolyon'un Rusya Seferi'ni arka planına alarak Rus aristokrasisini anlatan, Lev Tolstoy imzalı anıtsal roman hangisidir?" (Savaş ve Barış)
+   - ❌ Yanlış: "Rusya Eğitim Bakanlığı klasik listesinde yer alan, 1812 seferini aristokrat aileler üzerinden anlatan dev roman hangisidir?"
+   - ✅ Doğru: "Tolstoy'un Napolyon'un Rusya seferini anlattığı anıtsal eseri hangisidir?" (Savaş ve Barış)
 
 9. Felsefe & Mantık:
-   - ❌ Yanlış: "Yunanistan Felsefe Vakfı'nın 2019 sempozyum bildirisinin 4. tezi nedir?"
-   - ✅ Doğru: "Sorgulanmamış hayatın yaşanmaya değer olmadığını savunan ve 'Bildiğim tek şey hiçbir şey bilmediğimdir' diyen Antik Yunan filozofu kimdir?" (Sokrates)
+   - ❌ Yanlış: "Atina mahkemesi kayıtlarına göre gençlerin ahlakını bozmakla suçlanan ve sorgulanmamış hayatı reddeden düşünür kimdir?"
+   - ✅ Doğru: "'Bildiğim tek şey hiçbir şey bilmediğimdir' sözüyle bilinen filozof kimdir?" (Sokrates)
 
 10. Sinema & Dizi:
-    - ❌ Yanlış: "ABD Film Denetim Kurulu'nun 1930 Hays Kodunun 2. fıkra yasağı nedir?"
-    - ✅ Doğru: "Sinema tarihinin ilk büyük gişe rekortmeni (blockbuster) kabul edilen ve Steven Spielberg tarafından yönetilen 1975 yapımı gerilim filmi hangisidir?" (Jaws)
+    - ❌ Yanlış: "Amerikan Film Enstitüsü'nün gişe rekoru kıran ilk modern yaz filmi olarak nitelendirdiği 1975 Spielberg filmi nedir?"
+    - ✅ Doğru: "Steven Spielberg'in yönettiği, dev bir köpekbalığını konu alan 1975 yapımı gerilim filmi hangisidir?" (Jaws)
 
 11. Müzik:
-    - ❌ Yanlış: "Almanya Müzik Eseri Sahipleri Birliği (GEMA) 2014 lisans harç tarifesi nedir?"
-    - ✅ Doğru: "İşitme duyusunu neredeyse tamamen kaybetmişken 'Kaderin Kapıyı Çalması' olarak bilinen ünlü 5. Senfoni'yi besteleyen müzisyen kimdir?" (Ludwig van Beethoven)
+    - ❌ Yanlış: "Fransız Hükümeti tarafından Sanat ve Edebiyat Nişanı ile ödüllendirilen ve neyi Batı'ya tanıtan Türk sanatçı kimdir?"
+    - ✅ Doğru: "Hababam Sınıfı filmlerinin unutulmaz tema müziğini besteleyen ünlü müzisyen kimdir?" (Melih Kibar)
 
 12. Genel Kültür & Mitoloji:
-    - ❌ Yanlış: "Atina Arkeoloji Müdürlüğü'nün 2017 Akropolis kazı protokolü nedir?"
-    - ✅ Doğru: "İskandinav mitolojisinde 'Kıyamet Günü' olarak adlandırılan ve tanrıların devlerle savaşarak dünyanın yok oluşunu simgeleyen olay hangisidir?" (Ragnarök)
+    - ❌ Yanlış: "İskandinav Edda metinlerinde geçen ve tanrıların devlerle savaşarak evrenin yok olmasına yol açan mitolojik savaş nedir?"
+    - ✅ Doğru: "İskandinav mitolojisinde dünyanın sonu ve tanrıların savaşı anlamına gelen olay nedir?" (Ragnarök)
 
 13. Bilgisayar & Yazılım:
-    - ❌ Yanlış: "2019 İsveç Ulusal Yapay Zeka Stratejisi belgesinde hangi eylem planı öne çıkar?"
-    - ✅ Doğru: "Mojang Studios tarafından Stockholm'de geliştirilen ve dünya genelinde en çok satan video oyunu unvanını alan sandbox yapım hangisidir?" (Minecraft)
+    - ❌ Yanlış: "İsveç Yapay Zeka ve Bilişim Enstitüsü'nün 2011 raporunda en çok hasılat yapan blok kırma oyunu hangisidir?"
+    - ✅ Doğru: "Stockholm'de geliştirilen, bloklarla inşa yapılan dünyanın en çok satan oyunu hangisidir?" (Minecraft)
 
 14. Tıp & Sağlık:
-    - ❌ Yanlış: "İngiltere Sağlık Bakanlığı'nın 2015 hastane sterilizasyon tebliği neyi zorunlu tutar?"
-    - ✅ Doğru: "Laboratuvarında küf mantarını tesadüfen fark ederek ilk antibiyotik olan penisilini keşfeden İskoç bilim insanı kimdir?" (Alexander Fleming)
+    - ❌ Yanlış: "Londra St. Mary Hastanesi laboratuvar tebliğinde 1928'de küf mantarından izole edildiği duyurulan ilk antibiyotik nedir?"
+    - ✅ Doğru: "Alexander Fleming'in küf mantarından kazara keşfettiği ilk antibiyotik hangisidir?" (Penisilin)
 
 15. Sosyoloji & Psikoloji:
-    - ❌ Yanlış: "Fransa Sosyoloji Derneği'nin 2018 saha araştırma etik tüzüğü nasıldır?"
-    - ✅ Doğru: "İntihar olgusunu bireysel bir kriz değil, toplumsal dayanışma eksikliği üzerinden inceleyerek modern sosyolojinin kurucularından kabul edilen düşünür kimdir?" (Émile Durkheim)
+    - ❌ Yanlış: "Fransız Sosyoloji Ekolü'nün anomi kavramını açıklamak için 1897'de yayımladığı vaka çalışmasının konusu nedir?"
+    - ✅ Doğru: "Sosyolojinin kurucularından kabul edilen ve 'İntihar' adlı eseriyle bilinen Fransız düşünür kimdir?" (Émile Durkheim)
 
 16. Astronomi & Uzay:
-    - ❌ Yanlış: "NASA'nın 2021 tedarik zinciri lojistik alt planında hangi madde vardır?"
-    - ✅ Doğru: "1969 yılında Apollo 11 göreviyle Ay yüzeyine ayak basan ilk insan kimdir?" (Neil Armstrong)
+    - ❌ Yanlış: "NASA'nın 1969 Apollo uçuş günlüğünde ay modülünden ilk iniş protokolünü gerçekleştiren astronot kimdir?"
+    - ✅ Doğru: "1969 yılında Ay yüzeyine ayak basan ilk insan kimdir?" (Neil Armstrong)
 
 17. Hukuk & Siyaset:
-    - ❌ Yanlış: "Fransız Medeni Kanunu'nun 1101. maddesinde sözleşme nasıl tanımlanır?"
-    - ✅ Doğru: "Napolyon'un 'Benim asıl zaferim Waterloo değil, bu kanundur' dediği ve modern Avrupa özel hukukunun temelini atan kanun külliyatı hangisidir?" (Code Civil / Napolyon Kanunları)
+    - ❌ Yanlış: "Fransız Konsüllük Kararnamesi ile 1804'te yürürlüğe giren ve özel hukuku birleştiren kanunun resmi adı nedir?"
+    - ✅ Doğru: "Modern Avrupa özel hukukunun temelini oluşturan Napolyon Kanunları'nın diğer adı nedir?" (Code Civil)
 
 18. Oyun & Espor:
-    - ❌ Yanlış: "Japonya Espor Birliği'nin 2019 turnuva vergilendirme yönetmeliği nedir?"
-    - ✅ Doğru: "1985 yılında Shigeru Miyamoto tarafından tasarlanarak oyun sektörünü batmaktan kurtaran ve Nintendo'nun maskotu olan efsanevi platform oyunu hangisidir?" (Super Mario Bros.)
+    - ❌ Yanlış: "Japon Eğlence Makineleri Birliği'nin 1985 bülteninde tesisatı konu alan platform oyunu hangisidir?"
+    - ✅ Doğru: "Nintendo'nun ikonik bıyıklı musluk tamircisi maskotu hangi oyuna aittir?" (Super Mario)
 
 19. Gastronomi & Mutfak:
-    - ❌ Yanlış: "İtalya Tarım Bakanlığı'nın pizza unu nem oranı standardı genelgesi nedir?"
-    - ✅ Doğru: "Geleneksel olarak dana incik, sebzeler ve beyaz şarapla pişirilip üzeri gremolata ile servis edilen ünlü Milano kökenli et yemeği hangisidir?" (Ossobuco)
+    - ❌ Yanlış: "Milano Ticaret Odası tescil belgesinde dana incik ve gremolata ile pişirildiği belirtilen yerel yemek nedir?"
+    - ✅ Doğru: "Geleneksel olarak dana incikle pişirilen ünlü İtalyan yemeği hangisidir?" (Ossobuco)
 
 20. Mimarlık & Sanat:
-    - ❌ Yanlış: "İtalya Kültür Bakanlığı'nın 2018 tarihi eser restorasyon hibesi şartnamesi nedir?"
-    - ✅ Doğru: "Floransa Katedrali'nin devasa kubbesini iç iskele kurmadan inşa ederek Rönesans mimarisinde çığır açan dahi mimar kimdir?" (Filippo Brunelleschi)"""
+    - ❌ Yanlış: "Floransa Loncası şartnamesine göre 1436'da katedralin kubbesini iskele kullanmadan kapatan mimar kimdir?"
+    - ✅ Doğru: "Floransa Katedrali'nin devasa kubbesini tasarlayan ünlü Rönesans mimarı kimdir?" (Filippo Brunelleschi)"""
 
 TRIVIA_SYSTEM_PROMPT = f"""Sen profesyonel, çok dilli ve uluslararası düzeyde tanınan bir Trivia & Yarışma Programı Soru Uzmanısın.
 Görevin, Kim Milyoner Olmak İster, Jeopardy veya Trivial Pursuit standartlarında; adil, heyecan verici, akıl yürütmeye dayalı, merak uyandırıcı ve genel dünya literatürüne mal olmuş ikonik sorular üretmektir.
+
+================================================================================
+[ZORUNLU FORMAT VE UZUNLUK KURALI - MOBILE TRIVIA STANDARTI]
+================================================================================
+- Soru kökü EN FAZLA 20-25 kelime (150 karakter) olmalıdır.
+- Paragraf yazmak, araya kurum adı, madalya/nişan ismi, kanun numarası veya ansiklopedik detay eklemek KESİNLİKLE YASAKTIR.
+- Soruyu herkesin anlayabileceği, konunun en bilinen ve temel anahtarı üzerinden tek nefeste sor.
+- Doğrudan Anlatım: "Uzun yıllar boyunca...", "...tarafından verilen nişanla ödüllendirilen...", "...yılında yayımlanan karara göre..." gibi gereksiz dolgu cümleleri kurulamaz.
+- Temel Bilgi İlkesi: Sorular ansiklopedik dipnotları değil; ilgili konunun dünya/ülke çapında en çok bilinen, en ayırt edici ana özelliğini hedefler.
 
 ================================================================================
 EVRENSEL "KÜLTÜREL TANINIRLIK & TRIVIA" STANDARTI (ANTİ-BÜROKRASİ KURALI)
@@ -265,6 +281,8 @@ EVRENSEL "KÜLTÜREL TANINIRLIK & TRIVIA" STANDARTI (ANTİ-BÜROKRASİ KURALI)
 Çıktıyı YALNIZCA şemaya tam uyumlu geçerli JSON formatında döndür. Markdown backtick (```) kullanma.
 """
 
+SYSTEM_PROMPT = TRIVIA_SYSTEM_PROMPT
+
 def normalize_text_for_search(text: str) -> str:
     """Türkçe karakterleri ve küçük/büyük harf farklarını arama için normalize eder."""
     mapping = str.maketrans({
@@ -276,8 +294,10 @@ def normalize_text_for_search(text: str) -> str:
 
 def validate_trivia_compliance(q: GeneratedQuestion) -> None:
     """
-    Üretilen sorunun bürokratik kara liste terimleri içerip içermediğini denetler.
-    Yasaklı terim tespit edilirse ValueError fırlatır ve yedek model kademesini tetikler.
+    Üretilen sorunun:
+    1. Bürokratik kara liste terimleri içerip içermediğini denetler.
+    2. Soru metninin mobil uzunluk standardını (maksimum 150-160 karakter / 25 kelime) denetler.
+    Kural ihlali tespit edilirse ValueError fırlatır ve yedek model kademesini tetikler.
     """
     if not q or not q.translations:
         return
@@ -287,7 +307,13 @@ def validate_trivia_compliance(q: GeneratedQuestion) -> None:
     texts_to_check = []
     for lang, content in q.translations.items():
         if hasattr(content, "question") and content.question:
-            texts_to_check.append((lang, "question", content.question))
+            q_text = content.question.strip()
+            # Karakter ve kelime sayısı kontrolü (Mobile Trivia Standartı)
+            max_chars = 180 if lang in ("de", "es", "pt") else 160
+            max_words = 28 if lang in ("de", "es", "pt") else 25
+            if len(q_text) > max_chars or len(q_text.split()) > max_words:
+                raise ValueError("Soru metni belirlenen 150 karakterlik mobil sınırını aştı!")
+            texts_to_check.append((lang, "question", q_text))
         if hasattr(content, "explanation") and content.explanation:
             texts_to_check.append((lang, "explanation", content.explanation))
         if hasattr(content, "options") and content.options:
@@ -337,7 +363,7 @@ def build_prompt(
         subcategory_instruction = f"- Alt Kategori Kılavuzu: Serbest{sub_cat_hint}"
         sub_schema_val = '"Alt Dal"'
 
-    from difficulty_balancer import DifficultyBalancer
+    from core.difficulty_balancer import DifficultyBalancer
     target_diff = DifficultyBalancer.normalize_level(base_difficulty) if base_difficulty else "Orta"
     if target_score is None:
         target_score = DifficultyBalancer.validate_and_clamp_score(target_diff)
@@ -405,6 +431,12 @@ Kriterler:
 {scope_instruction}{filters_hint}
 {difficulty_instruction}
 
+[ZORUNLU FORMAT VE UZUNLUK KURALI - MOBILE TRIVIA STANDARTI]:
+- Soru kökü EN FAZLA 20-25 kelime (150 karakter) olmalıdır. Paragraf yazmak KESİNLİKLE YASAKTIR.
+- Doğrudan Anlatım: "Uzun yıllar boyunca...", "...tarafından verilen nişanla ödüllendirilen...", "...yılında yayımlanan karara göre..." gibi gereksiz dolgu cümleleri kurulamaz.
+- Temel Bilgi İlkesi: Sorular ansiklopedik dipnotları değil; ilgili konunun en çok bilinen, en ayırt edici ana özelliğini hedefler.
+- Soruyu herkesin anlayabileceği, konunun en bilinen ve temel anahtarı üzerinden tek nefeste sor. Mobil ekranda tek bakışta anlaşılmalıdır.
+
 AŞIRI ZORLUK (ULTRA-HARD) ENGELİ VE GENEL BİLİNİRLİK KURALI:
 - Aşırı niş veya cevabı imkansız ultra-zor akademik detaylardan kaçın. Zor sorular da genel entelektüel düzeyde çözülebilir olmalıdır.
 - Zor (9-10) sorular dahi ilgili konunun/ülkenin literatüründe veya popüler kültüründe saygın, genel entelektüel bilinirliği olan nitelikli dönüm noktalarından seçilmelidir.
@@ -463,7 +495,7 @@ Zorunlu JSON Şeması:
   "target_country_credit": {credit_rule},
   "is_global_eligible": {str(is_global_eligible).lower()},
   "countries": ["{country_rule}"],
-  "version": "1.0.2",
+  "version": "1.0.3",
   "difficulty_local": "{target_diff}",
   "difficulty_local_score": {target_score},
   "difficulty_global": {schema_global_level},
@@ -577,12 +609,12 @@ def generate_question_with_fallback(
 ) -> GeneratedQuestion:
     """
     Kategori, şık, kapsam (Global/Local), ülke kredisi ve zorluk (4-4-2 kotası)
-    dengeleme mekanizması destekli soru üretim fonksiyonu (v1.0.2).
+    dengeleme mekanizması destekli soru üretim fonksiyonu (v1.0.3).
     """
     # 1. Kategori dengelemesi aktifse ve kategori veya alt kategori eksikse
     if balance_categories:
         try:
-            from category_balancer import get_category_balancer
+            from core.category_balancer import get_category_balancer
             cb = category_balancer or get_category_balancer()
 
             if primary_category is None:
@@ -596,7 +628,6 @@ def generate_question_with_fallback(
                 if subs:
                     min_s = min(subs.values())
                     candidates = [s for s, sc in subs.items() if sc == min_s]
-                    import random
                     target_subcategory = random.choice(candidates)
         except Exception:
             pass
@@ -606,7 +637,7 @@ def generate_question_with_fallback(
         primary_category = "Bilim"
 
     # 2. Dinamik Kapsam (Global/Local) ve Hedef Ülke Kredi Planlaması
-    from generation_planner import get_generation_planner
+    from core.generation_planner import get_generation_planner
     planner = generation_planner or get_generation_planner()
 
     plan = planner.create_plan(
@@ -616,13 +647,12 @@ def generate_question_with_fallback(
         force_country=target_country
     )
     final_scope = plan.scope
-    ratio_percent = plan.ratio_percent
     final_country = target_country or plan.target_country
     final_country_credit = target_country_credit if target_country_credit is not None else plan.target_country_credit
     final_is_global_eligible = plan.is_global_eligible
 
     # 3. Zorluk dengelemesi (4-4-2 kuralı ve 1-10 puan dengesi)
-    from difficulty_balancer import get_difficulty_balancer, DifficultyBalancer
+    from core.difficulty_balancer import get_difficulty_balancer, DifficultyBalancer
     diff_balancer = difficulty_balancer or get_difficulty_balancer()
 
     target_diff = base_difficulty
@@ -652,127 +682,136 @@ def generate_question_with_fallback(
         target_score=target_score
     )
     
+    llm_manager = MultiLLMManager()
+    
+    # 4. MultiLLMManager üzerinden soru üretimi (Gemini -> Groq -> Cohere Fallback & Round-Robin)
+    max_retries = 3
+    q: Optional[GeneratedQuestion] = None
+    provider_name = "GEMINI"
     last_error: Optional[Exception] = None
-    for item in MODEL_CASCADE:
-        provider = item["provider"]
-        model = item["model"]
-        
+
+    for attempt in range(1, max_retries + 1):
         try:
-            q: Optional[GeneratedQuestion] = None
-            if provider == "gemini" and gemini_client:
-                q = generate_with_gemini(gemini_client, model, prompt)
-            elif provider == "groq" and groq_client:
-                q = generate_with_groq(groq_client, model, prompt)
-
-            if q:
-                # Anti-Bürokrasi ve Trivia uyumluluk doğrulaması (Python Guard)
-                validate_trivia_compliance(q)
-
-                # Hedef alt kategori varsa sorunun alt kategorisini kesin olarak hedef alt kategoriye sabitle
-                if target_subcategory:
-                    q.sub_categories = [target_subcategory]
-
-                # Zorluk doğrulaması ve katı 1-10 puan dengesi
-                local_level = DifficultyBalancer.normalize_level(target_diff)
-                raw_local_score = getattr(q, "difficulty_local_score", None) or target_score
-                clamped_local_score = DifficultyBalancer.validate_and_clamp_score(local_level, raw_local_score)
-                final_local_level = DifficultyBalancer.score_to_level(clamped_local_score)
-
-                if final_is_global_eligible:
-                    raw_global_level = getattr(q, "difficulty_global", None)
-                    if not raw_global_level and q.difficulty_profile and q.difficulty_profile.global_scope:
-                        raw_global_level = q.difficulty_profile.global_scope.label
-                    if not raw_global_level:
-                        raw_global_level = "Orta"
-
-                    raw_global_score = getattr(q, "difficulty_global_score", None)
-                    if (not raw_global_score or raw_global_score == 5) and q.difficulty_profile and q.difficulty_profile.global_scope:
-                        raw_global_score = q.difficulty_profile.global_scope.score
-                    clamped_global_score = DifficultyBalancer.validate_and_clamp_score(raw_global_level, raw_global_score)
-                    final_global_level = DifficultyBalancer.score_to_level(clamped_global_score)
-                else:
-                    final_global_level = None
-                    clamped_global_score = None
-
-                now_iso = datetime.now(timezone.utc).isoformat()
-
-                q.version = "1.0.2"
-                q.scope = final_scope
-                q.target_country = final_country
-                q.target_country_credit = final_country_credit
-                q.is_global_eligible = final_is_global_eligible
-                q.countries = [final_country]
-                q.created_at = now_iso
-                q.shuffle_key = getattr(q, "shuffle_key", None) or round(random.random(), 6)
-                q.correct_count = getattr(q, "correct_count", 0) or 0
-                q.wrong_count = getattr(q, "wrong_count", 0) or 0
-                q.difficulty_local = final_local_level
-                q.difficulty_local_score = clamped_local_score
-                q.difficulty_global = final_global_level
-                q.difficulty_global_score = clamped_global_score
-                
-                local_meta = {
-                    "level": final_local_level,
-                    "score": clamped_local_score,
-                    "context_country": final_country
-                }
-                global_meta = {
-                    "level": final_global_level,
-                    "score": clamped_global_score
-                } if final_is_global_eligible and final_global_level else None
-
-                q.difficulty_meta = {
-                    "local": local_meta,
-                    "global": global_meta
-                }
-                q.difficulty_profile = DifficultyProfile(
-                    local=DifficultyScope(label=final_local_level, score=clamped_local_score),
-                    global_scope=DifficultyScope(label=final_global_level, score=clamped_global_score) if final_is_global_eligible and final_global_level else None
-                )
-
-                q = populate_question_meta(q, primary_category)
-                if balance_options:
-                    from option_balancer import get_option_balancer
-                    b = balancer or get_option_balancer()
-                    q = b.balance_question(q)
-                
-                from timer_calculator import calculate_durations_from_obj
-                durations = calculate_durations_from_obj(q)
-                q.duration_local = durations["duration_local"]
-                q.duration_global = durations["duration_global"]
-                q.duration_seconds = durations["duration_seconds"]
-
-                # Kota gerçekleşmesini ProductionBalancer'a kaydet
-                try:
-                    from production_balancer import get_production_balancer
-                    get_production_balancer().record_success(primary_category, final_scope)
-                except Exception as b_err:
-                    logging.warning(f"ProductionBalancer record_success hatası: {b_err}")
-
-                # Terminal Log Formatı:
-                # [v1.0.2] 🌍 Kapsam: Global (%85) | Odak: ABD (Kredi: 10) | Global Uygun: Evet | Local: Kolay (Puan: 3/10) | Global: Zor (Puan: 9/10) | Tarih: {created_at}
-                # veya
-                # [v1.0.2] 🌍 Kapsam: Local (%75) | Odak: Portekiz (Kredi: 4) | Global Uygun: Hayır | Local: Orta (Puan: 6/10) | Global: Yok | Tarih: {created_at}
-                global_str = f"{final_global_level} (Puan: {clamped_global_score}/10)" if final_is_global_eligible else "Yok"
-                terminal_msg = (
-                    f"[v1.0.2] 🌍 Kapsam: {final_scope.capitalize()} (%{ratio_percent}) | "
-                    f"Odak: {final_country} (Kredi: {final_country_credit}) | "
-                    f"Global Uygun: {'Evet' if final_is_global_eligible else 'Hayır'} | "
-                    f"Local: {q.difficulty_local} (Puan: {q.difficulty_local_score}/10) | "
-                    f"Global: {global_str} | "
-                    f"Tarih: {q.created_at}"
-                )
-                logging.info(terminal_msg)
-                try:
-                    print(terminal_msg)
-                except UnicodeEncodeError:
-                    print(terminal_msg.encode("ascii", "replace").decode("ascii"))
-                return q
-        except Exception as e:
-            last_error = e
+            data = llm_manager.generate_trivia(SYSTEM_PROMPT, prompt)
+            provider_name = str(data.get("_provider", "GEMINI")).upper()
+            
+            candidate_q = GeneratedQuestion.model_validate(data)
+            # Anti-Bürokrasi ve Trivia uyumluluk doğrulaması (Python Guard)
+            validate_trivia_compliance(candidate_q)
+            q = candidate_q
+            break
+        except Exception as err:
+            last_error = err
+            logging.warning(f"Soru üretim/doğrulama denemesi ({attempt}/{max_retries}) başarısız: {err}")
             continue
 
-    raise RuntimeError(f"Tüm model zinciri tükendi! Son hata: {last_error}")
+    if not q:
+        raise RuntimeError(f"Soru üretimi başarısız oldu! Son hata: {last_error}")
+
+    # Hedef alt kategori varsa sorunun alt kategorisini kesin olarak hedef alt kategoriye sabitle
+    if target_subcategory:
+        q.sub_categories = [target_subcategory]
+
+    # Zorluk doğrulaması ve katı 1-10 puan dengesi
+    local_level = DifficultyBalancer.normalize_level(target_diff)
+    raw_local_score = getattr(q, "difficulty_local_score", None) or target_score
+    clamped_local_score = DifficultyBalancer.validate_and_clamp_score(local_level, raw_local_score)
+    final_local_level = DifficultyBalancer.score_to_level(clamped_local_score)
+
+    if final_is_global_eligible:
+        raw_global_level = getattr(q, "difficulty_global", None)
+        if not raw_global_level and q.difficulty_profile and q.difficulty_profile.global_scope:
+            raw_global_level = q.difficulty_profile.global_scope.label
+        if not raw_global_level:
+            raw_global_level = "Orta"
+
+        raw_global_score = getattr(q, "difficulty_global_score", None)
+        if (not raw_global_score or raw_global_score == 5) and q.difficulty_profile and q.difficulty_profile.global_scope:
+            raw_global_score = q.difficulty_profile.global_scope.score
+        clamped_global_score = DifficultyBalancer.validate_and_clamp_score(raw_global_level, raw_global_score)
+        final_global_level = DifficultyBalancer.score_to_level(clamped_global_score)
+    else:
+        final_global_level = None
+        clamped_global_score = None
+
+    server_ts = SERVER_TIMESTAMP if SERVER_TIMESTAMP is not None else datetime.now(timezone.utc).isoformat()
+
+    q.version = "1.0.3"
+    q.scope = final_scope
+    q.target_country = final_country
+    q.target_country_credit = final_country_credit
+    q.is_global_eligible = final_is_global_eligible
+    q.countries = [final_country]
+    q.created_at = server_ts
+    q.shuffle_key = random.random()
+    q.correct_count = 0
+    q.wrong_count = 0
+    q.difficulty_local = final_local_level
+    q.difficulty_local_score = clamped_local_score
+    q.difficulty_global = final_global_level
+    q.difficulty_global_score = clamped_global_score
+    
+    local_meta = {
+        "level": final_local_level,
+        "score": clamped_local_score,
+        "context_country": final_country
+    }
+    global_meta = {
+        "level": final_global_level,
+        "score": clamped_global_score
+    } if final_is_global_eligible and final_global_level else None
+
+    q.difficulty_meta = {
+        "local": local_meta,
+        "global": global_meta
+    }
+    q.difficulty_profile = DifficultyProfile(
+        local=DifficultyScope(label=final_local_level, score=clamped_local_score),
+        global_scope=DifficultyScope(label=final_global_level, score=clamped_global_score) if final_is_global_eligible and final_global_level else None
+    )
+
+    q = populate_question_meta(q, primary_category)
+    if balance_options:
+        from core.option_balancer import get_option_balancer
+        b = balancer or get_option_balancer()
+        q = b.balance_question(q)
+    
+    from core.timer_calculator import calculate_durations_from_obj
+    durations = calculate_durations_from_obj(q)
+    q.duration_local = durations["duration_local"]
+    q.duration_global = durations["duration_global"]
+    q.duration_seconds = durations["duration_seconds"]
+
+    # Kota gerçekleşmesini ProductionBalancer'a kaydet
+    try:
+        from core.production_balancer import get_production_balancer
+        get_production_balancer().record_success(primary_category, final_scope)
+    except Exception as b_err:
+        logging.warning(f"ProductionBalancer record_success hatası: {b_err}")
+
+    # Payload hazırlığı
+    payload = q.model_dump(by_alias=True)
+    payload["version"] = "1.0.3"
+    payload["shuffle_key"] = random.random()
+    payload["correct_count"] = 0
+    payload["wrong_count"] = 0
+    payload["created_at"] = server_ts
+    q.payload = payload
+
+    # Terminal Log Formatı:
+    # [v1.0.3] ⚡ [Motor: COHERE/GROQ/GEMINI] Kapsam: Global | Ülke: İtalya (Kredi: 9) | Zorluk: Orta (6/10)
+    terminal_msg = (
+        f"[v1.0.3] ⚡ [Motor: {provider_name}] "
+        f"Kapsam: {final_scope.capitalize()} | "
+        f"Ülke: {final_country} (Kredi: {final_country_credit}) | "
+        f"Zorluk: {q.difficulty_local} ({q.difficulty_local_score}/10)"
+    )
+    logging.info(terminal_msg)
+    try:
+        print(terminal_msg)
+    except UnicodeEncodeError:
+        print(terminal_msg.encode("ascii", "replace").decode("ascii"))
+    return q
 
 def create_gemini_client() -> Optional[genai.Client]:
     """Geriye dönük uyumluluk için Gemini istemcisi döndürür."""
