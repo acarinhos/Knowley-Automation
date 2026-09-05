@@ -139,6 +139,172 @@ MODEL_CASCADE = [
     {"provider": "groq", "model": "openai/gpt-oss-20b"},
 ]
 
+# ==============================================================================
+# EVRENSEL "KÜLTÜREL TANINIRLIK & TRIVIA" STANDARTI (ANTİ-BÜROKRASİ MOTORU)
+# ==============================================================================
+
+BUREAUCRACY_BLACKLIST = [
+    "strateji belgesi",
+    "eylem planı",
+    "kalkınma raporu",
+    "kanun maddesi",
+    "kanun fıkrası",
+    "yönetmelik",
+    "resmi bülten",
+    "bakanlık kararı",
+    "yıllık bütçe yüzdesi",
+    "ulusal yol haritası",
+    "genelge",
+]
+
+SELF_VERIFICATION_RULE = (
+    "Bu soru Kim Milyoner Olmak İster, Jeopardy veya Trivial Pursuit gibi uluslararası bir yarışma programında "
+    "oyuncuya sorulduğunda adil, heyecan verici ve genel kültüre dayalı bir soru mudur? Yoksa bir devlet dairesinin "
+    "resmi evrakı mıdır? Eğer resmi evraksa soruyu anında sil ve ülkenin/konunun dünya çapında bilinen ikonik unsurlarıyla yeniden üret."
+)
+
+TRIVIA_GUIDELINES = """20 KATEGORİNİN TAMAMI İÇİN DOĞRU / YANLIŞ TRIVIA KILAVUZU:
+
+1. Tarih:
+   - ❌ Yanlış: "1832 İngiltere Seçim Reformu Kanunu'nun 3. maddesi hangi bölgeyi kapsar?"
+   - ✅ Doğru: "1215 yılında İngiltere Kralı Yurtsuz John'a imzalatılarak kralın yetkilerini tarihte ilk kez kısıtlayan belge hangisidir?" (Magna Carta)
+
+2. Coğrafya:
+   - ❌ Yanlış: "Brezilya Çevre Bakanlığı'nın 2021 Amazon koruma tebliğindeki hedef nedir?"
+   - ✅ Doğru: "Dünyanın en büyük tatlı su debisine sahip olan ve Atlas Okyanusu'na dökülen Güney Amerika nehri hangisidir?" (Amazon Nehri)
+
+3. Spor:
+   - ❌ Yanlış: "Fransa Spor Federasyonu'nun 2018 antrenör lisans yönergesi neyi şart koşar?"
+   - ✅ Doğru: "Brezilya formasıyla üç kez FIFA Dünya Kupası şampiyonluğu kazanan tek futbolcu kimdir?" (Pelé)
+
+4. Fizik:
+   - ❌ Yanlış: "Almanya Federal Fizik Enstitüsü'nün 2015 ölçüm hassasiyeti standartı nedir?"
+   - ✅ Doğru: "Işığın parçacık özelliği gösterdiğini fotoelektrik olayla açıklayarak Nobel Ödülü kazanan kuramsal fizikçi kimdir?" (Albert Einstein)
+
+5. Kimya:
+   - ❌ Yanlış: "Fransız Kimya Kurumu'nun tehlikeli atık sınıflandırma yönetmeliği nasıldır?"
+   - ✅ Doğru: "Radyoaktivite alanındaki çığır açan çalışmalarıyla iki farklı bilim dalında Nobel kazanan tek bilim insanı kimdir?" (Marie Curie)
+
+6. Biyoloji:
+   - ❌ Yanlış: "ABD Tarım Bakanlığı'nın 2020 bitki tohumu ihracat kriteri nedir?"
+   - ✅ Doğru: "Galapagos Adaları'ndaki ispinoz kuşlarını gözlemleyerek doğal seçilim yoluyla evrim kuramını geliştiren doğa bilimci kimdir?" (Charles Darwin)
+
+7. Ekonomi & Finans:
+   - ❌ Yanlış: "Almanya Maliye Bakanlığı'nın 2022 vergi uyum kılavuzu fıkrası nedir?"
+   - ✅ Doğru: "1923 yılında Almanya Weimar Cumhuriyeti'nde paranın sobalarda yakılacak kadar değersizleşmesine yol açan ekonomik kriz fenomeni hangisidir?" (Hiperenflasyon)
+
+8. Edebiyat:
+   - ❌ Yanlış: "Rusya Eğitim Bakanlığı'nın 2016 lise zorunlu okuma müfredatı yönergesi nedir?"
+   - ✅ Doğru: "Napolyon'un Rusya Seferi'ni arka planına alarak Rus aristokrasisini anlatan, Lev Tolstoy imzalı anıtsal roman hangisidir?" (Savaş ve Barış)
+
+9. Felsefe & Mantık:
+   - ❌ Yanlış: "Yunanistan Felsefe Vakfı'nın 2019 sempozyum bildirisinin 4. tezi nedir?"
+   - ✅ Doğru: "Sorgulanmamış hayatın yaşanmaya değer olmadığını savunan ve 'Bildiğim tek şey hiçbir şey bilmediğimdir' diyen Antik Yunan filozofu kimdir?" (Sokrates)
+
+10. Sinema & Dizi:
+    - ❌ Yanlış: "ABD Film Denetim Kurulu'nun 1930 Hays Kodunun 2. fıkra yasağı nedir?"
+    - ✅ Doğru: "Sinema tarihinin ilk büyük gişe rekortmeni (blockbuster) kabul edilen ve Steven Spielberg tarafından yönetilen 1975 yapımı gerilim filmi hangisidir?" (Jaws)
+
+11. Müzik:
+    - ❌ Yanlış: "Almanya Müzik Eseri Sahipleri Birliği (GEMA) 2014 lisans harç tarifesi nedir?"
+    - ✅ Doğru: "İşitme duyusunu neredeyse tamamen kaybetmişken 'Kaderin Kapıyı Çalması' olarak bilinen ünlü 5. Senfoni'yi besteleyen müzisyen kimdir?" (Ludwig van Beethoven)
+
+12. Genel Kültür & Mitoloji:
+    - ❌ Yanlış: "Atina Arkeoloji Müdürlüğü'nün 2017 Akropolis kazı protokolü nedir?"
+    - ✅ Doğru: "İskandinav mitolojisinde 'Kıyamet Günü' olarak adlandırılan ve tanrıların devlerle savaşarak dünyanın yok oluşunu simgeleyen olay hangisidir?" (Ragnarök)
+
+13. Bilgisayar & Yazılım:
+    - ❌ Yanlış: "2019 İsveç Ulusal Yapay Zeka Stratejisi belgesinde hangi eylem planı öne çıkar?"
+    - ✅ Doğru: "Mojang Studios tarafından Stockholm'de geliştirilen ve dünya genelinde en çok satan video oyunu unvanını alan sandbox yapım hangisidir?" (Minecraft)
+
+14. Tıp & Sağlık:
+    - ❌ Yanlış: "İngiltere Sağlık Bakanlığı'nın 2015 hastane sterilizasyon tebliği neyi zorunlu tutar?"
+    - ✅ Doğru: "Laboratuvarında küf mantarını tesadüfen fark ederek ilk antibiyotik olan penisilini keşfeden İskoç bilim insanı kimdir?" (Alexander Fleming)
+
+15. Sosyoloji & Psikoloji:
+    - ❌ Yanlış: "Fransa Sosyoloji Derneği'nin 2018 saha araştırma etik tüzüğü nasıldır?"
+    - ✅ Doğru: "İntihar olgusunu bireysel bir kriz değil, toplumsal dayanışma eksikliği üzerinden inceleyerek modern sosyolojinin kurucularından kabul edilen düşünür kimdir?" (Émile Durkheim)
+
+16. Astronomi & Uzay:
+    - ❌ Yanlış: "NASA'nın 2021 tedarik zinciri lojistik alt planında hangi madde vardır?"
+    - ✅ Doğru: "1969 yılında Apollo 11 göreviyle Ay yüzeyine ayak basan ilk insan kimdir?" (Neil Armstrong)
+
+17. Hukuk & Siyaset:
+    - ❌ Yanlış: "Fransız Medeni Kanunu'nun 1101. maddesinde sözleşme nasıl tanımlanır?"
+    - ✅ Doğru: "Napolyon'un 'Benim asıl zaferim Waterloo değil, bu kanundur' dediği ve modern Avrupa özel hukukunun temelini atan kanun külliyatı hangisidir?" (Code Civil / Napolyon Kanunları)
+
+18. Oyun & Espor:
+    - ❌ Yanlış: "Japonya Espor Birliği'nin 2019 turnuva vergilendirme yönetmeliği nedir?"
+    - ✅ Doğru: "1985 yılında Shigeru Miyamoto tarafından tasarlanarak oyun sektörünü batmaktan kurtaran ve Nintendo'nun maskotu olan efsanevi platform oyunu hangisidir?" (Super Mario Bros.)
+
+19. Gastronomi & Mutfak:
+    - ❌ Yanlış: "İtalya Tarım Bakanlığı'nın pizza unu nem oranı standardı genelgesi nedir?"
+    - ✅ Doğru: "Geleneksel olarak dana incik, sebzeler ve beyaz şarapla pişirilip üzeri gremolata ile servis edilen ünlü Milano kökenli et yemeği hangisidir?" (Ossobuco)
+
+20. Mimarlık & Sanat:
+    - ❌ Yanlış: "İtalya Kültür Bakanlığı'nın 2018 tarihi eser restorasyon hibesi şartnamesi nedir?"
+    - ✅ Doğru: "Floransa Katedrali'nin devasa kubbesini iç iskele kurmadan inşa ederek Rönesans mimarisinde çığır açan dahi mimar kimdir?" (Filippo Brunelleschi)"""
+
+TRIVIA_SYSTEM_PROMPT = f"""Sen profesyonel, çok dilli ve uluslararası düzeyde tanınan bir Trivia & Yarışma Programı Soru Uzmanısın.
+Görevin, Kim Milyoner Olmak İster, Jeopardy veya Trivial Pursuit standartlarında; adil, heyecan verici, akıl yürütmeye dayalı, merak uyandırıcı ve genel dünya literatürüne mal olmuş ikonik sorular üretmektir.
+
+================================================================================
+EVRENSEL "KÜLTÜREL TANINIRLIK & TRIVIA" STANDARTI (ANTİ-BÜROKRASİ KURALI)
+================================================================================
+20 KATEGORİNİN HİÇBİRİNDE resmi rapor maddeleri, kanun numaraları/fıkraları, tebliğler, bakanlık strateji metinleri veya kimsenin bilmediği bürokratik evraklar üzerinden soru ÜRETİLMEYECEKTİR.
+
+1. KESİN YASAKLI KALIPLAR VE EVRAK KELİMELERİ (KARA LİSTE):
+- ❌ Yasaklı Sözcükler: "Strateji belgesi", "eylem planı", "kalkınma raporu", "kanun maddesi", "kanun fıkrası", "yönetmelik", "resmi bülten", "bakanlık kararı", "yıllık bütçe yüzdesi", "ulusal yol haritası", "genelge".
+- ❌ Yasaklı Mantık: Bir ülkenin yalnızca bürokratlarının veya kamu kurumu çalışanlarının bildiği iç idari detaylar soru yapılamaz.
+
+2. ZORUNLU KENDİ KENDİNİ DOĞRULAMA (SELF-VERIFICATION):
+"{SELF_VERIFICATION_RULE}"
+
+{TRIVIA_GUIDELINES}
+
+Çıktıyı YALNIZCA şemaya tam uyumlu geçerli JSON formatında döndür. Markdown backtick (```) kullanma.
+"""
+
+def normalize_text_for_search(text: str) -> str:
+    """Türkçe karakterleri ve küçük/büyük harf farklarını arama için normalize eder."""
+    mapping = str.maketrans({
+        'ı': 'i', 'İ': 'i', 'ğ': 'g', 'Ğ': 'g',
+        'ü': 'u', 'Ü': 'u', 'ş': 's', 'Ş': 's',
+        'ö': 'o', 'Ö': 'o', 'ç': 'c', 'Ç': 'c'
+    })
+    return text.lower().translate(mapping)
+
+def validate_trivia_compliance(q: GeneratedQuestion) -> None:
+    """
+    Üretilen sorunun bürokratik kara liste terimleri içerip içermediğini denetler.
+    Yasaklı terim tespit edilirse ValueError fırlatır ve yedek model kademesini tetikler.
+    """
+    if not q or not q.translations:
+        return
+
+    normalized_blacklist = [normalize_text_for_search(w) for w in BUREAUCRACY_BLACKLIST]
+
+    texts_to_check = []
+    for lang, content in q.translations.items():
+        if hasattr(content, "question") and content.question:
+            texts_to_check.append((lang, "question", content.question))
+        if hasattr(content, "explanation") and content.explanation:
+            texts_to_check.append((lang, "explanation", content.explanation))
+        if hasattr(content, "options") and content.options:
+            for opt_key in ["A", "B", "C", "D"]:
+                opt_val = getattr(content.options, opt_key, "")
+                if opt_val:
+                    texts_to_check.append((lang, f"options.{opt_key}", opt_val))
+
+    for lang, field_name, raw_text in texts_to_check:
+        norm_text = normalize_text_for_search(raw_text)
+        for orig_kw, norm_kw in zip(BUREAUCRACY_BLACKLIST, normalized_blacklist):
+            if norm_kw in norm_text:
+                raise ValueError(
+                    f"Anti-Bürokrasi Kural İhlali: Soru [{lang}][{field_name}] içinde "
+                    f"yasaklı bürokratik terim tespit edildi: '{orig_kw}' (Metin: {raw_text[:60]}...)"
+                )
+
 def build_prompt(
     primary_category: str,
     target_subcategory: Optional[str] = None,
@@ -244,6 +410,19 @@ AŞIRI ZORLUK (ULTRA-HARD) ENGELİ VE GENEL BİLİNİRLİK KURALI:
 - Zor (9-10) sorular dahi ilgili konunun/ülkenin literatüründe veya popüler kültüründe saygın, genel entelektüel bilinirliği olan nitelikli dönüm noktalarından seçilmelidir.
 - Akademisyen düzeyinde ezoterik veya kimsenin bilmediği aşırı niş detaylardan kesinlikle kaçın.
 
+EVRENSEL "KÜLTÜREL TANINIRLIK & TRIVIA" STANDARTI (ANTİ-BÜROKRASİ PROMPT KURALI):
+- 20 kategorinin hiçbirinde resmi rapor maddeleri, kanun numaraları/fıkraları, tebliğler, bakanlık strateji metinleri veya kimsenin bilmediği bürokratik evraklar üzerinden soru ÜRETİLMEYECEKTİR.
+- Üretilen tüm sorular genel dünya literatürüne mal olmuş, ikonik, akıl yürütmeye dayalı, merak uyandırıcı ve uluslararası popüler yarışma (Trivia) formatında (Kim Milyoner Olmak İster, Jeopardy, Trivial Pursuit) olmalıdır.
+
+KESİN YASAKLI KALIPLAR VE EVRAK KELİMELERİ (KARA LİSTE):
+- ❌ Yasaklı Sözcükler: "Strateji belgesi", "eylem planı", "kalkınma raporu", "kanun maddesi", "kanun fıkrası", "yönetmelik", "resmi bülten", "bakanlık kararı", "yıllık bütçe yüzdesi", "ulusal yol haritası", "genelge".
+- ❌ Yasaklı Mantık: Bir ülkenin yalnızca bürokratlarının veya kamu kurumu çalışanlarının bildiği iç idari detaylar soru yapılamaz.
+
+ZORUNLU KENDİ KENDİNİ DOĞRULAMA (SELF-VERIFICATION KURALI):
+"{SELF_VERIFICATION_RULE}"
+
+{TRIVIA_GUIDELINES}
+
 ZORLUK DEĞERLENDİRME VE 4 DİNAMİK SENARYO KURALI:
 Model olarak sorunun içeriğini ve hedef kitlesini analiz ederek aşağıdaki 4 senaryodan hangisine uyduğunu tespit et; hem `local` hem de `global` zorluk ve puanını dinamik olarak ata.
 Hiçbir zorluk seviyesini varsayılan (default) kabul etme! `global` seviyesi de soruya göre "Kolay", "Orta" veya "Zor" olabilmeli ve skoru (1-10) gerçek küresel bilinirliğe göre atanmalıdır.
@@ -314,6 +493,7 @@ def generate_with_gemini(client: genai.Client, model_name: str, prompt: str) -> 
         model=model_name,
         contents=prompt,
         config=types.GenerateContentConfig(
+            system_instruction=TRIVIA_SYSTEM_PROMPT,
             response_mime_type="application/json",
             response_schema=GeneratedQuestion,
             temperature=0.7,
@@ -335,7 +515,7 @@ def generate_with_groq(client: Groq, model_name: str, prompt: str) -> GeneratedQ
         messages=[
             {
                 "role": "system",
-                "content": "You are a database seeding bot. Output ONLY valid, raw JSON adhering strictly to the schema. No markdown backticks."
+                "content": TRIVIA_SYSTEM_PROMPT
             },
             {"role": "user", "content": prompt}
         ],
@@ -485,6 +665,9 @@ def generate_question_with_fallback(
                 q = generate_with_groq(groq_client, model, prompt)
 
             if q:
+                # Anti-Bürokrasi ve Trivia uyumluluk doğrulaması (Python Guard)
+                validate_trivia_compliance(q)
+
                 # Hedef alt kategori varsa sorunun alt kategorisini kesin olarak hedef alt kategoriye sabitle
                 if target_subcategory:
                     q.sub_categories = [target_subcategory]
