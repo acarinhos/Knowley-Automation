@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Knowley Üretim Kontrolü</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">K</div>
+        <div>
+          <div class="eyebrow">KNOWLEY CONTROL ROOM</div>
+          <h1>Soru üretimini tek ekrandan yönet.</h1>
+        </div>
+      </div>
+      <div class="top-status">
+        <span class="status-pill"><i class="dot cyan"></i><span id="algorithm-version">Sheets yükleniyor</span></span>
+        <span class="status-pill"><i class="dot cyan"></i><span id="question-version">Soru şeması yükleniyor</span></span>
+        <span class="status-pill"><i class="dot green" id="firebase-dot"></i><span id="firebase-top-status">Firestore denetleniyor</span></span>
+      </div>
+    </header>
+
+    <section class="hero-grid">
+      <article class="panel form-panel">
+        <div class="panel-heading">
+          <div>
+            <div class="eyebrow">YENİ ÜRETİM</div>
+            <h2>Üretim parametreleri</h2>
+          </div>
+          <div class="sheet-badge"><span id="pool-total">154</span><small id="mode-caption">kredi havuzu</small></div>
+        </div>
+
+        <form id="generation-form">
+          <fieldset class="mode-fieldset">
+            <legend>Üretim modu</legend>
+            <div class="mode-grid">
+              <label class="mode-card"><input type="radio" name="generation-mode" value="154" checked><span><b>154 kredi</b><small>Tam dağılım</small></span></label>
+              <label class="mode-card"><input type="radio" name="generation-mode" value="64"><span><b>64 kredi</b><small>Kısa seri</small></span></label>
+              <label class="mode-card"><input type="radio" name="generation-mode" value="basic"><span><b>Temel</b><small>Yalnız temel hedefler</small></span></label>
+            </div>
+          </fieldset>
+
+          <label class="field">
+            <span>Soru adedi</span>
+            <input id="question-count" type="number" min="1" max="10000" value="154" required>
+          </label>
+
+          <div class="country-profile-card">
+            <label class="switch-row" for="country-profile-enabled">
+              <span><b>Ülke profili</b><small>İsteğe bağlı yerelleştirme matrisi</small></span>
+              <input id="country-profile-enabled" type="checkbox" role="switch">
+            </label>
+            <label id="country-field" class="field hidden">
+              <span>Profil</span>
+              <select id="country" disabled></select>
+            </label>
+          </div>
+
+          <details class="advanced-panel">
+            <summary>Gelişmiş ayarlar <span>İsteğe bağlı</span></summary>
+            <div class="advanced-content">
+              <label class="field">
+                <span>Zorluk</span>
+                <select id="difficulty">
+                  <option value="">4–4–2 otomatik dengesi</option>
+                  <option value="Kolay">Yalnız Kolay · 1–4</option>
+                  <option value="Orta">Yalnız Orta · 5–8</option>
+                  <option value="Zor">Yalnız Zor · 9–10</option>
+                </select>
+              </label>
+              <div class="field"><span>Diller</span><div id="languages" class="chip-grid"></div></div>
+              <div class="range-card">
+                <div class="range-title"><span>Combo soru oranı</span><strong id="combo-value">%40</strong></div>
+                <input id="combo-percent" type="range" min="0" max="100" step="10" value="40">
+                <div class="range-labels"><span>Tek kategori</span><span>Dengeli</span><span>Yoğun combo</span></div>
+              </div>
+            </div>
+          </details>
+
+          <div class="auto-rules"><span>⌁</span><p>Kategori ve alt kategori algoritma tarafından seçilir. Süre içerik uzunluğu ve zorluğa göre otomatik hesaplanır.</p></div>
+
+          <div class="delivery-note">
+            <span class="delivery-icon">↗</span>
+            <div><strong>Anında teslim</strong><p>Her başarılı soru tekrar kontrolünden sonra <code>questions</code> koleksiyonuna yazılır.</p></div>
+          </div>
+
+          <button id="start-button" class="primary-button" type="submit">
+            <span>Üretimi başlat</span><span class="button-arrow">→</span>
+          </button>
+          <button id="stop-button" class="secondary-button hidden" type="button">Üretimi güvenli biçimde durdur</button>
+          <p id="form-error" class="error-text"></p>
+        </form>
+      </article>
+
+      <aside class="side-stack">
+        <article class="panel metric-panel">
+          <div class="panel-heading compact">
+            <div><div class="eyebrow">CANLI KAPASİTE</div><h2>API sağlayıcıları</h2></div>
+            <button id="probe-button" class="icon-button" title="Canlı kontrol">↻</button>
+          </div>
+          <div id="provider-cards" class="provider-list"></div>
+          <p class="fine-print">Kesin kalan değer, sağlayıcı başlığı döndüğünde gösterilir. Diğer değerler tanımlı plan limitinden oturum kullanımının çıkarıldığı tahmindir.</p>
+        </article>
+
+        <article class="panel firebase-card">
+          <div class="firebase-head"><span class="firebase-logo">◆</span><div><div class="eyebrow">FIREBASE</div><h2>questions</h2></div><span id="firebase-health" class="mini-status">kontrol ediliyor</span></div>
+          <div class="firebase-metrics">
+            <div><strong id="firebase-count">—</strong><span>mevcut soru</span></div>
+            <div><strong>europe-west3</strong><span>veritabanı konumu</span></div>
+          </div>
+          <div class="firebase-foot"><span>knowley-1 / (default)</span><span>Native</span></div>
+        </article>
+
+        <article class="panel source-card">
+          <div class="eyebrow">ALGORİTMA KAYNAĞI</div>
+          <h3>Google Sheets · v<span id="source-version">—</span></h3>
+          <div class="source-stats"><span><b id="category-count">—</b> kategori</span><span><b id="country-count">5</b> ülke profili</span><span><b id="subcategory-count">—</b> alt hedef</span></div>
+          <a id="sheet-link" target="_blank" rel="noreferrer">Çalışma sayfasını aç <span>↗</span></a>
+        </article>
+      </aside>
+    </section>
+
+    <section class="panel activity-panel">
+      <div class="activity-head">
+        <div><div class="eyebrow">ÜRETİM AKIŞI</div><h2 id="activity-title">Yeni iş bekleniyor</h2></div>
+        <div class="progress-copy"><strong id="progress-count">0 / 0</strong><span id="progress-label">Hazır</span></div>
+      </div>
+      <div class="progress-track"><div id="progress-bar" class="progress-bar"></div></div>
+      <div id="event-list" class="event-list">
+        <div class="empty-state"><span>⌁</span><p>Parametrelerini seçip üretimi başlattığında planlama, API ve Firebase adımlarını burada canlı izleyeceksin.</p></div>
+      </div>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

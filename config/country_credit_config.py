@@ -123,6 +123,7 @@ CATEGORY_ALIASES: Dict[str, str] = {
     "Espor": "Oyun & Espor",
     "Mimarlık": "Mimarlık & Sanat",
     "Sanat": "Mimarlık & Sanat",
+    "Resim": "Mimarlık & Sanat",
     "Mimari": "Mimarlık & Sanat",
     "Mitoloji": "Genel Kültür & Mitoloji",
     "Genel Kültür": "Genel Kültür & Mitoloji",
@@ -197,5 +198,4 @@ def get_category_ratio(category: str) -> Dict[str, int]:
         "global": int(round(ratio.get("global", 0.50) * 100)),
         "local": int(round(ratio.get("local", 0.50) * 100))
     }
-
 

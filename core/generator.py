@@ -17,6 +17,9 @@ if hasattr(sys.stdout, "reconfigure"):
 from google import genai
 from google.genai import types
 from groq import Groq
+
+QUESTION_SCHEMA_VERSION = "1.1.0"
+
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 try:
     from firebase_admin import firestore
@@ -102,13 +105,14 @@ class GeneratedQuestion(BaseModel):
     categories_meta: List[CategoryMeta] = Field(default_factory=list, description="Kategori meta bilgileri (isim ve renk)")
     sub_categories: List[str] = Field(default_factory=list, description="Alt dallar")
     sub_categories_meta: List[SubCategoryMeta] = Field(default_factory=list, description="Alt kategori meta bilgileri (isim ve görsel URL)")
+    question_image_url: Optional[str] = Field(default=None, description="Soruya özel görsel URL'si; görsel yoksa null")
     is_combo: bool = Field(default=False, description="Hibrit soru mu")
     scope: Literal["global", "local"] = Field(default="global", description="Kapsam: global veya local")
     target_country: Optional[str] = Field(default=None, description="Hedef ülke")
     target_country_credit: Optional[int] = Field(default=None, description="Hedef ülke kredi puanı")
     is_global_eligible: bool = Field(default=True, description="Küresel elit ülke mi (çift zorluk mu)")
     countries: List[str] = Field(default_factory=lambda: ["Global"], description="İlgili ülkeler")
-    version: str = Field(default="1.0.3", description="Soru veri şeması versiyonu")
+    version: str = Field(default=QUESTION_SCHEMA_VERSION, description="Soru veri şeması versiyonu")
     difficulty_local: str = Field(default="Orta", description="Yerel zorluk seviyesi (Kolay, Orta, Zor)")
     difficulty_local_score: int = Field(default=5, description="Yerel zorluk puanı (1-10)")
     difficulty_global: Optional[str] = Field(default=None, description="Küresel zorluk seviyesi (Kolay, Orta, Zor veya None)")
@@ -126,6 +130,7 @@ class GeneratedQuestion(BaseModel):
     shuffle_key: float = Field(default_factory=lambda: round(random.random(), 6), description="Rastgele sorgulama ve çekim anahtarı (0.0 - 1.0)")
     supported_languages: List[str] = Field(default=["tr", "en", "es", "pt", "de"], description="Desteklenen diller")
     translations: Dict[str, LocalizedContent] = Field(description="5 dilde çeviriler")
+    generation_provider: Optional[str] = Field(default="GEMINI", description="Üretimi gerçekleştiren LLM sağlayıcısı")
 
 # İstemcileri Başlat
 gemini_client: Optional[genai.Client] = (
@@ -265,6 +270,20 @@ Görevin, Kim Milyoner Olmak İster, Jeopardy veya Trivial Pursuit standartları
 - Temel Bilgi İlkesi: Sorular ansiklopedik dipnotları değil; ilgili konunun dünya/ülke çapında en çok bilinen, en ayırt edici ana özelliğini hedefler.
 
 ================================================================================
+[TEMELDEN BAŞLAMA VE HALKIN BİLGİSİNE UYGUNLUK İLKESİ - FOUNDATIONAL TRIVIA]
+================================================================================
+- Sorular daima TEMELDEN başlamalıdır! Her kategoride halkın gündelik genel kültürüne ve genel bilgisine uygun temel yapı taşları sorulmalıdır.
+- Temel ve Sağlam Sorular Kesinlikle Teşvik Edilir:
+  * Bir ülkenin başkentini sormak (ör. "Avustralya'nın başkenti neresidir?", "Japonya'nın başkenti hangisidir?"),
+  * Bir ülkenin bayrağını, renklerini ve sembollerini sormak (ör. "Bayrağında akçaağaç yaprağı bulunan ülke hangisidir?"),
+  * Coğrafyada en bilinen dağ, nehir, göl, deniz ve boğazları sormak,
+  * Tarihte en bilinen kurucu liderleri, başkentleri ve dönüm noktası zaferleri sormak,
+  * Bilimde temel formülleri (H2O, yerçekimi, fotosentez, gezegenler, altın, demir vb.) sormak,
+  * Sporda temel kuralları, efsaneleşmiş şampiyonlukları ve efsane sporcuları sormak,
+  * Sanatta Mona Lisa, Eyfel Kulesi, Kolezyum gibi dünyaca bilinen eserleri sormak.
+- Soruların halkın genel kültür seviyesine uygun, anlaşılır, bilindiğinde oyuncuya tatmin veren sorulardan oluşması esastır. Kimsenin bilmediği aşırı niş akademik detaylar KESİNLİKLE yasaktır.
+
+================================================================================
 EVRENSEL "KÜLTÜREL TANINIRLIK & TRIVIA" STANDARTI (ANTİ-BÜROKRASİ KURALI)
 ================================================================================
 20 KATEGORİNİN HİÇBİRİNDE resmi rapor maddeleri, kanun numaraları/fıkraları, tebliğler, bakanlık strateji metinleri veya kimsenin bilmediği bürokratik evraklar üzerinden soru ÜRETİLMEYECEKTİR.
@@ -340,7 +359,9 @@ def build_prompt(
     scope: Optional[str] = "global",
     is_global_eligible: bool = True,
     base_difficulty: Optional[str] = None,
-    target_score: Optional[int] = None
+    target_score: Optional[int] = None,
+    languages: Optional[List[str]] = None,
+    algorithm_context: Optional[str] = None,
 ) -> str:
     is_combo = secondary_category is not None
     country_rule = target_country if target_country else "Global"
@@ -367,6 +388,24 @@ def build_prompt(
     target_diff = DifficultyBalancer.normalize_level(base_difficulty) if base_difficulty else "Orta"
     if target_score is None:
         target_score = DifficultyBalancer.validate_and_clamp_score(target_diff)
+
+    allowed_languages = ["tr", "en", "es", "pt", "de"]
+    selected_languages = [lang for lang in (languages or allowed_languages) if lang in allowed_languages]
+    if not selected_languages:
+        selected_languages = ["tr", "en", "es", "pt", "de"]
+    language_json = json.dumps(selected_languages, ensure_ascii=False)
+    translation_schema = ",\n".join(
+        f'    "{lang}": {{ "question": "...", "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}}, "explanation": "...", "filter_tag": "..." }}'
+        for lang in selected_languages
+    )
+
+    algorithm_instruction = (
+        f"\n[ZORUNLU ODAK NOKTASI VE KAPSAM KILAVUZU]:\n"
+        f"{algorithm_context.strip()}\n"
+        f"- Kural: Sorunun konusu doğrudan yukarıdaki Odak Noktası ve Kapsam Kılavuzu çerçevesinde olmalıdır. Kılavuz dışına çıkılamaz.\n"
+        if algorithm_context and algorithm_context.strip()
+        else ""
+    )
 
     if scope_clean == "global":
         scope_instruction = (
@@ -402,7 +441,7 @@ def build_prompt(
             f"- Hedef Odak Ülke: {country_rule} (Kredi: {credit_rule}/10 - Yerel Kapsamlı Ülke)\n"
             f"- Bu soru sadece yerel kapsamdadır. Konu küresel bir standart taşımadığı için küresel puanlama YAPILMAYACAKTIR.\n"
             f"- Yalnızca {country_rule} yerel perspektifine göre yerel zorluk puanı ata: 'difficulty_local_score' = {target_score}, 'difficulty_local' = '{target_diff}'.\n"
-            f"- 'difficulty_global' ve 'difficulty_global_score' alanlarını KESİNLİKLE null bırak.\n"
+            f"- 'difficulty_global' and 'difficulty_global_score' alanlarını KESİNLİKLE null bırak.\n"
             f"- Çıktı JSON'ında 'is_global_eligible': false olmalıdır.\n"
             f"- 'difficulty_meta': {{'local': {{'level': '{target_diff}', 'score': {target_score}, 'context_country': '{country_rule}'}}, 'global': null}} olmalıdır."
         )
@@ -422,13 +461,13 @@ def build_prompt(
 
     return f"""
 Sen profesyonel ve çok dilli bir soru hazırlama uzmanısın.
-Aşağıdaki kriterlere göre yüksek kaliteli, özgün tek bir çoktan seçmeli soru üret ve 5 dilde ('tr', 'en', 'es', 'pt', 'de') hazırla.
+Aşağıdaki kriterlere göre yüksek kaliteli, özgün tek bir çoktan seçmeli soru üret ve şu dillerde hazırla: {language_json}.
 
 Kriterler:
 - Birincil Kategori: {primary_category}
 {subcategory_instruction}
 {f"- İkincil Kategori (Combo): {secondary_category}" if is_combo else "- Tip: Standart (Tek Kategori)"}
-{scope_instruction}{filters_hint}
+{scope_instruction}{filters_hint}{algorithm_instruction}
 {difficulty_instruction}
 
 [ZORUNLU FORMAT VE UZUNLUK KURALI - MOBILE TRIVIA STANDARTI]:
@@ -436,6 +475,18 @@ Kriterler:
 - Doğrudan Anlatım: "Uzun yıllar boyunca...", "...tarafından verilen nişanla ödüllendirilen...", "...yılında yayımlanan karara göre..." gibi gereksiz dolgu cümleleri kurulamaz.
 - Temel Bilgi İlkesi: Sorular ansiklopedik dipnotları değil; ilgili konunun en çok bilinen, en ayırt edici ana özelliğini hedefler.
 - Soruyu herkesin anlayabileceği, konunun en bilinen ve temel anahtarı üzerinden tek nefeste sor. Mobil ekranda tek bakışta anlaşılmalıdır.
+
+[TEMELDEN BAŞLAMA VE HALKIN BİLGİSİNE UYGUNLUK KURALI]:
+- Sorular daima TEMELDEN başlamalıdır! Her kategoride halkın gündelik genel kültürüne ve genel bilgisine uygun temel yapı taşları sorulmalıdır.
+- Temel ve Sağlam Sorular Kesinlikle Teşvik Edilir:
+  * Bir ülkenin başkentini sormak (ör. "Avustralya'nın başkenti neresidir?", "Japonya'nın başkenti hangisidir?"),
+  * Bir ülkenin bayrağını, renklerini ve sembollerini sormak (ör. "Bayrağında akçaağaç yaprağı olan ülke hangisidir?"),
+  * Coğrafyada en bilinen dağ, nehir, göl, kıta ve boğazları sormak,
+  * Tarihte kurucu liderleri, başkentleri ve dönüm noktası zaferleri/olayları sormak,
+  * Bilimde temel formülleri (H2O, yerçekimi, fotosentez, gezegenler) sormak,
+  * Sporda temel kuralları, efsane şampiyonlukları ve dünyaca ünlü sporcuları sormak,
+  * Sanatta Mona Lisa, Eyfel Kulesi, Kolezyum gibi dünyaca bilinen eserleri sormak.
+- Sorular halkın genel kültür seviyesine uygun, anlaşılır, bilindiğinde oyuncuya keyif ve tatmin veren sorulardan oluşmalıdır. Kimsenin bilmediği aşırı niş akademik dipnotlardan KESİNLİKLE kaçınılmalıdır.
 
 AŞIRI ZORLUK (ULTRA-HARD) ENGELİ VE GENEL BİLİNİRLİK KURALI:
 - Aşırı niş veya cevabı imkansız ultra-zor akademik detaylardan kaçın. Zor sorular da genel entelektüel düzeyde çözülebilir olmalıdır.
@@ -489,13 +540,14 @@ Zorunlu JSON Şeması:
 {{
   "categories": ["{primary_category}"{f', "{secondary_category}"' if is_combo else ''}],
   "sub_categories": [{sub_schema_val}],
+  "question_image_url": null,
   "is_combo": {str(is_combo).lower()},
   "scope": "{scope_clean}",
   "target_country": "{country_rule}",
   "target_country_credit": {credit_rule},
   "is_global_eligible": {str(is_global_eligible).lower()},
   "countries": ["{country_rule}"],
-  "version": "1.0.3",
+  "version": "{QUESTION_SCHEMA_VERSION}",
   "difficulty_local": "{target_diff}",
   "difficulty_local_score": {target_score},
   "difficulty_global": {schema_global_level},
@@ -509,13 +561,9 @@ Zorunlu JSON Şeması:
     "global": {schema_profile_global}
   }},
   "correct_answer": "A",
-  "supported_languages": ["tr", "en", "es", "pt", "de"],
+  "supported_languages": {language_json},
   "translations": {{
-    "tr": {{ "question": "...", "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}}, "explanation": "...", "filter_tag": "..." }},
-    "en": {{ "question": "...", "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}}, "explanation": "...", "filter_tag": "..." }},
-    "es": {{ "question": "...", "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}}, "explanation": "...", "filter_tag": "..." }},
-    "pt": {{ "question": "...", "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}}, "explanation": "...", "filter_tag": "..." }},
-    "de": {{ "question": "...", "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}}, "explanation": "...", "filter_tag": "..." }}
+{translation_schema}
   }}
 }}
 """
@@ -602,10 +650,16 @@ def generate_question_with_fallback(
     balance_options: bool = True,
     is_combo: Optional[bool] = None,
     category_balancer: Optional[Any] = None,
-    balance_categories: bool = True,
+    balance_categories: bool = False,
     difficulty_balancer: Optional[Any] = None,
     balance_difficulty: bool = True,
-    generation_planner: Optional[Any] = None
+    generation_planner: Optional[Any] = None,
+    languages: Optional[List[str]] = None,
+    duration_seconds: Optional[int] = None,
+    algorithm_context: Optional[str] = None,
+    algorithm_version: Optional[str] = None,
+    llm_manager: Optional[Any] = None,
+    **kwargs: Any,
 ) -> GeneratedQuestion:
     """
     Kategori, şık, kapsam (Global/Local), ülke kredisi ve zorluk (4-4-2 kotası)
@@ -679,10 +733,12 @@ def generate_question_with_fallback(
         scope=final_scope,
         is_global_eligible=final_is_global_eligible,
         base_difficulty=target_diff,
-        target_score=target_score
+        target_score=target_score,
+        languages=languages,
+        algorithm_context=algorithm_context,
     )
     
-    llm_manager = MultiLLMManager()
+    active_llm_manager = llm_manager or MultiLLMManager()
     
     # 4. MultiLLMManager üzerinden soru üretimi (Gemini -> Groq -> Cohere Fallback & Round-Robin)
     max_retries = 3
@@ -692,7 +748,7 @@ def generate_question_with_fallback(
 
     for attempt in range(1, max_retries + 1):
         try:
-            data = llm_manager.generate_trivia(SYSTEM_PROMPT, prompt)
+            data = active_llm_manager.generate_trivia(SYSTEM_PROMPT, prompt)
             provider_name = str(data.get("_provider", "GEMINI")).upper()
             
             candidate_q = GeneratedQuestion.model_validate(data)
@@ -711,6 +767,10 @@ def generate_question_with_fallback(
     # Hedef alt kategori varsa sorunun alt kategorisini kesin olarak hedef alt kategoriye sabitle
     if target_subcategory:
         q.sub_categories = [target_subcategory]
+    # LLM'nin kategori adını yeniden yazmasına izin verme; Sheet'teki adlar birebir korunur.
+    q.categories = [primary_category]
+    if secondary_category and secondary_category != primary_category:
+        q.categories.append(secondary_category)
 
     # Zorluk doğrulaması ve katı 1-10 puan dengesi
     local_level = DifficultyBalancer.normalize_level(target_diff)
@@ -741,6 +801,7 @@ def generate_question_with_fallback(
     q.target_country = final_country
     q.target_country_credit = final_country_credit
     q.is_global_eligible = final_is_global_eligible
+    q.generation_provider = provider_name
     q.countries = [final_country]
     q.created_at = server_ts
     q.shuffle_key = random.random()
@@ -826,7 +887,7 @@ def generate_single_question(
     balancer: Optional[Any] = None,
     balance_options: bool = True,
     category_balancer: Optional[Any] = None,
-    balance_categories: bool = True,
+    balance_categories: bool = False,
     scope: Optional[str] = None,
     target_country: Optional[str] = None,
     target_country_credit: Optional[int] = None
@@ -844,4 +905,4 @@ def generate_single_question(
         balance_options=balance_options,
         category_balancer=category_balancer,
         balance_categories=balance_categories
-    )
+    )

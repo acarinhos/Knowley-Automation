@@ -4,6 +4,7 @@ Generation Planner: Dinamik Kapsam (Global/Local) ve Ülke Kredi Ağırlıklı P
 """
 
 import random
+import threading
 import logging
 from dataclasses import dataclass
 from typing import Optional, Tuple, Dict, Any, Literal
@@ -53,11 +54,24 @@ class GenerationPlanner:
     arasından dengeli seçim yapan planlayıcı sınıf.
     """
 
-    def __init__(self, matrix: Optional[Dict[str, Dict[str, Any]]] = None):
+    def __init__(
+        self,
+        matrix: Optional[Dict[str, Dict[str, Any]]] = None,
+        sheet_repository: Optional[Any] = None,
+    ):
         self.matrix = matrix or CATEGORY_COUNTRY_MATRIX
         self.prod_balancer = get_production_balancer()
+        self.sheet_repository = sheet_repository
+        self._sheet_scope_pools: Dict[Tuple[str, str, str], list[str]] = {}
+        self._sheet_scope_lock = threading.Lock()
 
-    def plan_scope(self, category: str, force_scope: Optional[str] = None) -> Tuple[Literal["global", "local"], int]:
+    def plan_scope(
+        self,
+        category: str,
+        force_scope: Optional[str] = None,
+        subcategory: Optional[str] = None,
+        country: Optional[str] = None,
+    ) -> Tuple[Literal["global", "local"], int]:
         """
         Kategori kotasına göre sıradaki hedef kapsamı ('global' veya 'local') ve yüzdesini belirler.
         """
@@ -66,6 +80,10 @@ class GenerationPlanner:
         ratio_dict = cfg.get("ratio", {"global": 0.50, "local": 0.50})
         g_ratio = float(ratio_dict.get("global", 0.50))
         l_ratio = float(ratio_dict.get("local", 0.50))
+        if self.sheet_repository is not None and subcategory:
+            target = self.sheet_repository.target(norm_cat, subcategory, country=country)
+            g_ratio = target.global_ratio
+            l_ratio = target.local_ratio
 
         if force_scope:
             clean_scope = str(force_scope).strip().lower()
@@ -73,8 +91,20 @@ class GenerationPlanner:
                 percent = int(round(g_ratio * 100)) if clean_scope == "global" else int(round(l_ratio * 100))
                 return clean_scope, percent  # type: ignore
 
-        # ProductionBalancer ile deterministik kota takibi
-        chosen_scope = self.prod_balancer.get_next_scope(norm_cat)
+        # Alt kategori oranı Sheets'ten geldiyse oranı 20'lik deterministik bir
+        # havuzda işlet. Aksi halde geriye dönük ProductionBalancer kullanılır.
+        if self.sheet_repository is not None and subcategory:
+            key = (norm_cat, str(subcategory), str(country or ""))
+            with self._sheet_scope_lock:
+                if not self._sheet_scope_pools.get(key):
+                    window_size = 20
+                    global_count = int(round(window_size * g_ratio))
+                    pool = (["global"] * global_count) + (["local"] * (window_size - global_count))
+                    random.shuffle(pool)
+                    self._sheet_scope_pools[key] = pool
+                chosen_scope = self._sheet_scope_pools[key].pop(0)
+        else:
+            chosen_scope = self.prod_balancer.get_next_scope(norm_cat)
         percent = int(round(g_ratio * 100)) if chosen_scope == "global" else int(round(l_ratio * 100))
         return chosen_scope, percent  # type: ignore
 
@@ -97,6 +127,8 @@ class GenerationPlanner:
         # Zorunlu ülke verilmişse
         if force_country:
             fc = str(force_country).strip()
+            if fc == "Global":
+                return "Global", 10, True
             credit = get_country_credit(norm_cat, fc)
             eligible = is_country_global_eligible(norm_cat, fc)
             return fc, credit, eligible
@@ -152,7 +184,12 @@ class GenerationPlanner:
     ) -> GenerationPlan:
         """Kategori ve opsiyonel parametrelere göre tam bir GenerationPlan oluşturur."""
         norm_cat = normalize_category_name(category)
-        scope, ratio_percent = self.plan_scope(norm_cat, force_scope=force_scope)
+        scope, ratio_percent = self.plan_scope(
+            norm_cat,
+            force_scope=force_scope,
+            subcategory=subcategory,
+            country=force_country,
+        )
         country, credit, eligible = self.plan_country(norm_cat, scope=scope, force_country=force_country)
 
         plan = GenerationPlan(

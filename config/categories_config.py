@@ -281,6 +281,7 @@ CATEGORY_ALIASES = {
     "Mimarlık": "Mimarlık & Sanat",
     "Mimari": "Mimarlık & Sanat",
     "Sanat": "Mimarlık & Sanat",
+    "Resim": "Mimarlık & Sanat",
     "Mitoloji": "Genel Kültür & Mitoloji",
     "Genel Kültür": "Genel Kültür & Mitoloji",
     "Genel": "Genel Kültür & Mitoloji",

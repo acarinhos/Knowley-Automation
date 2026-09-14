@@ -1,9 +1,12 @@
-@"
 .env
 __pycache__/
+*.py[cod]
 *.log
 *.json
+!data/
+!data/knowley_algorithm_snapshot.json
 serviceAccountKey.json
 venv/
+.venv/
 .vscode/
-"@ | Out-File -FilePath .gitignore -Encoding utf8
+.pytest_cache/

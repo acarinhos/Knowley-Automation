@@ -2,21 +2,25 @@ import time
 import random
 import re
 import logging
-from typing import List, Any
+import threading
+from dataclasses import dataclass, field
+from typing import List, Any, Callable, Dict, Optional
 
 from config.categories_config import (
     get_category_color,
     get_subcategory_image,
 )
-from core.category_balancer import get_category_balancer
 from core.generator import (
     generate_question_with_fallback,
     GeneratedQuestion,
     CategoryMeta,
     SubCategoryMeta,
+    QUESTION_SCHEMA_VERSION,
 )
 from database.db_manager import init_firebase, generate_question_hash
 from firebase_admin import firestore
+from core.llm_manager import MultiLLMManager
+from core.sheet_algorithm import SheetAlgorithmRepository, get_sheet_algorithm_repository
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,7 +31,7 @@ logging.basicConfig(
     ]
 )
 
-SLEEP_BETWEEN_REQUESTS = 4.0
+SLEEP_BETWEEN_REQUESTS = 1.5
 MAX_BLOCK_RETRIES = 5
 
 # 35+ Ülke ve Global Havuzu
@@ -38,6 +42,56 @@ TARGET_COUNTRIES: List[str] = [
     "JP", "KR", "CN", "IN", "AU", "NZ", "ID", "SA", "AE",
     "EG", "ZA", "NG", "MA", "KE", "IE", "BE", "CH", "AT", "AZ"
 ]
+
+SUPPORTED_LANGUAGES = ["tr", "en", "es", "pt", "de"]
+COUNTRY_PROFILES = ["Türkiye", "ABD", "Çin", "Japonya", "Almanya"]
+
+
+@dataclass
+class GenerationOptions:
+    """CLI, sonsuz worker ve web UI tarafından paylaşılan üretim ayarları."""
+
+    question_count: Optional[int] = 10
+    category: Optional[str] = None
+    subcategory: Optional[str] = None
+    difficulty: Optional[str] = None
+    scope: Optional[str] = None
+    country: Optional[str] = None
+    languages: List[str] = field(default_factory=lambda: list(SUPPORTED_LANGUAGES))
+    duration_seconds: Optional[int] = None
+    credit_pool: str = "154"
+    generation_mode: Optional[str] = None
+    country_profile_enabled: bool = False
+    combo_percent: int = 40
+    sleep_between_requests: float = SLEEP_BETWEEN_REQUESTS
+    max_retries: int = MAX_BLOCK_RETRIES
+    write_to_firestore: bool = True
+
+    def validate(self) -> "GenerationOptions":
+        if self.question_count is not None and not 1 <= int(self.question_count) <= 10_000:
+            raise ValueError("Soru adedi 1 ile 10.000 arasında olmalıdır.")
+        if self.difficulty not in {None, "Kolay", "Orta", "Zor"}:
+            raise ValueError("Zorluk Kolay, Orta veya Zor olmalıdır.")
+        if self.scope not in {None, "global", "local"}:
+            raise ValueError("Kapsam global, local veya otomatik olmalıdır.")
+        mode = str(self.generation_mode or self.credit_pool).strip().lower()
+        if mode not in {"154", "64", "basic"}:
+            raise ValueError("Üretim modu 154, 64 veya basic olmalıdır.")
+        self.generation_mode = mode
+        self.credit_pool = "64" if mode == "64" else "154"
+        if self.country_profile_enabled:
+            if self.country not in COUNTRY_PROFILES:
+                raise ValueError("Ülke profili açıldığında beş profilden biri seçilmelidir.")
+        else:
+            self.country = None
+            self.scope = "global"
+        self.combo_percent = max(0, min(100, int(self.combo_percent)))
+        self.languages = [lang for lang in self.languages if lang in SUPPORTED_LANGUAGES]
+        if not self.languages:
+            raise ValueError("En az bir dil seçilmelidir.")
+        # v1.1.0 üretimlerinde süre yalnızca soru içeriğinden otomatik hesaplanır.
+        self.duration_seconds = None
+        return self
 
 def save_worker_question(db: Any, question_obj: GeneratedQuestion) -> bool:
     try:
@@ -69,7 +123,9 @@ def save_worker_question(db: Any, question_obj: GeneratedQuestion) -> bool:
         q_dict["status"] = "published"
         q_dict["times_served"] = 0
         q_dict["is_active"] = True
-        q_dict["version"] = "1.0.3"
+        q_dict["version"] = QUESTION_SCHEMA_VERSION
+        # Alan Firestore belgelerinde her zaman bulunur; görsel üretimi eklenene kadar null'dır.
+        q_dict.setdefault("question_image_url", None)
         q_dict.setdefault("scope", "global")
         q_dict.setdefault("target_country", (q_dict.get("countries") or ["Global"])[0])
         q_dict.setdefault("target_country_credit", 10)
@@ -109,7 +165,7 @@ def save_worker_question(db: Any, question_obj: GeneratedQuestion) -> bool:
         focus_credit = q_dict.get("target_country_credit", 10)
 
         logging.info(
-            f"✅ [v1.0.3] [{'COMBO' if q_dict.get('is_combo') else 'TEK'}] "
+            f"✅ [v{QUESTION_SCHEMA_VERSION}] [{'COMBO' if q_dict.get('is_combo') else 'TEK'}] "
             f"🌍 Kapsam: {scope_val} | Odak: {focus_country} (Kredi: {focus_credit}) | "
             f"Global Uygun: {'Evet' if is_glob_elig else 'Hayır'} | "
             f"Local: {local_label} ({local_score}/10) | Global: {global_str}"
@@ -124,73 +180,229 @@ def extract_retry_delay(err_str: str) -> int:
     match = re.search(r"retry in (\d+\.?\d*)s", err_str)
     return int(float(match.group(1))) + 2 if match else 45
 
-def start_infinite_worker() -> None:
-    logging.info("🚀 Soru Üretim Motoru v1.0.3 Başlatıldı!")
-    
-    db = init_firebase()
-    cat_balancer = get_category_balancer(db=db)
+def _emit(callback: Optional[Callable[[Dict[str, Any]], None]], event: str, **payload: Any) -> None:
+    if callback:
+        callback({"event": event, "timestamp": time.time(), **payload})
+
+
+def _choose_secondary(category: str, repository: SheetAlgorithmRepository) -> Optional[str]:
+    from config.categories_config import CATEGORY_ALIASES, POSSIBLE_COMBO_MATCHES
+
+    available = [item for item in repository.categories() if item != category]
+    canonical_category = CATEGORY_ALIASES.get(category, category)
+    canonical_matches = set(POSSIBLE_COMBO_MATCHES.get(canonical_category, []))
+    matches = [
+        item for item in available
+        if CATEGORY_ALIASES.get(item, item) in canonical_matches
+    ]
+    return random.choice(matches or available) if available else None
+
+
+def run_generation(
+    options: GenerationOptions,
+    *,
+    stop_event: Optional[threading.Event] = None,
+    on_event: Optional[Callable[[Dict[str, Any]], None]] = None,
+    repository: Optional[SheetAlgorithmRepository] = None,
+    llm_manager: Optional[MultiLLMManager] = None,
+    db: Any = None,
+) -> Dict[str, Any]:
+    """Sheets hedefleme algoritmasıyla sonlu veya sonsuz üretim çalıştırır."""
+    options.validate()
+    repository = repository or get_sheet_algorithm_repository()
+    manager = llm_manager or MultiLLMManager()
+    stop_event = stop_event or threading.Event()
+    if options.write_to_firestore and db is None:
+        db = init_firebase()
+
     from core.difficulty_balancer import get_difficulty_balancer
+    from core.generation_planner import GenerationPlanner
+
     diff_balancer = get_difficulty_balancer()
-    from core.generation_planner import get_generation_planner
-    gen_planner = get_generation_planner()
+    gen_planner = GenerationPlanner(sheet_repository=repository)
     produced_count = 0
+    processed_count = 0
+    duplicate_count = 0
+    failed_count = 0
+    basic_only = options.generation_mode == "basic"
 
-    while True:
-        block_pattern = [False, False, False, True, True]
-        random.shuffle(block_pattern)
+    credit_queue: List[Any] = repository.build_credit_queue(
+        pool=options.credit_pool,
+        country=options.country if options.country_profile_enabled else None,
+        basic_only=basic_only,
+        total_count=options.question_count,
+        category=options.category,
+        subcategory=options.subcategory,
+    )
 
-        for is_combo in block_pattern:
-            target = cat_balancer.get_next_target(is_combo=is_combo)
-            primary_cat = target.primary_category
-            target_sub = target.target_subcategory
-            secondary_cat = target.secondary_category
+    _emit(
+        on_event,
+        "started",
+        target=options.question_count,
+        algorithm_version=repository.version,
+        firestore=options.write_to_firestore,
+    )
 
-            for attempt in range(1, MAX_BLOCK_RETRIES + 1):
-                try:
-                    q_data = generate_question_with_fallback(
-                        primary_category=primary_cat,
-                        target_subcategory=target_sub,
-                        secondary_category=secondary_cat,
-                        category_balancer=cat_balancer,
-                        difficulty_balancer=diff_balancer,
-                        generation_planner=gen_planner
+    while options.question_count is None or processed_count < options.question_count:
+        if stop_event.is_set():
+            break
+        processed_count += 1
+
+        if credit_queue:
+            algorithm_target = credit_queue.pop(0)
+            primary_cat = algorithm_target.category
+            target_sub = algorithm_target.subcategory
+            if not credit_queue and options.question_count is None:
+                credit_queue = repository.build_credit_queue(
+                    pool=options.credit_pool,
+                    country=options.country if options.country_profile_enabled else None,
+                    basic_only=basic_only,
+                    category=options.category,
+                    subcategory=options.subcategory,
+                )
+        else:
+            raise RuntimeError("Sheet kredi kuyruğu beklenmedik biçimde boşaldı.")
+
+        is_combo = not basic_only and random.randint(1, 100) <= options.combo_percent
+        secondary_cat = _choose_secondary(primary_cat, repository) if is_combo else None
+
+        focus_info = []
+        if getattr(algorithm_target, "category_focus", None):
+            focus_info.append(f"Ana Kategori Odak Noktası: {algorithm_target.category_focus}")
+        if getattr(algorithm_target, "guide", None):
+            focus_info.append(f"Alt Kategori Kapsam Kılavuzu: {algorithm_target.guide}")
+        if getattr(algorithm_target, "category_drafts", None):
+            focus_info.append(f"Kategori Parametreleri: {algorithm_target.category_drafts}")
+        if not focus_info:
+            focus_info.append("Genel trivia standardı ve halkın bilgisine uygun temel bilgi kuralları uygulanır.")
+
+        algorithm_context = (
+            f"Kaynak sayfa: {algorithm_target.source_sheet}; Algoritma sürümü: {repository.version}.\n"
+            f"Kategori: {primary_cat} (Kredi Ağırlığı: {algorithm_target.category_weight})\n"
+            f"Alt Kategori: {target_sub} (Kredi Ağırlığı: {algorithm_target.subcategory_weight}) "
+            f"[{'Temel Kategori' if basic_only else options.credit_pool + ' Kredi Havuzu'}]\n"
+            f"Kapsam Dengesi: %{round(algorithm_target.global_ratio * 100)} GL / %{round(algorithm_target.local_ratio * 100)} LO\n"
+            f"ODAK NOKTALARI & REHBER:\n" + "\n".join(f"- {line}" for line in focus_info)
+        )
+
+        _emit(
+            on_event,
+            "planning",
+            index=processed_count,
+            category=primary_cat,
+            subcategory=target_sub,
+            combo=bool(secondary_cat),
+            secondary_category=secondary_cat,
+            pool=options.credit_pool,
+            mode=options.generation_mode,
+        )
+
+        success_this_item = False
+        for attempt in range(1, options.max_retries + 1):
+            if stop_event.is_set():
+                break
+            try:
+                q_data = generate_question_with_fallback(
+                    primary_category=primary_cat,
+                    target_subcategory=target_sub,
+                    secondary_category=secondary_cat,
+                    target_country=options.country if options.country_profile_enabled else "Global",
+                    target_country_credit=10 if not options.country_profile_enabled else None,
+                    scope=options.scope,
+                    base_difficulty=options.difficulty,
+                    balance_categories=False,
+                    difficulty_balancer=diff_balancer,
+                    generation_planner=gen_planner,
+                    languages=options.languages,
+                    duration_seconds=options.duration_seconds,
+                    algorithm_context=algorithm_context,
+                    algorithm_version=repository.version,
+                    llm_manager=manager,
+                )
+
+                q_data.categories_meta = [
+                    CategoryMeta(name=cat, color=get_category_color(cat))
+                    for cat in q_data.categories
+                ]
+                q_data.sub_categories_meta = [
+                    SubCategoryMeta(name=sub, image_url=get_subcategory_image(primary_cat, sub))
+                    for sub in q_data.sub_categories
+                ]
+                q_data.algorithm_source = {
+                    "spreadsheet_id": repository.source.get("spreadsheet_id"),
+                    "sheet": algorithm_target.source_sheet,
+                    "credit_pool": options.credit_pool,
+                    "generation_mode": options.generation_mode,
+                    "country_profile_enabled": options.country_profile_enabled,
+                    "basic_only": basic_only,
+                    "category_weight": algorithm_target.category_weight,
+                    "subcategory_weight": algorithm_target.subcategory_weight,
+                    "global_ratio": algorithm_target.global_ratio,
+                    "local_ratio": algorithm_target.local_ratio,
+                }
+
+                saved = save_worker_question(db, q_data) if options.write_to_firestore else True
+                if saved:
+                    produced_count += 1
+                    success_this_item = True
+                    preview = q_data.translations.get("tr") or next(iter(q_data.translations.values()))
+                    _emit(
+                        on_event,
+                        "saved" if options.write_to_firestore else "generated",
+                        index=processed_count,
+                        produced=produced_count,
+                        category=primary_cat,
+                        subcategory=target_sub,
+                        provider=getattr(q_data, "generation_provider", "GEMINI"),
+                        question=preview.question,
+                        firestore=options.write_to_firestore,
+                        quota=manager.status(live=False),
                     )
-                    
-                    # 1. Ana kategoriler için get_category_color(cat) ile HEX renklerini ekle
-                    q_data.categories_meta = [
-                        CategoryMeta(name=cat, color=get_category_color(cat))
-                        for cat in q_data.categories
-                    ]
-                    
-                    # 2. Alt kategoriler için get_subcategory_image(primary_cat, sub) ile CDN görsel linklerini ekle
-                    q_data.sub_categories_meta = [
-                        SubCategoryMeta(name=sub, image_url=get_subcategory_image(primary_cat, sub))
-                        for sub in q_data.sub_categories
-                    ]
-                    
-                    # 3. Firestore'a meta verileriyle birlikte kaydet
-                    if save_worker_question(db, q_data):
-                        cat_balancer.record_success(
-                            primary_category=primary_cat,
-                            subcategory=target_sub,
-                            secondary_category=secondary_cat
-                        )
-                        produced_count += 1
-                        logging.info(f"📊 Toplam Başarılı Soru: {produced_count}")
-                    break
+                else:
+                    duplicate_count += 1
+                    _emit(on_event, "duplicate", index=processed_count, category=primary_cat)
+                break
+            except Exception as err:
+                err_str = str(err)
+                is_quota = "429" in err_str or "RESOURCE_EXHAUSTED" in err_str
+                wait_sec = extract_retry_delay(err_str) if is_quota else attempt * 5
+                _emit(
+                    on_event,
+                    "retry",
+                    index=processed_count,
+                    attempt=attempt,
+                    max_retries=options.max_retries,
+                    wait_seconds=wait_sec,
+                    quota_error=is_quota,
+                    message=err_str[:500],
+                )
+                if attempt < options.max_retries:
+                    stop_event.wait(wait_sec)
+                else:
+                    failed_count += 1
+                    logging.error("Hata oluştu (%s/%s): %s", attempt, options.max_retries, err)
 
-                except Exception as err:
-                    err_str = str(err)
-                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                        wait_sec = extract_retry_delay(err_str)
-                        logging.warning(f"⏳ Kota aşımı tespit edildi. {wait_sec} saniye bekleniyor...")
-                        time.sleep(wait_sec)
-                    else:
-                        wait_sec = attempt * 5
-                        logging.error(f"Hata oluştu ({attempt}/{MAX_BLOCK_RETRIES}): {err}")
-                        time.sleep(wait_sec)
+        if success_this_item:
+            logging.info("📊 Toplam Başarılı Soru: %s", produced_count)
+        if not stop_event.is_set() and options.sleep_between_requests > 0:
+            stop_event.wait(options.sleep_between_requests)
 
-            time.sleep(SLEEP_BETWEEN_REQUESTS)
+    summary = {
+        "processed": processed_count,
+        "produced": produced_count,
+        "duplicates": duplicate_count,
+        "failed": failed_count,
+        "stopped": stop_event.is_set(),
+        "algorithm_version": repository.version,
+        "provider_status": manager.status(live=False),
+    }
+    _emit(on_event, "stopped" if stop_event.is_set() else "completed", **summary)
+    return summary
+
+
+def start_infinite_worker() -> None:
+    logging.info("🚀 Soru Üretim Motoru v%s + Sheets %s Başlatıldı!", QUESTION_SCHEMA_VERSION, get_sheet_algorithm_repository().version)
+    run_generation(GenerationOptions(question_count=None))
 
 if __name__ == "__main__":
     try:

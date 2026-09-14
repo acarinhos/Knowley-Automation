@@ -18,7 +18,18 @@ class TestMultiLLMManager(unittest.TestCase):
         """Sağlayıcı havuzunda en az bir sağlayıcı bulunmalıdır."""
         self.assertGreaterEqual(len(self.manager.providers), 1)
         for p in self.manager.providers:
-            self.assertIn(p, ["gemini", "groq", "cohere"])
+            self.assertIn(p, ["gemini", "groq", "cohere", "nvidia"])
+
+    @patch.object(MultiLLMManager, "_call_nvidia")
+    def test_nvidia_provider_is_supported(self, mock_nvidia):
+        mock_nvidia.return_value = '{"question": "NVIDIA Question"}'
+        self.manager.providers = ["nvidia"]
+        self.manager.current_idx = 0
+
+        result = self.manager.generate_trivia("sys", "user")
+
+        self.assertEqual(result["_provider"], "nvidia")
+        self.assertEqual(result["question"], "NVIDIA Question")
 
     @patch.object(MultiLLMManager, "_call_gemini")
     @patch.object(MultiLLMManager, "_call_groq")
