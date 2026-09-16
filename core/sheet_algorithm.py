@@ -342,12 +342,13 @@ class SheetAlgorithmRepository:
         return weights
 
     def records_for_country(self, country: Optional[str] = None) -> List[Dict[str, Any]]:
-        if country and country in self._country_records:
-            return [dict(record) for record in self._country_records[country]]
         records = [dict(record) for record in self._generic_records]
         localized = self._localized_records.get(_clean(country), []) if country else []
         if not localized:
             return records
+        # Ülke profili yalnızca Bölüm 3 (Spor/Müzik/Edebiyat)
+        # yer tutucularını gerçek yerel alt kategorilerle değiştirir.
+        # Bölüm 1 oranları ve Bölüm 2 öge hedefleri genel tablodan kalır.
         localized_categories = {record["category"] for record in localized}
         return [r for r in records if r["category"] not in localized_categories] + [
             dict(record) for record in localized

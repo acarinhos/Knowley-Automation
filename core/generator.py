@@ -106,6 +106,15 @@ class GeneratedQuestion(BaseModel):
     sub_categories: List[str] = Field(default_factory=list, description="Alt dallar")
     sub_categories_meta: List[SubCategoryMeta] = Field(default_factory=list, description="Alt kategori meta bilgileri (isim ve görsel URL)")
     question_image_url: Optional[str] = Field(default=None, description="Soruya özel görsel URL'si; görsel yoksa null")
+    is_visual_question: bool = Field(default=False, description="Soru cevaplanırken görsel zorunlu mu")
+    question_image_search_query: Optional[str] = Field(
+        default=None,
+        description="Sunucu tarafında görsel bulmak için kesin İngilizce konu sorgusu",
+    )
+    question_image_alt_text: Optional[str] = Field(
+        default=None,
+        description="Cevabı söylemeden görseldeki ayırt edici özellikleri betimler",
+    )
     is_combo: bool = Field(default=False, description="Hibrit soru mu")
     scope: Literal["global", "local"] = Field(default="global", description="Kapsam: global veya local")
     target_country: Optional[str] = Field(default=None, description="Hedef ülke")
@@ -356,12 +365,14 @@ def build_prompt(
     secondary_category: Optional[str] = None,
     target_country: Optional[str] = None,
     target_country_credit: Optional[int] = None,
+    preferred_local_country: Optional[str] = None,
     scope: Optional[str] = "global",
     is_global_eligible: bool = True,
     base_difficulty: Optional[str] = None,
     target_score: Optional[int] = None,
     languages: Optional[List[str]] = None,
     algorithm_context: Optional[str] = None,
+    visual_question: bool = False,
 ) -> str:
     is_combo = secondary_category is not None
     country_rule = target_country if target_country else "Global"
@@ -406,6 +417,42 @@ def build_prompt(
         if algorithm_context and algorithm_context.strip()
         else ""
     )
+
+    if visual_question:
+        from core.visual_questions import visual_focus_for_category
+        visual_focus = visual_focus_for_category(primary_category, target_subcategory or "")
+        if not visual_focus:
+            raise ValueError(f"{primary_category} kategorisi görsel eşleştirme sorusuna uygun değil.")
+        visual_instruction = f"""
+[ZORUNLU GÖRSEL SORU KURALI]:
+- Bu soru bir GÖRSEL TANIMA sorusu olmalı ve görsel olmadan doğrudan cevaplanamamalıdır.
+- Bu kategori için izin verilen tek görsel odağı: {visual_focus}.
+- Soyut kavram, formül, kimyasal denklem, fizik diyagramı, felsefi şema, yazı ağırlı belge veya dekoratif stok görsel kullanma.
+- Kişi sorulacaksa yalnızca geniş halk kitlelerince hemen tanınabilecek kadar çok ünlü biri olmalıdır. Niş akademisyen, yerel uzman veya az bilinen yazar seçme.
+- Tüm dillerde soru kökü "Bu görseldeki..." mantığıyla görsele açıkça bağlı olmalıdır; kişinin/nesnenin adı soru kökünde geçmemelidir.
+- `is_visual_question` true olmalıdır.
+- `question_image_search_query`, doğru cevabı gösteren telifsiz bir Wikimedia Commons görseli bulmaya uygun, kesin ve kısa bir İNGİLİZCE sorgu olmalıdır. Yalnızca konu ve görsel türünü yaz.
+- `question_image_alt_text`, cevabın özel adını söylemeden görselde görülebilen ayırt edici özellikleri Türkçe betimlemelidir.
+- `question_image_url` null kalmalıdır; sunucu görseli bulup yükleyecektir.
+"""
+        visual_schema = (
+            '  "question_image_url": null,\n'
+            '  "is_visual_question": true,\n'
+            '  "question_image_search_query": "precise subject Wikimedia Commons image",\n'
+            '  "question_image_alt_text": "Cevabı açıklamayan görsel betimi",'
+        )
+    else:
+        visual_instruction = """
+[NORMAL METİN SORUSU KURALI]:
+- Bu soru görsele bağlı olmamalıdır.
+- `is_visual_question` false; `question_image_url`, `question_image_search_query` ve `question_image_alt_text` null olmalıdır.
+"""
+        visual_schema = (
+            '  "question_image_url": null,\n'
+            '  "is_visual_question": false,\n'
+            '  "question_image_search_query": null,\n'
+            '  "question_image_alt_text": null,'
+        )
 
     if scope_clean == "global":
         scope_instruction = (
@@ -469,6 +516,7 @@ Kriterler:
 {f"- İkincil Kategori (Combo): {secondary_category}" if is_combo else "- Tip: Standart (Tek Kategori)"}
 {scope_instruction}{filters_hint}{algorithm_instruction}
 {difficulty_instruction}
+{visual_instruction}
 
 [ZORUNLU FORMAT VE UZUNLUK KURALI - MOBILE TRIVIA STANDARTI]:
 - Soru kökü EN FAZLA 20-25 kelime (150 karakter) olmalıdır. Paragraf yazmak KESİNLİKLE YASAKTIR.
@@ -541,7 +589,7 @@ Zorunlu JSON Şeması:
 {{
   "categories": ["{primary_category}"{f', "{secondary_category}"' if is_combo else ''}],
   "sub_categories": [{sub_schema_val}],
-  "question_image_url": null,
+{visual_schema}
   "is_combo": {str(is_combo).lower()},
   "scope": "{scope_clean}",
   "target_country": "{country_rule}",
@@ -659,6 +707,7 @@ def generate_question_with_fallback(
     duration_seconds: Optional[int] = None,
     algorithm_context: Optional[str] = None,
     algorithm_version: Optional[str] = None,
+    visual_question: bool = False,
     llm_manager: Optional[Any] = None,
     **kwargs: Any,
 ) -> GeneratedQuestion:
@@ -699,7 +748,8 @@ def generate_question_with_fallback(
         category=primary_category,
         subcategory=target_subcategory,
         force_scope=scope,
-        force_country=target_country
+        force_country=target_country,
+        preferred_local_country=preferred_local_country,
     )
     final_scope = plan.scope
     final_country = target_country or plan.target_country
@@ -737,6 +787,7 @@ def generate_question_with_fallback(
         target_score=target_score,
         languages=languages,
         algorithm_context=algorithm_context,
+        visual_question=visual_question,
     )
     
     active_llm_manager = llm_manager or MultiLLMManager()
@@ -753,6 +804,8 @@ def generate_question_with_fallback(
             provider_name = str(data.get("_provider", "GEMINI")).upper()
             
             candidate_q = GeneratedQuestion.model_validate(data)
+            if visual_question and not str(candidate_q.question_image_search_query or "").strip():
+                raise ValueError("Görsel soru için question_image_search_query üretilmedi.")
             # Anti-Bürokrasi ve Trivia uyumluluk doğrulaması (Python Guard)
             validate_trivia_compliance(candidate_q)
             q = candidate_q
@@ -808,6 +861,11 @@ def generate_question_with_fallback(
     q.shuffle_key = random.random()
     q.correct_count = 0
     q.wrong_count = 0
+    q.is_visual_question = bool(visual_question)
+    if not visual_question:
+        q.question_image_url = None
+        q.question_image_search_query = None
+        q.question_image_alt_text = None
     q.difficulty_local = final_local_level
     q.difficulty_local_score = clamped_local_score
     q.difficulty_global = final_global_level

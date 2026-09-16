@@ -56,6 +56,14 @@ Kategori ve alt kategori kullanıcıdan istenmez. Ülke profili varsayılan olar
 kapalıdır; açılırsa yalnızca ayrı Sheet profili bulunan Türkiye, ABD, Çin,
 Japonya veya Almanya seçilebilir. Süre her zaman otomatik hesaplanır.
 
+Otomatik 4-4-2 zorluk üretiminde her başarılı 10 sorunun 3 Kolay ve 1 Orta
+sorusuna, normal zorluğu değiştirmeden ayrı `starting_difficulty` alanı eklenir.
+Aynı 10'lu başarılı kayıt bloğunun rastgele 3 sorusu görsel tanıma sorusu
+olarak üretilir. Lisanslı görsel Wikimedia Commons'tan bulunur, rastgele hash
+adlı bir dosya olarak Firebase Storage `questions/images/` yoluna kopyalanır ve
+Firestore belgesindeki `question_image_url` alanına yazılır. Tekrar veya
+başarısız denemeler bu iki 10'lu kotayı tüketmez.
+
 ## Ortam değişkenleri
 
 Mevcut `.env` dosyasında en az bir LLM anahtarı ile Firebase servis hesabı

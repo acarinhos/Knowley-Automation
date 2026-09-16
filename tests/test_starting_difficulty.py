@@ -34,6 +34,21 @@ class StartingDifficultyAssignerTests(unittest.TestCase):
         self.assertEqual(sum("starting_difficulty" in item for item in questions[:10]), 4)
         self.assertEqual(sum("starting_difficulty" in item for item in questions[10:]), 4)
 
+    def test_duplicate_rollback_does_not_consume_block_position(self):
+        assigner = StartingDifficultyAssigner(random.Random(5))
+        duplicate = {"difficulty_local": "Kolay"}
+        assigner.assign(duplicate)
+        assigner.rollback(duplicate)
+
+        questions = [
+            {"difficulty_local": level}
+            for level in ["Kolay"] * 4 + ["Orta"] * 4 + ["Zor"] * 2
+        ]
+        for question in questions:
+            assigner.assign(question)
+            assigner.commit()
+        self.assertEqual(sum("starting_difficulty" in item for item in questions), 4)
+
 
 if __name__ == "__main__":
     unittest.main()

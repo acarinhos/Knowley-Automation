@@ -17,11 +17,16 @@ from core.generator import (
     SubCategoryMeta,
     QUESTION_SCHEMA_VERSION,
 )
-from database.db_manager import init_firebase, generate_question_hash
+from database.db_manager import init_firebase, generate_question_hash, get_storage_bucket
 from firebase_admin import firestore
 from core.llm_manager import MultiLLMManager
 from core.sheet_algorithm import SheetAlgorithmRepository, get_sheet_algorithm_repository
 from core.starting_difficulty import StartingDifficultyAssigner
+from core.visual_questions import (
+    VisualQuestionSchedule,
+    WikimediaQuestionImageResolver,
+    prioritize_visual_targets,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -67,6 +72,7 @@ class GenerationOptions:
     sleep_between_requests: float = SLEEP_BETWEEN_REQUESTS
     max_retries: int = MAX_BLOCK_RETRIES
     write_to_firestore: bool = True
+    visual_questions_enabled: bool = True
 
     def validate(self) -> "GenerationOptions":
         if self.question_count is not None and not 1 <= int(self.question_count) <= 10_000:
@@ -217,6 +223,7 @@ def run_generation(
     repository: Optional[SheetAlgorithmRepository] = None,
     llm_manager: Optional[MultiLLMManager] = None,
     db: Any = None,
+    image_resolver: Any = None,
 ) -> Dict[str, Any]:
     """Sheets hedefleme algoritmasıyla sonlu veya sonsuz üretim çalıştırır."""
     options.validate()
@@ -237,6 +244,8 @@ def run_generation(
     failed_count = 0
     basic_only = options.generation_mode == "basic"
     starting_difficulty_assigner = StartingDifficultyAssigner()
+    visual_schedule = VisualQuestionSchedule()
+    resolved_image_service = image_resolver
     max_processed_attempts = (
         None
         if options.question_count is None
@@ -288,19 +297,31 @@ def run_generation(
         processed_count += 1
         # Slot yalnızca yeni soru Firestore'a başarıyla yazıldığında tüketilir.
         # Duplicate veya üretim hatası aynı kredi slotunu bir sonraki denemeye bırakır.
+        if options.visual_questions_enabled and visual_schedule.starts_block:
+            prioritize_visual_targets(credit_queue)
         algorithm_target = credit_queue[0]
         primary_cat = algorithm_target.category
         target_sub = algorithm_target.subcategory
 
         is_combo = not basic_only and random.randint(1, 100) <= options.combo_percent
         secondary_cat = _choose_secondary(primary_cat, repository) if is_combo else None
-        planned_country = options.country if options.country_profile_enabled else None
+        visual_question = bool(
+            options.visual_questions_enabled and visual_schedule.peek(credit_queue[:10])
+        )
+        section = getattr(algorithm_target, "section", "")
+        planned_country = None
+        preferred_local_country = None
         planned_scope = options.scope
-        if (
-            not options.country_profile_enabled
-            and getattr(algorithm_target, "target_country", None)
-        ):
-            planned_country = algorithm_target.target_country
+        if section == "section_3":
+            planned_country = (
+                options.country
+                if options.country_profile_enabled
+                else getattr(algorithm_target, "target_country", None)
+            )
+        elif section == "section_1" and options.country_profile_enabled:
+            # GL/LO oranı planlandıktan sonra yalnızca local sonuçta kullanılır.
+            preferred_local_country = options.country
+        # Bölüm 2 her zaman öge/odak tabanlı ve ülkesizdir.
 
         focus_info = []
         if getattr(algorithm_target, "category_focus", None):
@@ -333,12 +354,14 @@ def run_generation(
             target_country=planned_country,
             pool=options.credit_pool,
             mode=options.generation_mode,
+            visual_question=visual_question,
         )
 
         success_this_item = False
         for attempt in range(1, options.max_retries + 1):
             if stop_event.is_set():
                 break
+            starting_assignment_pending = False
             try:
                 q_data = generate_question_with_fallback(
                     primary_category=primary_cat,
@@ -346,6 +369,7 @@ def run_generation(
                     secondary_category=secondary_cat,
                     target_country=planned_country,
                     target_country_credit=None,
+                    preferred_local_country=preferred_local_country,
                     scope=planned_scope,
                     base_difficulty=options.difficulty,
                     balance_categories=False,
@@ -355,8 +379,18 @@ def run_generation(
                     duration_seconds=options.duration_seconds,
                     algorithm_context=algorithm_context,
                     algorithm_version=repository.version,
+                    visual_question=visual_question,
                     llm_manager=manager,
                 )
+
+                if visual_question:
+                    if resolved_image_service is None:
+                        resolved_image_service = WikimediaQuestionImageResolver(
+                            bucket=get_storage_bucket() if options.write_to_firestore else None
+                        )
+                    resolved_image_service.resolve(q_data)
+                    if not getattr(q_data, "question_image_url", None):
+                        raise ValueError("Görsel soru için question_image_url oluşturulamadı.")
 
                 q_data.categories_meta = [
                     CategoryMeta(name=cat, color=get_category_color(cat))
@@ -383,9 +417,14 @@ def run_generation(
                 # süre, kategori veya diğer dengeleyicilere geri beslenmez.
                 if options.difficulty is None:
                     starting_difficulty_assigner.assign(q_data)
+                    starting_assignment_pending = True
 
                 saved = save_worker_question(db, q_data) if options.write_to_firestore else True
                 if saved:
+                    if starting_assignment_pending:
+                        starting_difficulty_assigner.commit()
+                        starting_assignment_pending = False
+                    visual_schedule.commit()
                     credit_queue.pop(0)
                     produced_count += 1
                     success_this_item = True
@@ -401,12 +440,20 @@ def run_generation(
                         question=preview.question,
                         firestore=options.write_to_firestore,
                         quota=manager.status(live=False),
+                        visual_question=visual_question,
+                        question_image_url=getattr(q_data, "question_image_url", None),
+                        starting_difficulty=getattr(q_data, "starting_difficulty", None),
                     )
                 else:
+                    if starting_assignment_pending:
+                        starting_difficulty_assigner.rollback(q_data)
+                        starting_assignment_pending = False
                     duplicate_count += 1
                     _emit(on_event, "duplicate", index=processed_count, category=primary_cat)
                 break
             except Exception as err:
+                if starting_assignment_pending:
+                    starting_difficulty_assigner.rollback(q_data)
                 err_str = str(err)
                 is_quota = "429" in err_str or "RESOURCE_EXHAUSTED" in err_str
                 wait_sec = extract_retry_delay(err_str) if is_quota else attempt * 5

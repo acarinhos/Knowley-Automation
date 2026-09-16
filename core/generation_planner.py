@@ -181,7 +181,8 @@ class GenerationPlanner:
         category: str,
         subcategory: Optional[str] = None,
         force_scope: Optional[str] = None,
-        force_country: Optional[str] = None
+        force_country: Optional[str] = None,
+        preferred_local_country: Optional[str] = None,
     ) -> GenerationPlan:
         """Kategori ve opsiyonel parametrelere göre tam bir GenerationPlan oluşturur."""
         norm_cat = normalize_category_name(category)
@@ -217,7 +218,11 @@ class GenerationPlanner:
                     for item in self.sheet_repository.countries()
                     if item.get("name")
                 ]
-                country = random.choice(countries) if countries else "Türkiye"
+                country = (
+                    str(preferred_local_country).strip()
+                    if preferred_local_country
+                    else random.choice(countries) if countries else "Türkiye"
+                )
                 credit = max(1, get_country_credit(norm_cat, country))
                 eligible = is_country_global_eligible(norm_cat, country)
         else:

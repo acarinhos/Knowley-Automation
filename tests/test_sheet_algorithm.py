@@ -72,7 +72,7 @@ class SheetAlgorithmRepositoryTests(unittest.TestCase):
 
     def test_country_specific_local_ratio_is_preserved(self):
         target = self.repository.target("Spor", "Futbol (Süper Lig)", country="Türkiye")
-        self.assertEqual(target.source_sheet, "Türkiye Kategorizasyon")
+        self.assertEqual(target.source_sheet, "Localize Sub Kredi Dereceleri")
         self.assertEqual(target.global_ratio, 0.0)
         self.assertEqual(target.local_ratio, 1.0)
         self.assertEqual(target.subcategory_weight, 2)
@@ -93,6 +93,45 @@ class SheetAlgorithmRepositoryTests(unittest.TestCase):
         self.assertEqual(plan.scope, "global")
         self.assertEqual(plan.ratio_percent, 100)
         self.assertEqual(plan.target_country, "Global")
+
+    def test_country_profile_does_not_change_section_two_element_targets(self):
+        target = self.repository.target("Sinema", "Yerli Üretimler", country="Türkiye")
+        self.assertEqual(target.source_sheet, "Sub Kredi Dereceleri")
+        self.assertEqual(target.section, "section_2")
+        planner = GenerationPlanner(sheet_repository=self.repository)
+        plan = planner.create_plan(
+            "Sinema",
+            "Yerli Üretimler",
+            preferred_local_country="Türkiye",
+        )
+        self.assertEqual((plan.scope, plan.target_country), ("global", "Global"))
+
+    def test_country_profile_only_applies_to_local_part_of_section_one_ratio(self):
+        planner = GenerationPlanner(sheet_repository=self.repository)
+        plans = [
+            planner.create_plan(
+                "Genel Kültür",
+                "Kültürel İkonlar",
+                preferred_local_country="Türkiye",
+            )
+            for _ in range(20)
+        ]
+        global_plans = [plan for plan in plans if plan.scope == "global"]
+        local_plans = [plan for plan in plans if plan.scope == "local"]
+        self.assertEqual(len(global_plans), 3)
+        self.assertEqual(len(local_plans), 17)
+        self.assertEqual({plan.target_country for plan in global_plans}, {"Global"})
+        self.assertEqual({plan.target_country for plan in local_plans}, {"Türkiye"})
+
+    def test_country_profile_replaces_only_section_three_categories(self):
+        records = self.repository.records_for_country("Türkiye")
+        cinema = [record for record in records if record["category"] == "Sinema"]
+        sport = [record for record in records if record["category"] == "Spor"]
+        self.assertEqual({record["source_sheet"] for record in cinema}, {"Sub Kredi Dereceleri"})
+        self.assertEqual(
+            {record["source_sheet"] for record in sport},
+            {"Localize Sub Kredi Dereceleri"},
+        )
 
     def test_section_one_preserves_sheet_ratio_and_uses_sheet_countries(self):
         planner = GenerationPlanner(sheet_repository=self.repository)

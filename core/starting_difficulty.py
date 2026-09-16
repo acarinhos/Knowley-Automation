@@ -19,6 +19,7 @@ class StartingDifficultyAssigner:
         self._easy_seen = 0
         self._medium_seen = 0
         self._easy_labels_used = 0
+        self._pending_snapshot: Optional[tuple[Any, ...]] = None
         self._reset_choices()
 
     def _reset_choices(self) -> None:
@@ -27,6 +28,19 @@ class StartingDifficultyAssigner:
 
     def assign(self, question: Any) -> Optional[str]:
         """Soruyu değiştirmeden yalnızca seçildiyse `starting_difficulty` ekler."""
+        if self._pending_snapshot is not None:
+            # Doğrudan sıralı kullanımda geriye dönük uyumluluk; worker
+            # duplicate kontrolü için commit/rollback'u açıkça çağırır.
+            self.commit()
+        self._pending_snapshot = (
+            self._position,
+            self._easy_seen,
+            self._medium_seen,
+            self._easy_labels_used,
+            self._skipped_easy_ordinal,
+            self._selected_medium_ordinal,
+            self.rng.getstate(),
+        )
         level = str(
             question.get("difficulty_local", "")
             if isinstance(question, dict)
@@ -60,3 +74,27 @@ class StartingDifficultyAssigner:
             self._easy_labels_used = 0
             self._reset_choices()
         return starting_difficulty
+
+    def commit(self) -> None:
+        """Atamayı başarıyla kaydedilmiş soru olarak kesinleştirir."""
+        self._pending_snapshot = None
+
+    def rollback(self, question: Any) -> None:
+        """Tekrar/başarısız sorunun 10'lu blok sayacını tüketmesini engeller."""
+        if self._pending_snapshot is None:
+            return
+        (
+            self._position,
+            self._easy_seen,
+            self._medium_seen,
+            self._easy_labels_used,
+            self._skipped_easy_ordinal,
+            self._selected_medium_ordinal,
+            rng_state,
+        ) = self._pending_snapshot
+        self.rng.setstate(rng_state)
+        if isinstance(question, dict):
+            question.pop("starting_difficulty", None)
+        elif hasattr(question, "starting_difficulty"):
+            delattr(question, "starting_difficulty")
+        self._pending_snapshot = None
