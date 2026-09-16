@@ -1,4 +1,5 @@
 import unittest
+import inspect
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -9,7 +10,7 @@ from core.visual_questions import (
     is_visual_target,
     prioritize_visual_targets,
 )
-from core.generator import build_prompt
+from core.generator import build_prompt, generate_question_with_fallback
 
 
 class FakeManager:
@@ -47,6 +48,10 @@ class FakeImageResolver:
 
 
 class RunGenerationCompletionTests(unittest.TestCase):
+    def test_generator_accepts_preferred_local_country_from_worker(self):
+        parameters = inspect.signature(generate_question_with_fallback).parameters
+        self.assertIn("preferred_local_country", parameters)
+
     def test_duplicate_does_not_consume_credit_slot_or_complete_early(self):
         repository = SheetAlgorithmRepository()
         events = []
