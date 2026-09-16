@@ -90,6 +90,8 @@ class AlgorithmTarget:
     source_sheet: str
     category_focus: str = ""
     category_drafts: str = ""
+    section: str = ""
+    target_country: Optional[str] = None
 
 
 class SheetAlgorithmRepository:
@@ -157,10 +159,13 @@ class SheetAlgorithmRepository:
     def _guidance_index(self) -> Dict[Tuple[str, str], Dict[str, Any]]:
         result: Dict[Tuple[str, str], Dict[str, Any]] = {}
         current_category = ""
+        current_section = ""
         for row in self.sheet_rows("Sub Kategorilerin GL-LO Dengesi"):
             raw_category = _clean(row.get("Ana Kategori"))
             if raw_category:
                 if raw_category.startswith("BÖLÜM"):
+                    section_match = re.match(r"BÖLÜM\s+(\d+)", raw_category, re.I)
+                    current_section = f"section_{section_match.group(1)}" if section_match else ""
                     current_category = ""
                     continue
                 current_category = normalize_category(raw_category)
@@ -170,13 +175,47 @@ class SheetAlgorithmRepository:
             result[(_key(current_category), _key(subcategory))] = {
                 "ratio_text": _clean(row.get("GL - LO Dengesi / Öge")),
                 "guide": _clean(row.get("Odak & Kapsam Kılavuzu")),
+                "section": current_section,
             }
+        return result
+
+    def _guidance_by_category(self) -> Dict[str, List[Dict[str, Any]]]:
+        """GL/LO sayfasındaki odakları kategori içindeki sıralarıyla döndürür.
+
+        Bölüm 3'ün ülkeye özel alt kategori adları, kılavuzdaki genel adlarla
+        birebir aynı değildir. Satır sırası bu iki tablo arasındaki resmi eşlemedir.
+        """
+        result: Dict[str, List[Dict[str, Any]]] = {}
+        current_category = ""
+        current_section = ""
+        for row in self.sheet_rows("Sub Kategorilerin GL-LO Dengesi"):
+            raw_category = _clean(row.get("Ana Kategori"))
+            if raw_category:
+                if raw_category.startswith("BÖLÜM"):
+                    section_match = re.match(r"BÖLÜM\s+(\d+)", raw_category, re.I)
+                    current_section = f"section_{section_match.group(1)}" if section_match else ""
+                    current_category = ""
+                    continue
+                current_category = normalize_category(raw_category)
+            subcategory = _clean(row.get("Alt Kategori (Sub)"))
+            if not current_category or not subcategory:
+                continue
+            result.setdefault(_key(current_category), []).append(
+                {
+                    "subcategory": subcategory,
+                    "ratio_text": _clean(row.get("GL - LO Dengesi / Öge")),
+                    "guide": _clean(row.get("Odak & Kapsam Kılavuzu")),
+                    "section": current_section,
+                }
+            )
         return result
 
     def _rows_to_records(self, rows: Iterable[Mapping[str, Any]], source_sheet: str) -> List[Dict[str, Any]]:
         guidance = self._guidance_index()
+        ordered_guidance = self._guidance_by_category()
         records: List[Dict[str, Any]] = []
         current_category = ""
+        category_position = -1
         for row in rows:
             raw_category = _clean(row.get("Ana Kategori"))
             if raw_category:
@@ -184,10 +223,19 @@ class SheetAlgorithmRepository:
                     current_category = ""
                     continue
                 current_category = normalize_category(raw_category)
+                category_position = 0
+            elif current_category:
+                category_position += 1
             subcategory = _clean(row.get("Alt Kategori (Sub)"))
             if not current_category or not subcategory or "ana kategori" in _key(subcategory):
                 continue
             guide_data = guidance.get((_key(current_category), _key(subcategory)), {})
+            if not guide_data:
+                category_guidance = ordered_guidance.get(_key(current_category), [])
+                if category_guidance and category_position >= 0:
+                    # Bazı ülke profilleri genel kılavuzdan bir alt hedef daha
+                    # ayrıntılıdır. Fazla satırlar son odak kapsamını devralır.
+                    guide_data = category_guidance[min(category_position, len(category_guidance) - 1)]
             ratio_text = _clean(row.get("GL - LO Dengesi / Öge")) or guide_data.get("ratio_text", "")
             guide = _clean(row.get("Odak & Kapsam Kılavuzu")) or guide_data.get("guide", "")
             global_ratio, local_ratio = parse_scope_ratio(ratio_text)
@@ -202,6 +250,7 @@ class SheetAlgorithmRepository:
                     "global_ratio": global_ratio,
                     "local_ratio": local_ratio,
                     "guide": guide,
+                    "section": guide_data.get("section", ""),
                     "source_sheet": source_sheet,
                 }
             )
@@ -228,7 +277,10 @@ class SheetAlgorithmRepository:
             if not current_country or not current_category:
                 continue
             copy = dict(row)
-            copy["Ana Kategori"] = current_category
+            # Boş kategori hücrelerini burada doldurmak, _rows_to_records içindeki
+            # kategori-içi sıra sayacını her satırda sıfırlar. Orijinal boşlukları
+            # koruyarak Bölüm 3 odak kılavuzuyla satır sırasından eşleştiriyoruz.
+            copy["Ana Kategori"] = normalize_category(raw_category) if raw_category else ""
             grouped.setdefault(current_country, []).append(copy)
         for country, country_rows in grouped.items():
             result[country] = self._rows_to_records(country_rows, "Localize Sub Kredi Dereceleri")
@@ -382,6 +434,7 @@ class SheetAlgorithmRepository:
         subcategory: str,
         country: Optional[str] = None,
         pool: str = "154",
+        target_country: Optional[str] = None,
     ) -> AlgorithmTarget:
         record = self.find_record(category, subcategory, country)
         if not record:
@@ -411,7 +464,50 @@ class SheetAlgorithmRepository:
             source_sheet=_clean(record.get("source_sheet")),
             category_focus=category_focus,
             category_drafts=category_drafts,
+            section=_clean(record.get("section")),
+            target_country=target_country,
         )
+
+    def _expand_localized_placeholders(
+        self,
+        records: List[Dict[str, Any]],
+        *,
+        basic_only: bool,
+    ) -> List[Dict[str, Any]]:
+        """Bölüm 3 yer tutucularını gerçek ülke/bölge alt hedeflerine açar.
+
+        Her kategori için bir ülke/bölge seçilir. Seçilen profilin alt
+        kategori kredi değerleri kullanıldığından kategori toplamı ve alt
+        kategori dağılımı Sheets ile birebir korunur.
+        """
+        expanded: List[Dict[str, Any]] = []
+        available_countries = list(self._localized_records)
+        for record in records:
+            if _key(record.get("subcategory")) != _key("Localize Sub"):
+                expanded.append(record)
+                continue
+
+            category = record["category"]
+            candidates = [
+                country
+                for country in available_countries
+                if any(item["category"] == category for item in self._localized_records[country])
+            ]
+            if not candidates:
+                expanded.append(record)
+                continue
+            selected_country = random.choice(candidates)
+            localized = [
+                dict(item)
+                for item in self._localized_records[selected_country]
+                if item["category"] == category
+            ]
+            if basic_only:
+                localized = [item for item in localized if item.get("is_base")]
+            for item in localized:
+                item["target_country"] = selected_country
+                expanded.append(item)
+        return expanded
 
     def build_credit_queue(
         self,
@@ -432,13 +528,21 @@ class SheetAlgorithmRepository:
         Slotlar kategoriler arasında dengeli ve dönüşümlü (interleaved) sıralanır.
         """
         records = self.records_for_country(country)
+        pool_key = "64" if str(pool) == "64" else "154"
+        if not country:
+            records = self._expand_localized_placeholders(
+                records,
+                basic_only=basic_only,
+            )
         if category:
             normalized_category = normalize_category(category)
             records = [record for record in records if record["category"] == normalized_category]
         if subcategory:
             sub_key = _key(subcategory)
-            records = [record for record in records if _key(record["subcategory"]) == sub_key]
-        pool_key = "64" if str(pool) == "64" else "154"
+            # "Localize Sub" Bölüm 3'ün UI yer tutucusudur; genişletme
+            # sonrasında seçilen ülkenin tüm gerçek alt hedeflerini kapsar.
+            if sub_key != _key("Localize Sub"):
+                records = [record for record in records if _key(record["subcategory"]) == sub_key]
         weight_key = f"weight_{pool_key}"
 
         weighted_records: List[tuple[Dict[str, Any], int]] = []
@@ -477,8 +581,9 @@ class SheetAlgorithmRepository:
             target_obj = self.target(
                 record["category"],
                 record["subcategory"],
-                country=country,
+                country=record.get("target_country") or country,
                 pool=pool_key,
+                target_country=record.get("target_country"),
             )
             cat_name = target_obj.category
             cat_slots.setdefault(cat_name, []).extend([target_obj] * slots_count)

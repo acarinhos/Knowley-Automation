@@ -3,7 +3,7 @@ import unittest
 from core.generation_planner import GenerationPlanner
 from core.generator import GeneratedQuestion, QUESTION_SCHEMA_VERSION, build_prompt
 from core.sheet_algorithm import SheetAlgorithmRepository, parse_scope_ratio
-from worker import GenerationOptions
+from worker import GenerationOptions, _choose_sheet_localization_country
 
 
 class SheetAlgorithmRepositoryTests(unittest.TestCase):
@@ -37,7 +37,16 @@ class SheetAlgorithmRepositoryTests(unittest.TestCase):
                 if record["weight_154"] > 0
             }
             observed = {(target.category, target.subcategory) for target in queue}
-            self.assertEqual(observed, expected, country or "genel havuz")
+            if country is None:
+                self.assertNotIn(("Spor", "Localize Sub"), observed)
+                self.assertNotIn(("Müzik", "Localize Sub"), observed)
+                self.assertNotIn(("Edebiyat", "Localize Sub"), observed)
+                expected_without_placeholders = {
+                    item for item in expected if item[1] != "Localize Sub"
+                }
+                self.assertTrue(expected_without_placeholders <= observed)
+            else:
+                self.assertEqual(observed, expected, country)
 
     def test_category_selection_completes_exact_credit_cycles(self):
         for pool in ("154", "64"):
@@ -67,6 +76,56 @@ class SheetAlgorithmRepositoryTests(unittest.TestCase):
         self.assertEqual(target.global_ratio, 0.0)
         self.assertEqual(target.local_ratio, 1.0)
         self.assertEqual(target.subcategory_weight, 2)
+
+    def test_guidance_rows_carry_their_algorithm_section(self):
+        self.assertEqual(
+            self.repository.target("Tarih", "Temel Tarih").section,
+            "section_1",
+        )
+        self.assertEqual(
+            self.repository.target("Sinema", "Temel Sinema").section,
+            "section_2",
+        )
+
+    def test_section_two_is_focus_only_without_country_profile(self):
+        planner = GenerationPlanner(sheet_repository=self.repository)
+        plan = planner.create_plan("Sinema", "Yerli Üretimler")
+        self.assertEqual(plan.scope, "global")
+        self.assertEqual(plan.ratio_percent, 100)
+        self.assertEqual(plan.target_country, "Global")
+
+    def test_section_one_preserves_sheet_ratio_and_uses_sheet_countries(self):
+        planner = GenerationPlanner(sheet_repository=self.repository)
+        target = self.repository.target("Tarih", "Temel Tarih")
+        scopes = [planner.create_plan("Tarih", "Temel Tarih").scope for _ in range(20)]
+        self.assertEqual(scopes.count("global"), round(target.global_ratio * 20))
+        self.assertEqual(scopes.count("local"), round(target.local_ratio * 20))
+
+    def test_section_three_expands_to_real_country_subcategories_with_exact_credits(self):
+        for pool in ("154", "64"):
+            queue = self.repository.build_credit_queue(pool)
+            for category in ("Spor", "Müzik", "Edebiyat"):
+                targets = [target for target in queue if target.category == category]
+                self.assertTrue(targets)
+                self.assertNotIn("Localize Sub", {target.subcategory for target in targets})
+                selected_countries = {target.target_country for target in targets}
+                self.assertEqual(len(selected_countries), 1)
+                selected_country = next(iter(selected_countries))
+                expected = {
+                    record["subcategory"]: record[f"weight_{pool}"]
+                    for record in self.repository._localized_records[selected_country]
+                    if record["category"] == category and record[f"weight_{pool}"] > 0
+                }
+                observed = {}
+                for target in targets:
+                    observed[target.subcategory] = observed.get(target.subcategory, 0) + 1
+                    self.assertEqual(target.section, "section_3")
+                    self.assertTrue(target.guide)
+                    if target.subcategory.startswith("Temel "):
+                        self.assertEqual((target.global_ratio, target.local_ratio), (1.0, 0.0))
+                    else:
+                        self.assertEqual((target.global_ratio, target.local_ratio), (0.0, 1.0))
+                self.assertEqual(observed, expected)
 
     def test_planner_uses_sheet_scope_ratio(self):
         planner = GenerationPlanner(sheet_repository=self.repository)
@@ -118,7 +177,7 @@ class GenerationOptionsTests(unittest.TestCase):
         self.assertEqual(options.generation_mode, "64")
         self.assertEqual(options.combo_percent, 35)
 
-    def test_disabled_country_profile_uses_generic_global_context(self):
+    def test_disabled_country_profile_uses_automatic_sheet_context(self):
         options = GenerationOptions(
             generation_mode="basic",
             country="Türkiye",
@@ -128,7 +187,7 @@ class GenerationOptionsTests(unittest.TestCase):
         self.assertEqual(options.generation_mode, "basic")
         self.assertEqual(options.credit_pool, "154")
         self.assertIsNone(options.country)
-        self.assertEqual(options.scope, "global")
+        self.assertIsNone(options.scope)
 
     def test_generated_question_defaults_to_new_schema_version(self):
         self.assertEqual(QUESTION_SCHEMA_VERSION, "1.1.0")
@@ -146,6 +205,13 @@ class GenerationOptionsTests(unittest.TestCase):
     def test_rejects_empty_language_selection(self):
         with self.assertRaisesRegex(ValueError, "En az bir dil"):
             GenerationOptions(languages=[]).validate()
+
+    def test_localize_sub_country_comes_from_sheet_country_region_list(self):
+        repository = SheetAlgorithmRepository()
+        allowed = {item["name"] for item in repository.countries()}
+        selected = {_choose_sheet_localization_country(repository) for _ in range(100)}
+        self.assertTrue(selected <= allowed)
+        self.assertGreater(len(selected), 1)
 
 
 if __name__ == "__main__":

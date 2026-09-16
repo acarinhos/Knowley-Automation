@@ -75,13 +75,14 @@ class GenerationPlanner:
         """
         Kategori kotasına göre sıradaki hedef kapsamı ('global' veya 'local') ve yüzdesini belirler.
         """
+        sheet_category = category
         norm_cat = normalize_category_name(category)
         cfg = get_category_matrix_config(norm_cat)
         ratio_dict = cfg.get("ratio", {"global": 0.50, "local": 0.50})
         g_ratio = float(ratio_dict.get("global", 0.50))
         l_ratio = float(ratio_dict.get("local", 0.50))
         if self.sheet_repository is not None and subcategory:
-            target = self.sheet_repository.target(norm_cat, subcategory, country=country)
+            target = self.sheet_repository.target(sheet_category, subcategory, country=country)
             g_ratio = target.global_ratio
             l_ratio = target.local_ratio
 
@@ -184,13 +185,43 @@ class GenerationPlanner:
     ) -> GenerationPlan:
         """Kategori ve opsiyonel parametrelere göre tam bir GenerationPlan oluşturur."""
         norm_cat = normalize_category_name(category)
+        sheet_target = None
+        if self.sheet_repository is not None and subcategory:
+            sheet_target = self.sheet_repository.target(category, subcategory, country=force_country)
+
+        effective_scope = force_scope
+        # Bölüm 2 öge/odak tabanlıdır. Kullanıcı bir ülke profili
+        # seçmedikçe hiçbir somut ülkeye bağlanmaz.
+        if sheet_target and sheet_target.section == "section_2" and not force_country:
+            effective_scope = "global"
+
         scope, ratio_percent = self.plan_scope(
-            norm_cat,
-            force_scope=force_scope,
+            category,
+            force_scope=effective_scope,
             subcategory=subcategory,
             country=force_country,
         )
-        country, credit, eligible = self.plan_country(norm_cat, scope=scope, force_country=force_country)
+        if sheet_target and sheet_target.section == "section_2" and not force_country:
+            ratio_percent = 100
+
+        if force_country:
+            country, credit, eligible = self.plan_country(
+                norm_cat, scope=scope, force_country=force_country
+            )
+        elif sheet_target and sheet_target.section in {"section_1", "section_2", "section_3"}:
+            if scope == "global" or sheet_target.section == "section_2":
+                country, credit, eligible = "Global", 10, True
+            else:
+                countries = [
+                    item.get("name")
+                    for item in self.sheet_repository.countries()
+                    if item.get("name")
+                ]
+                country = random.choice(countries) if countries else "Türkiye"
+                credit = max(1, get_country_credit(norm_cat, country))
+                eligible = is_country_global_eligible(norm_cat, country)
+        else:
+            country, credit, eligible = self.plan_country(norm_cat, scope=scope)
 
         plan = GenerationPlan(
             scope=scope,

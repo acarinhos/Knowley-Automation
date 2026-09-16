@@ -133,10 +133,10 @@ function eventMessage(event) {
 
 function renderJob(job) {
   const total = job.options.question_count || 0;
-  const savedEvents = job.events.filter(e => e.event === 'saved');
-  const completed = job.summary?.processed || Math.max(0, ...job.events.map(e => e.index || 0));
+  const producedEvents = job.events.filter(e => ['saved', 'generated'].includes(e.event));
+  const completed = job.summary?.produced || Math.max(0, ...producedEvents.map(e => e.produced || 0));
   const pct = total ? Math.min(100, completed / total * 100) : 0;
-  $('progress-count').textContent = `${savedEvents.length} / ${total}`;
+  $('progress-count').textContent = `${completed} / ${total}`;
   $('progress-label').textContent = job.status.toLocaleUpperCase('tr-TR');
   $('progress-bar').style.width = `${pct}%`;
   $('activity-title').textContent = ['completed','stopped','failed'].includes(job.status) ? 'Son üretim özeti' : 'Üretim devam ediyor';

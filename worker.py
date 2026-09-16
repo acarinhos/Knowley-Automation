@@ -21,6 +21,7 @@ from database.db_manager import init_firebase, generate_question_hash
 from firebase_admin import firestore
 from core.llm_manager import MultiLLMManager
 from core.sheet_algorithm import SheetAlgorithmRepository, get_sheet_algorithm_repository
+from core.starting_difficulty import StartingDifficultyAssigner
 
 logging.basicConfig(
     level=logging.INFO,
@@ -84,7 +85,9 @@ class GenerationOptions:
                 raise ValueError("Ülke profili açıldığında beş profilden biri seçilmelidir.")
         else:
             self.country = None
-            self.scope = "global"
+            # Profil kapalıyken Sheets GL/LO oranı ve GenerationPlanner ülke
+            # seçimi doğal biçimde çalışır; global kapsam zorlanmaz.
+            self.scope = None
         self.combo_percent = max(0, min(100, int(self.combo_percent)))
         self.languages = [lang for lang in self.languages if lang in SUPPORTED_LANGUAGES]
         if not self.languages:
@@ -198,6 +201,14 @@ def _choose_secondary(category: str, repository: SheetAlgorithmRepository) -> Op
     return random.choice(matches or available) if available else None
 
 
+def _choose_sheet_localization_country(repository: SheetAlgorithmRepository) -> str:
+    """Sheets Ülke/Bölge Listesi'nden eşit olasılıkla bir yerelleştirme odağı seçer."""
+    countries = [item["name"] for item in repository.countries() if item.get("name")]
+    if not countries:
+        raise ValueError("Sheets Ülke/Bölge Listesi boş; Localize Sub için ülke seçilemedi.")
+    return random.choice(countries)
+
+
 def run_generation(
     options: GenerationOptions,
     *,
@@ -225,6 +236,12 @@ def run_generation(
     duplicate_count = 0
     failed_count = 0
     basic_only = options.generation_mode == "basic"
+    starting_difficulty_assigner = StartingDifficultyAssigner()
+    max_processed_attempts = (
+        None
+        if options.question_count is None
+        else max(int(options.question_count) * 5, int(options.question_count) + 25)
+    )
 
     credit_queue: List[Any] = repository.build_credit_queue(
         pool=options.credit_pool,
@@ -243,16 +260,19 @@ def run_generation(
         firestore=options.write_to_firestore,
     )
 
-    while options.question_count is None or processed_count < options.question_count:
+    while options.question_count is None or produced_count < options.question_count:
         if stop_event.is_set():
             break
-        processed_count += 1
+        if max_processed_attempts is not None and processed_count >= max_processed_attempts:
+            raise RuntimeError(
+                "Üretim hedefi tamamlanamadı: "
+                f"{options.question_count} yeni soru hedefinden {produced_count} soru kaydedildi; "
+                f"{duplicate_count} tekrar ve {failed_count} başarısız üretim oluştu. "
+                "İş tamamlandı olarak işaretlenmedi."
+            )
 
-        if credit_queue:
-            algorithm_target = credit_queue.pop(0)
-            primary_cat = algorithm_target.category
-            target_sub = algorithm_target.subcategory
-            if not credit_queue and options.question_count is None:
+        if not credit_queue:
+            if options.question_count is None:
                 credit_queue = repository.build_credit_queue(
                     pool=options.credit_pool,
                     country=options.country if options.country_profile_enabled else None,
@@ -260,11 +280,27 @@ def run_generation(
                     category=options.category,
                     subcategory=options.subcategory,
                 )
-        else:
-            raise RuntimeError("Sheet kredi kuyruğu beklenmedik biçimde boşaldı.")
+            else:
+                raise RuntimeError(
+                    "Sheet kredi kuyruğu hedef sayı tamamlanmadan tükendi; iş tamamlandı olarak işaretlenmedi."
+                )
+
+        processed_count += 1
+        # Slot yalnızca yeni soru Firestore'a başarıyla yazıldığında tüketilir.
+        # Duplicate veya üretim hatası aynı kredi slotunu bir sonraki denemeye bırakır.
+        algorithm_target = credit_queue[0]
+        primary_cat = algorithm_target.category
+        target_sub = algorithm_target.subcategory
 
         is_combo = not basic_only and random.randint(1, 100) <= options.combo_percent
         secondary_cat = _choose_secondary(primary_cat, repository) if is_combo else None
+        planned_country = options.country if options.country_profile_enabled else None
+        planned_scope = options.scope
+        if (
+            not options.country_profile_enabled
+            and getattr(algorithm_target, "target_country", None)
+        ):
+            planned_country = algorithm_target.target_country
 
         focus_info = []
         if getattr(algorithm_target, "category_focus", None):
@@ -281,6 +317,7 @@ def run_generation(
             f"Kategori: {primary_cat} (Kredi Ağırlığı: {algorithm_target.category_weight})\n"
             f"Alt Kategori: {target_sub} (Kredi Ağırlığı: {algorithm_target.subcategory_weight}) "
             f"[{'Temel Kategori' if basic_only else options.credit_pool + ' Kredi Havuzu'}]\n"
+            f"Algoritma Bölümü: {algorithm_target.section or 'profil sayfası'}\n"
             f"Kapsam Dengesi: %{round(algorithm_target.global_ratio * 100)} GL / %{round(algorithm_target.local_ratio * 100)} LO\n"
             f"ODAK NOKTALARI & REHBER:\n" + "\n".join(f"- {line}" for line in focus_info)
         )
@@ -293,6 +330,7 @@ def run_generation(
             subcategory=target_sub,
             combo=bool(secondary_cat),
             secondary_category=secondary_cat,
+            target_country=planned_country,
             pool=options.credit_pool,
             mode=options.generation_mode,
         )
@@ -306,9 +344,9 @@ def run_generation(
                     primary_category=primary_cat,
                     target_subcategory=target_sub,
                     secondary_category=secondary_cat,
-                    target_country=options.country if options.country_profile_enabled else "Global",
-                    target_country_credit=10 if not options.country_profile_enabled else None,
-                    scope=options.scope,
+                    target_country=planned_country,
+                    target_country_credit=None,
+                    scope=planned_scope,
                     base_difficulty=options.difficulty,
                     balance_categories=False,
                     difficulty_balancer=diff_balancer,
@@ -341,8 +379,14 @@ def run_generation(
                     "local_ratio": algorithm_target.local_ratio,
                 }
 
+                # Bu ek alan normal zorluk üretildikten sonra atanır; zorluk,
+                # süre, kategori veya diğer dengeleyicilere geri beslenmez.
+                if options.difficulty is None:
+                    starting_difficulty_assigner.assign(q_data)
+
                 saved = save_worker_question(db, q_data) if options.write_to_firestore else True
                 if saved:
+                    credit_queue.pop(0)
                     produced_count += 1
                     success_this_item = True
                     preview = q_data.translations.get("tr") or next(iter(q_data.translations.values()))

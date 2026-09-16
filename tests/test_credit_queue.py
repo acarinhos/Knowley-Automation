@@ -49,7 +49,25 @@ class CreditQueueAndFoundationalTriviaTests(unittest.TestCase):
             key = (target.category, target.subcategory)
             actual[key] = actual.get(key, 0) + 1
 
-        records = [record for record in self.repo.records_for_country() if record["weight_154"] > 0]
+        records = []
+        selected_localized_countries = {
+            target.category: target.target_country
+            for target in queue
+            if target.target_country
+        }
+        for record in self.repo.records_for_country():
+            if record["weight_154"] <= 0:
+                continue
+            if record["subcategory"] != "Localize Sub":
+                records.append(record)
+                continue
+            selected_country = selected_localized_countries[record["category"]]
+            records.extend(
+                localized
+                for localized in self.repo._localized_records[selected_country]
+                if localized["category"] == record["category"]
+                and localized["weight_154"] > 0
+            )
         total_weight = sum(record["weight_154"] for record in records)
         for record in records:
             expected = 37 * record["weight_154"] / total_weight

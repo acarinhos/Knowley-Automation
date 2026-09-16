@@ -21,6 +21,7 @@ from core.llm_manager import MultiLLMManager
 from core.generator import QUESTION_SCHEMA_VERSION
 from core.sheet_algorithm import get_sheet_algorithm_repository
 from database.db_manager import init_firebase
+from database.question_audit import fetch_question_audit
 from worker import GenerationOptions, run_generation
 
 
@@ -70,6 +71,7 @@ class JobManager:
             "events": [],
             "summary": None,
             "error": None,
+            "event_sequence": 0,
             "stop_event": threading.Event(),
         }
         with self.lock:
@@ -77,7 +79,8 @@ class JobManager:
 
         def on_event(event: Dict[str, Any]) -> None:
             with self.lock:
-                event["sequence"] = len(job["events"]) + 1
+                job["event_sequence"] += 1
+                event["sequence"] = job["event_sequence"]
                 job["events"].append(event)
                 job["events"] = job["events"][-250:]
                 if event["event"] == "started":
@@ -98,12 +101,13 @@ class JobManager:
                 with self.lock:
                     job["status"] = "failed"
                     job["error"] = str(exc)
+                    job["event_sequence"] += 1
                     job["events"].append(
                         {
                             "event": "failed",
                             "message": str(exc),
                             "timestamp": datetime.now(timezone.utc).timestamp(),
-                            "sequence": len(job["events"]) + 1,
+                            "sequence": job["event_sequence"],
                         }
                     )
                 traceback.print_exc()
@@ -141,7 +145,7 @@ class JobManager:
         return {
             key: value
             for key, value in job.items()
-            if key not in {"thread", "stop_event"}
+            if key not in {"thread", "stop_event", "event_sequence"}
         }
 
 
@@ -169,6 +173,11 @@ def firebase_summary(live: bool = False) -> Dict[str, Any]:
         result["reachable"] = False
         result["error"] = str(exc)[:300]
     return result
+
+
+def firebase_question_audit(minimum_version: str = "1.1.0") -> Dict[str, Any]:
+    """UI için questions koleksiyonunu dönem/kategori/alt kategori bazında özetler."""
+    return fetch_question_audit(init_firebase(), minimum_version=minimum_version)
 
 
 class KnowleyHandler(BaseHTTPRequestHandler):

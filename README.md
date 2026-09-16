@@ -17,6 +17,31 @@ Tarayıcıyı otomatik açmadan başlatmak için:
 python ui_server.py --no-browser
 ```
 
+Masaüstü arayüzü için `run_ui.bat` dosyasını açın veya `python ui_tkinter.py`
+komutunu çalıştırın.
+
+### Dış soru veri seti içe aktarma
+
+Tkinter ekranının üstündeki **Dış Veri Seti** düğmesi JSON/CSV/TSV dosyalarını
+veya doğrudan JSON/CSV URL'lerini içe aktarır. Jeopardy TSV şeması otomatik
+tanınır; `answer` ipucu, `question` doğru yanıt olarak yorumlanır ve eksik üç
+çeldirici aynı kategori havuzundaki diğer yanıtlardan deterministik üretilir.
+Akış üç aşamalıdır:
+
+1. **İçe Aktar:** Ham kayıtları okur; OpenTDB ve yaygın
+   `question/options/answer` şemalarını tanır.
+2. **Uygunluk Testi:** Soruyu Sheets taksonomisindeki kategori, alt kategori ve
+   odak noktalarına eşler; uygun zorluk, süre, görsel tetikleyicisi ve
+   `question_image_url: null` alanını sistem kurallarından tamamlar. Normal
+   üretimle aynı kapsam/ülke planlayıcısını kullanır ve soru, seçenekler ile
+   açıklamayı `tr`, `en`, `es`, `pt`, `de` dillerine tamamlar. Sonuç
+   `data/imports/latest_external_import.json` dosyasına yazılır.
+3. **Firebase'e Gönder:** Yalnızca kullanıcı onayından sonra uygun soruları
+   ayrı `dbquestions` koleksiyonuna yollar; mevcut soru hash'lerini tekrar eklemez.
+
+HTML konuşma bağlantıları yalnızca içeriklerinde gerçek bir JSON soru dizisi
+varsa işlenir. Soru verisi içermeyen sayfalarda arayüz açıklayıcı bir hata verir.
+
 Panelde üç üretim modu vardır:
 
 - **154 kredi:** Ana kategori ve alt kategorileri 154 kredi sütunlarındaki ağırlıklara göre seçer.
@@ -95,6 +120,22 @@ kategori, GL/LO ve algoritma kaynağı metadatası eklendikten sonra Firestore'd
 `questions` koleksiyonuna **1.1.0** şemasıyla yazılır. Her dilde soru kökü en
 fazla 150 karakter ve 25 kelime olabilir; sınırı aşan çıktı kaydedilmez ve
 otomatik yeniden üretim akışına girer.
+
+Otomatik zorluk üretiminde her 10 soruluk `4 Kolay / 4 Orta / 2 Zor` bloktan
+rastgele 3 Kolay ve 1 Orta soru ayrıca işaretlenir. Seçilen Kolay soruların
+`starting_difficulty` değerleri geliş sırasıyla `Kolay`, `Orta`, `Zor`; seçilen
+Orta sorunun değeri `Zor` olur. Bu alan diğer altı soruda bulunmaz ve normal
+zorluk, puan, süre veya üretim dengelerini etkilemez.
+
+Tkinter Firebase kartındaki **1.1.0+ üretim tablosu**, `questions`
+koleksiyonunu salt okunur tarar ve bugün, bu hafta, bu ay ve tüm zamanlar için
+kategori/alt kategori adetlerini gösterir. Ana Firebase sayacı tüm belgeleri;
+denetim tablosu yalnızca `version` veya `dbVersion >= 1.1.0` belgelerini kapsar.
+
+LLM havuzu başarısız sağlayıcıları geçici cooldown'a alır. NVIDIA timeout'u 20
+saniyedir; Groq `413 Payload Too Large` verdiğinde aynı payload diğer Groq
+modellerine tekrar gönderilmez. Ayrıntılı kategori kılavuzu sistem mesajında
+tek kez taşınarak istek boyutu küçültülür.
 
 ## Test
 

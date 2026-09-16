@@ -5,6 +5,8 @@ __pycache__/
 *.json
 !data/
 !data/knowley_algorithm_snapshot.json
+!data/imports/
+!data/imports/gemini_shared_questions.json
 serviceAccountKey.json
 venv/
 .venv/

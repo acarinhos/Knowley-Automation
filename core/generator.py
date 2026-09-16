@@ -504,7 +504,8 @@ KESİN YASAKLI KALIPLAR VE EVRAK KELİMELERİ (KARA LİSTE):
 ZORUNLU KENDİ KENDİNİ DOĞRULAMA (SELF-VERIFICATION KURALI):
 "{SELF_VERIFICATION_RULE}"
 
-{TRIVIA_GUIDELINES}
+Kategoriye özgü ayrıntılı trivia örnekleri ve anti-bürokrasi kuralları sistem
+talimatında zaten verilmiştir; aynı kuralları eksiksiz uygula.
 
 ZORLUK DEĞERLENDİRME VE 4 DİNAMİK SENARYO KURALI:
 Model olarak sorunun içeriğini ve hedef kitlesini analiz ederek aşağıdaki 4 senaryodan hangisine uyduğunu tespit et; hem `local` hem de `global` zorluk ve puanını dinamik olarak ata.
@@ -796,7 +797,7 @@ def generate_question_with_fallback(
 
     server_ts = SERVER_TIMESTAMP if SERVER_TIMESTAMP is not None else datetime.now(timezone.utc).isoformat()
 
-    q.version = "1.0.3"
+    q.version = QUESTION_SCHEMA_VERSION
     q.scope = final_scope
     q.target_country = final_country
     q.target_country_credit = final_country_credit
@@ -852,7 +853,7 @@ def generate_question_with_fallback(
 
     # Payload hazırlığı
     payload = q.model_dump(by_alias=True)
-    payload["version"] = "1.0.3"
+    payload["version"] = QUESTION_SCHEMA_VERSION
     payload["shuffle_key"] = random.random()
     payload["correct_count"] = 0
     payload["wrong_count"] = 0

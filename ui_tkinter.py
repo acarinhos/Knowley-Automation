@@ -14,7 +14,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import filedialog, ttk, messagebox
 
 # High DPI netliği (Windows)
 try:
@@ -24,7 +24,15 @@ except Exception:
 
 # Mevcut arka uç modülleri
 from core.generator import QUESTION_SCHEMA_VERSION
-from ui_server import JobManager, firebase_summary
+from core.external_importer import (
+    DEFAULT_SHARED_SOURCE,
+    ImportReport,
+    load_source,
+    save_report,
+    validate_and_transform,
+)
+from database.db_manager import init_firebase, save_question_to_firestore
+from ui_server import JobManager, firebase_question_audit, firebase_summary
 
 # Renk Paleti (Knowley Dark Modern Theme)
 BG_MAIN = "#070914"
@@ -197,11 +205,14 @@ class KnowleyTkinterApp(tk.Tk):
         self.active_job_id: Optional[str] = None
         self.config_data: Optional[Dict[str, Any]] = None
         self.provider_cards: Dict[str, Dict[str, Any]] = {}
-        self.known_event_count = 0
+        self.last_event_sequence = 0
         self.console_queue: "queue.Queue[tuple[str, str]]" = queue.Queue()
         self._original_stdout = sys.stdout
         self._original_stderr = sys.stderr
         self._tk_log_handler: Optional[TkLogHandler] = None
+        self.external_raw_records: List[Dict[str, Any]] = []
+        self.external_report: Optional[ImportReport] = None
+        self.external_window: Optional[tk.Toplevel] = None
 
         self._configure_styles()
         self._build_ui()
@@ -294,6 +305,33 @@ class KnowleyTkinterApp(tk.Tk):
             bordercolor=PANEL_BORDER,
             padding=4,
         )
+
+        # Dış veri önizleme tablosu: Windows'un açık renk Treeview varsayılanı
+        # koyu uygulamada beyaz zemin/beyaz yazı üretiyordu.
+        style.configure(
+            "External.Treeview",
+            background="#0b1022",
+            fieldbackground="#0b1022",
+            foreground=TEXT_LIGHT,
+            rowheight=25,
+            bordercolor=PANEL_BORDER,
+            lightcolor=PANEL_BORDER,
+            darkcolor=PANEL_BORDER,
+        )
+        style.map(
+            "External.Treeview",
+            background=[("selected", "#315775")],
+            foreground=[("selected", "#ffffff")],
+        )
+        style.configure(
+            "External.Treeview.Heading",
+            background="#0d1226",
+            foreground=TEXT_LIGHT,
+            relief="flat",
+            bordercolor=BORDER_ACCENT,
+            font=(FONT_FAMILY, 9, "bold"),
+        )
+        style.map("External.Treeview.Heading", background=[("active", PANEL_INNER)])
 
     def _build_ui(self) -> None:
         # Ana Konteyner
@@ -403,6 +441,36 @@ class KnowleyTkinterApp(tk.Tk):
             pady=7,
         )
         action_bar.pack(fill="x", pady=(0, 12))
+
+        tk.Button(
+            action_bar,
+            text="Dış Veri Seti  ⇩",
+            bg=PURPLE,
+            fg=TEXT_LIGHT,
+            activebackground="#a99aff",
+            activeforeground=TEXT_LIGHT,
+            font=(FONT_FAMILY, 9, "bold"),
+            relief="flat",
+            cursor="hand2",
+            padx=14,
+            pady=7,
+            command=self._open_external_importer,
+        ).pack(side="left", padx=(0, 12))
+
+        tk.Button(
+            action_bar,
+            text="Firebase Raporu  ↗",
+            bg=PANEL_INNER,
+            fg=CYAN,
+            activebackground=PANEL_BORDER,
+            activeforeground=TEXT_LIGHT,
+            font=(FONT_FAMILY, 9, "bold"),
+            relief="flat",
+            cursor="hand2",
+            padx=14,
+            pady=7,
+            command=self._open_firebase_audit,
+        ).pack(side="left", padx=(0, 12))
 
         self.form_error_lbl = tk.Label(
             action_bar,
@@ -669,6 +737,20 @@ class KnowleyTkinterApp(tk.Tk):
         tk.Label(fb_metrics, text="mevcut soru · europe-west3", fg=MUTED, bg=PANEL_INNER, font=(FONT_FAMILY, 8)).pack(anchor="w")
 
         tk.Label(fb_card, text="knowley-1 / (default) · Firestore Native", fg=MUTED, bg=PANEL_BG, font=(FONT_FAMILY, 7)).pack(anchor="w")
+        self.btn_firebase_audit = tk.Button(
+            fb_card,
+            text="1.1.0+ üretim tablosu  ↗",
+            bg=PANEL_INNER,
+            fg=CYAN,
+            activebackground=PANEL_BORDER,
+            font=(FONT_FAMILY, 8, "bold"),
+            relief="flat",
+            cursor="hand2",
+            padx=10,
+            pady=4,
+            command=self._open_firebase_audit,
+        )
+        self.btn_firebase_audit.pack(anchor="w", pady=(7, 0))
 
         # 3. Kart: Algoritma Kaynağı
         algo_card = tk.Frame(sidebar, bg=PANEL_BG, highlightbackground=PANEL_BORDER, highlightthickness=1, padx=16, pady=12)
@@ -902,6 +984,250 @@ class KnowleyTkinterApp(tk.Tk):
         if self.sheet_url:
             webbrowser.open(self.sheet_url)
 
+    # ----------------------------------------------------
+    # Dış soru veri seti içe aktarma
+    # ----------------------------------------------------
+
+    def _open_external_importer(self) -> None:
+        if self.external_window and self.external_window.winfo_exists():
+            self.external_window.lift()
+            self.external_window.focus_force()
+            return
+
+        win = tk.Toplevel(self)
+        self.external_window = win
+        win.title("Knowley · Dış Soru Veri Seti")
+        win.geometry("1180x720")
+        win.minsize(900, 580)
+        win.configure(bg=BG_MAIN)
+        win.transient(self)
+
+        outer = tk.Frame(win, bg=BG_MAIN, padx=18, pady=16)
+        outer.pack(fill="both", expand=True)
+        tk.Label(
+            outer,
+            text="DIŞ SORU VERİ SETİ",
+            fg=CYAN,
+            bg=BG_MAIN,
+            font=(FONT_FAMILY, 9, "bold"),
+        ).pack(anchor="w")
+        tk.Label(
+            outer,
+            text="JSON/CSV'yi al, Knowley kurallarıyla denetle, önizle ve onaylayınca Firestore'a gönder.",
+            fg=TEXT_LIGHT,
+            bg=BG_MAIN,
+            font=(FONT_FAMILY, 13, "bold"),
+        ).pack(anchor="w", pady=(2, 12))
+
+        source_card = tk.Frame(outer, bg=PANEL_BG, highlightbackground=PANEL_BORDER, highlightthickness=1, padx=12, pady=10)
+        source_card.pack(fill="x")
+        tk.Label(source_card, text="Dosya veya doğrudan JSON/CSV URL'si", fg=MUTED, bg=PANEL_BG, font=(FONT_FAMILY, 8, "bold")).pack(anchor="w")
+        source_row = tk.Frame(source_card, bg=PANEL_BG)
+        source_row.pack(fill="x", pady=(6, 0))
+        self.external_source_var = tk.StringVar(value=DEFAULT_SHARED_SOURCE)
+        self.external_source_entry = tk.Entry(
+            source_row,
+            textvariable=self.external_source_var,
+            bg="#090d20",
+            fg=TEXT_LIGHT,
+            insertbackground=TEXT_LIGHT,
+            relief="flat",
+            font=("Consolas", 9),
+        )
+        self.external_source_entry.pack(side="left", fill="x", expand=True, ipady=7)
+        tk.Button(
+            source_row,
+            text="Dosya Seç",
+            command=self._choose_external_file,
+            bg=PANEL_INNER,
+            fg=TEXT_LIGHT,
+            activebackground=BORDER_ACCENT,
+            relief="flat",
+            cursor="hand2",
+            padx=14,
+            pady=7,
+        ).pack(side="left", padx=(8, 0))
+
+        actions = tk.Frame(outer, bg=BG_MAIN)
+        actions.pack(fill="x", pady=10)
+        self.external_import_btn = tk.Button(
+            actions, text="1  İçe Aktar", command=self._import_external_source,
+            bg=PURPLE, fg=TEXT_LIGHT, activebackground="#a99aff", relief="flat", cursor="hand2", padx=16, pady=8,
+            font=(FONT_FAMILY, 9, "bold"),
+        )
+        self.external_import_btn.pack(side="left")
+        self.external_validate_btn = tk.Button(
+            actions, text="2  Uygunluk Testi", command=self._validate_external_records,
+            bg=PANEL_INNER, fg=TEXT_LIGHT, activebackground=BORDER_ACCENT, relief="flat", cursor="hand2", padx=16, pady=8,
+            font=(FONT_FAMILY, 9, "bold"), state="disabled",
+        )
+        self.external_validate_btn.pack(side="left", padx=8)
+        self.external_publish_btn = tk.Button(
+            actions, text="3  Firebase'e Gönder", command=self._publish_external_questions,
+            bg=GREEN, fg=TEXT_DARK, activebackground="#86efc2", relief="flat", cursor="hand2", padx=16, pady=8,
+            font=(FONT_FAMILY, 9, "bold"), state="disabled",
+        )
+        self.external_publish_btn.pack(side="left")
+        self.external_status_lbl = tk.Label(actions, text="Kaynak bekleniyor", fg=MUTED, bg=BG_MAIN, font=(FONT_FAMILY, 9, "bold"))
+        self.external_status_lbl.pack(side="right")
+
+        preview_card = tk.Frame(outer, bg=PANEL_BG, highlightbackground=PANEL_BORDER, highlightthickness=1, padx=10, pady=10)
+        preview_card.pack(fill="both", expand=True)
+        columns = ("state", "category", "subcategory", "difficulty", "duration", "question", "reason")
+        self.external_tree = ttk.Treeview(
+            preview_card, columns=columns, show="headings", height=16, style="External.Treeview"
+        )
+        self.external_tree.tag_configure("raw", foreground=TEXT_DIM, background="#0b1022")
+        self.external_tree.tag_configure("accepted", foreground="#d9fff0", background="#0d2a25")
+        self.external_tree.tag_configure("rejected", foreground="#ffd5dd", background="#301522")
+        headings = {
+            "state": "Durum", "category": "Kategori", "subcategory": "Alt kategori",
+            "difficulty": "Zorluk", "duration": "Süre", "question": "Soru", "reason": "Not",
+        }
+        widths = {"state": 75, "category": 130, "subcategory": 170, "difficulty": 75, "duration": 55, "question": 360, "reason": 280}
+        for column in columns:
+            self.external_tree.heading(column, text=headings[column])
+            self.external_tree.column(column, width=widths[column], minwidth=45, anchor="w")
+        tree_scroll_y = ttk.Scrollbar(preview_card, orient="vertical", command=self.external_tree.yview)
+        tree_scroll_x = ttk.Scrollbar(preview_card, orient="horizontal", command=self.external_tree.xview)
+        self.external_tree.configure(yscrollcommand=tree_scroll_y.set, xscrollcommand=tree_scroll_x.set)
+        self.external_tree.grid(row=0, column=0, sticky="nsew")
+        tree_scroll_y.grid(row=0, column=1, sticky="ns")
+        tree_scroll_x.grid(row=1, column=0, sticky="ew")
+        preview_card.rowconfigure(0, weight=1)
+        preview_card.columnconfigure(0, weight=1)
+
+    def _choose_external_file(self) -> None:
+        path = filedialog.askopenfilename(
+            parent=self.external_window,
+            title="Soru veri setini seç",
+            filetypes=[("Soru verileri", "*.json *.csv *.tsv"), ("JSON", "*.json"), ("CSV", "*.csv"), ("TSV", "*.tsv")],
+        )
+        if path:
+            self.external_source_var.set(path)
+
+    def _set_external_busy(self, busy: bool, status: str) -> None:
+        state = "disabled" if busy else "normal"
+        self.external_import_btn.config(state=state)
+        self.external_status_lbl.config(text=status, fg=ORANGE if busy else MUTED)
+
+    def _import_external_source(self) -> None:
+        source = self.external_source_var.get().strip()
+        self._set_external_busy(True, "Kaynak okunuyor…")
+        self.external_validate_btn.config(state="disabled")
+        self.external_publish_btn.config(state="disabled")
+
+        def worker() -> None:
+            try:
+                records = load_source(source)
+                self.external_raw_records = records
+                self.external_report = None
+                self.after(0, lambda: self._external_import_finished(len(records)))
+            except Exception as exc:
+                self.after(0, lambda error=str(exc): self._external_import_failed(error))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _external_import_finished(self, count: int) -> None:
+        self._set_external_busy(False, f"{count} ham kayıt alındı")
+        self.external_validate_btn.config(state="normal")
+        for item in self.external_tree.get_children():
+            self.external_tree.delete(item)
+        for index, row in enumerate(self.external_raw_records[:500], start=1):
+            is_jeopardy = all(key in row for key in ("round", "answer", "question", "category"))
+            question = str(row.get("question_text") or row.get("soru") or row.get("prompt") or (row.get("answer") if is_jeopardy else row.get("question")) or "")
+            self.external_tree.insert("", "end", values=("HAM", "", "", "", "", question[:220], f"Kayıt {index}"), tags=("raw",))
+        print(f"[Dış Veri] {count} ham soru kaydı içe aktarıldı.")
+
+    def _external_import_failed(self, error: str) -> None:
+        self._set_external_busy(False, "İçe aktarma başarısız")
+        print(f"[Dış Veri] İçe aktarma hatası: {error}")
+        messagebox.showerror("Dış veri kaynağı", error, parent=self.external_window)
+
+    def _validate_external_records(self) -> None:
+        if not self.external_raw_records:
+            return
+        self.external_validate_btn.config(state="disabled", text="Test ediliyor…")
+        source = self.external_source_var.get().strip()
+
+        def worker() -> None:
+            def progress(done: int, total: int) -> None:
+                if done == 1 or done == total or done % 10 == 0:
+                    self.after(0, lambda d=done, t=total: self.external_status_lbl.config(text=f"Tam şema + 5 dil: {d}/{t}", fg=ORANGE))
+
+            report = validate_and_transform(
+                self.external_raw_records,
+                source=source,
+                translate_all=True,
+                llm_manager=self.manager.llm_manager,
+                progress_callback=progress,
+            )
+            output = save_report(report, os.path.join(os.path.dirname(__file__), "data", "imports", "latest_external_import.json"))
+            self.external_report = report
+            self.after(0, lambda: self._external_validation_finished(report, str(output)))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _external_validation_finished(self, report: ImportReport, output_path: str) -> None:
+        self.external_validate_btn.config(state="normal", text="2  Uygunluk Testi")
+        self.external_publish_btn.config(state="normal" if report.accepted_count else "disabled")
+        self.external_status_lbl.config(
+            text=f"{report.accepted_count} uygun · {report.rejected_count} elendi",
+            fg=GREEN if report.accepted_count else RED,
+        )
+        for item in self.external_tree.get_children():
+            self.external_tree.delete(item)
+        for question in report.accepted:
+            content = question["translations"][question["supported_languages"][0]]
+            self.external_tree.insert(
+                "", "end",
+                values=("UYGUN", question["categories"][0], question["sub_categories"][0], question["difficulty_local"], question["duration_seconds"], content["question"], "Firebase'e hazır"),
+                tags=("accepted",),
+            )
+        for rejected in report.rejected:
+            self.external_tree.insert("", "end", values=("ELENDİ", "", "", "", "", rejected.raw_question, rejected.reason), tags=("rejected",))
+        print(f"[Dış Veri] Test tamamlandı: {report.accepted_count} uygun, {report.rejected_count} elendi. Rapor: {output_path}")
+
+    def _publish_external_questions(self) -> None:
+        report = self.external_report
+        if not report or not report.accepted:
+            return
+        approved = messagebox.askyesno(
+            "Firebase onayı",
+            f"{report.accepted_count} uygun soruyu 'dbquestions' koleksiyonuna göndermek istiyor musunuz?\n\nMevcut hash tekrarları otomatik atlanır.",
+            parent=self.external_window,
+        )
+        if not approved:
+            return
+        self.external_publish_btn.config(state="disabled", text="Gönderiliyor…")
+
+        def worker() -> None:
+            saved = 0
+            skipped = 0
+            try:
+                db = init_firebase()
+                for question in report.accepted:
+                    if save_question_to_firestore(db, question, collection_name="dbquestions"):
+                        saved += 1
+                    else:
+                        skipped += 1
+                self.after(0, lambda: self._external_publish_finished(saved, skipped, None))
+            except Exception as exc:
+                self.after(0, lambda error=str(exc): self._external_publish_finished(saved, skipped, error))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _external_publish_finished(self, saved: int, skipped: int, error: Optional[str]) -> None:
+        self.external_publish_btn.config(state="normal", text="3  Firebase'e Gönder")
+        if error:
+            self.external_status_lbl.config(text="Firebase gönderimi başarısız", fg=RED)
+            messagebox.showerror("Firebase", error, parent=self.external_window)
+            return
+        self.external_status_lbl.config(text=f"{saved} kaydedildi · {skipped} atlandı", fg=GREEN)
+        print(f"[Dış Veri] Firebase dbquestions tamamlandı: {saved} kaydedildi, {skipped} tekrar/hata atlandı.")
+        self._load_firebase_async()
+        messagebox.showinfo("Firebase", f"dbquestions koleksiyonuna {saved} soru kaydedildi.\n{skipped} tekrar veya hatalı kayıt atlandı.", parent=self.external_window)
+
     def _load_initial_data(self) -> None:
         """Arka planda sistem konfigürasyonunu yükler."""
         def worker() -> None:
@@ -926,6 +1252,80 @@ class KnowleyTkinterApp(tk.Tk):
             self._probe_providers_async()
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def _open_firebase_audit(self) -> None:
+        window = getattr(self, "firebase_audit_window", None)
+        if window and window.winfo_exists():
+            window.lift()
+            return
+        window = tk.Toplevel(self)
+        self.firebase_audit_window = window
+        window.title("Firebase · 1.1.0+ Üretim Denetimi")
+        window.geometry("1120x700")
+        window.minsize(820, 480)
+        window.configure(bg=BG_MAIN)
+
+        outer = tk.Frame(window, bg=BG_MAIN, padx=16, pady=14)
+        outer.pack(fill="both", expand=True)
+        tk.Label(outer, text="FIREBASE 1.1.0+ ÜRETİM DENETİMİ", fg=TEXT_LIGHT, bg=BG_MAIN, font=(FONT_FAMILY, 14, "bold")).pack(anchor="w")
+        tk.Label(outer, text="questions koleksiyonu · kategori ve alt kategori bazında", fg=MUTED, bg=BG_MAIN, font=(FONT_FAMILY, 9)).pack(anchor="w", pady=(0, 10))
+
+        summary = tk.Frame(outer, bg=PANEL_BG, padx=12, pady=9, highlightbackground=PANEL_BORDER, highlightthickness=1)
+        summary.pack(fill="x", pady=(0, 10))
+        self.firebase_audit_summary = tk.Label(summary, text="Firestore taranıyor…", fg=ORANGE, bg=PANEL_BG, font=(FONT_FAMILY, 10, "bold"))
+        self.firebase_audit_summary.pack(side="left")
+        tk.Button(summary, text="Yenile", command=self._load_firebase_audit_async, bg=PANEL_INNER, fg=CYAN, relief="flat", padx=12, pady=4).pack(side="right")
+
+        body = tk.Frame(outer, bg=PANEL_BG, highlightbackground=PANEL_BORDER, highlightthickness=1)
+        body.pack(fill="both", expand=True)
+        columns = ("category", "subcategory", "today", "week", "month", "all_time")
+        self.firebase_audit_tree = ttk.Treeview(body, columns=columns, show="headings", style="External.Treeview")
+        labels = {"category": "Kategori", "subcategory": "Alt kategori", "today": "Bugün", "week": "Bu hafta", "month": "Bu ay", "all_time": "Tüm zamanlar"}
+        widths = {"category": 190, "subcategory": 260, "today": 90, "week": 100, "month": 100, "all_time": 120}
+        for column in columns:
+            self.firebase_audit_tree.heading(column, text=labels[column])
+            self.firebase_audit_tree.column(column, width=widths[column], anchor="w" if column in {"category", "subcategory"} else "center")
+        scroll_y = ttk.Scrollbar(body, orient="vertical", command=self.firebase_audit_tree.yview)
+        self.firebase_audit_tree.configure(yscrollcommand=scroll_y.set)
+        self.firebase_audit_tree.pack(side="left", fill="both", expand=True)
+        scroll_y.pack(side="right", fill="y")
+        self._load_firebase_audit_async()
+
+    def _load_firebase_audit_async(self) -> None:
+        if not getattr(self, "firebase_audit_window", None) or not self.firebase_audit_window.winfo_exists():
+            return
+        self.firebase_audit_summary.config(text="Firestore taranıyor…", fg=ORANGE)
+
+        def worker() -> None:
+            try:
+                audit = firebase_question_audit("1.1.0")
+                self.after(0, lambda: self._render_firebase_audit(audit, None))
+            except Exception as exc:
+                self.after(0, lambda error=str(exc): self._render_firebase_audit(None, error))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _render_firebase_audit(self, audit: Optional[Dict[str, Any]], error: Optional[str]) -> None:
+        if not getattr(self, "firebase_audit_window", None) or not self.firebase_audit_window.winfo_exists():
+            return
+        if error or not audit:
+            self.firebase_audit_summary.config(text=f"Tarama başarısız: {error}", fg=RED)
+            return
+        for item in self.firebase_audit_tree.get_children():
+            self.firebase_audit_tree.delete(item)
+        totals = audit["totals"]
+        self.firebase_audit_summary.config(
+            text=(
+                f"Bugün {totals['today']:,}  ·  Bu hafta {totals['week']:,}  ·  "
+                f"Bu ay {totals['month']:,}  ·  Tüm zamanlar {totals['all_time']:,}  ·  "
+                f"Taranan belge {audit['scanned']:,}"
+            ).replace(",", "."),
+            fg=GREEN,
+        )
+        for row in audit["rows"]:
+            self.firebase_audit_tree.insert("", "end", values=(
+                row["category"], row["subcategory"], row["today"], row["week"], row["month"], row["all_time"]
+            ), tags=("accepted",))
 
     def _apply_config(self, data: Dict[str, Any]) -> None:
         self.config_data = data
@@ -1105,7 +1505,7 @@ class KnowleyTkinterApp(tk.Tk):
 
     def watch_job(self, job_id: str) -> None:
         self.active_job_id = job_id
-        self.known_event_count = 0
+        self.last_event_sequence = 0
         self.btn_start.config(state="disabled")
         self.btn_stop.pack(side="right", padx=(8, 0))
         self.btn_stop.config(state="normal", text="Üretimi Güvenli Biçimde Durdur")
@@ -1146,7 +1546,11 @@ class KnowleyTkinterApp(tk.Tk):
 
         pct = (completed_count / total * 100) if total else 0.0
         self.progress_bar.set_progress(pct)
-        self.progress_count_lbl.config(text=f"{len(saved_events)} / {total}")
+        produced_live = summary.get("produced")
+        if produced_live is None:
+            produced_values = [e.get("produced") for e in saved_events if isinstance(e.get("produced"), int)]
+            produced_live = max([0] + produced_values)
+        self.progress_count_lbl.config(text=f"{produced_live} / {total}")
         self.progress_state_lbl.config(text=status.upper())
 
         if status in {"completed", "stopped", "failed"}:
@@ -1163,9 +1567,12 @@ class KnowleyTkinterApp(tk.Tk):
             self.btn_stop.pack(side="right", padx=(8, 0))
 
         # Yeni gelen olayları ekle
-        if len(events) > self.known_event_count:
-            new_events = events[self.known_event_count :]
-            self.known_event_count = len(events)
+        new_events = [
+            event for event in events
+            if isinstance(event, dict) and int(event.get("sequence") or 0) > self.last_event_sequence
+        ]
+        if new_events:
+            self.last_event_sequence = max(int(event.get("sequence") or 0) for event in new_events)
             self._append_events(new_events)
 
     def _append_events(self, events: List[Dict[str, Any]]) -> None:

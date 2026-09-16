@@ -100,10 +100,8 @@ class TestTriviaAntiBureaucracyStandards(unittest.TestCase):
         )
         self.assertIn("EVRENSEL \"KÜLTÜREL TANINIRLIK & TRIVIA\" STANDARTI", prompt)
         self.assertIn(SELF_VERIFICATION_RULE, prompt)
-        self.assertIn("Magna Carta", prompt)
-        self.assertIn("Pelé", prompt)
-        self.assertIn("Albert Einstein", prompt)
-        self.assertIn("Filippo Brunelleschi", prompt)
+        self.assertIn("aynı kuralları eksiksiz uygula", prompt)
+        self.assertLess(len(prompt), 12_000)
 
     def _create_sample_question(self, question_text: str, explanation: str = "Açıklama", option_a: str = "Cevap A") -> GeneratedQuestion:
         """Test için örnek GeneratedQuestion nesnesi üretir."""

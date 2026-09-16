@@ -59,7 +59,9 @@ class MultiLLMManager:
         "qwen/qwen3.6-27b",
     ]
     COHERE_MODELS = ["command-a-03-2025", "command-r-08-2024", "command-r7b-12-2024"]
-    NVIDIA_MODELS = ["openai/gpt-oss-120b", "openai/gpt-oss-20b"]
+    # 20B modeli NVIDIA katalog/probe çağrısında yaygın ve hızlı erişilebilir;
+    # büyük model yalnızca fallback olarak denenir.
+    NVIDIA_MODELS = ["openai/gpt-oss-20b", "openai/gpt-oss-120b"]
     NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
 
     def __init__(self):
@@ -67,6 +69,7 @@ class MultiLLMManager:
         self.current_idx = 0
         self._lock = threading.Lock()
         self._probe_cache: Dict[str, Any] = {"at": 0.0, "providers": {}}
+        self._provider_cooldown_until: Dict[str, float] = {}
         self.usage: Dict[str, Dict[str, Any]] = {}
         self.last_call: Dict[str, Any] = {}
 
@@ -183,6 +186,10 @@ class MultiLLMManager:
                 return completion.choices[0].message.content or "{}"
             except Exception as exc:
                 last_error = exc
+                if getattr(exc, "status_code", None) == 413 or "413" in str(exc):
+                    # İstek tüm modeller için aynı boyutta; aynı payload'ı tekrar
+                    # göndermek yalnızca gecikme yaratır.
+                    break
                 continue
         raise RuntimeError(f"Groq modellerinin hiçbirine erişilemedi: {last_error}")
 
@@ -260,7 +267,7 @@ class MultiLLMManager:
                         "max_tokens": 4096,
                         "temperature": 0.7,
                     },
-                    timeout=25,
+                    timeout=float(os.getenv("NVIDIA_TIMEOUT_SECONDS", "20")),
                 )
                 response.raise_for_status()
                 payload = response.json()
@@ -275,7 +282,20 @@ class MultiLLMManager:
                 return payload["choices"][0]["message"]["content"] or "{}"
             except Exception as exc:
                 last_error = exc
+                if isinstance(exc, requests.Timeout):
+                    break
         raise RuntimeError(f"NVIDIA modellerinin hiçbirine erişilemedi: {last_error}")
+
+    @staticmethod
+    def _cooldown_for_error(error: Exception) -> int:
+        text = str(error).lower()
+        if "413" in text or "payload too large" in text:
+            return 600
+        if "429" in text or "resource_exhausted" in text:
+            return 120
+        if "timeout" in text or "timed out" in text:
+            return 300
+        return 45
 
     def generate_trivia(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
         attempts = len(self.providers)
@@ -283,6 +303,10 @@ class MultiLLMManager:
         for _ in range(attempts):
             provider = self.providers[self.current_idx]
             self.current_idx = (self.current_idx + 1) % len(self.providers)
+            cooldown_until = float(self._provider_cooldown_until.get(provider, 0.0))
+            if cooldown_until > time.time():
+                errors.append(f"{provider}: cooldown ({int(cooldown_until - time.time())}s)")
+                continue
             try:
                 if provider == "groq":
                     raw = self._call_groq(system_prompt, user_prompt)
@@ -298,9 +322,11 @@ class MultiLLMManager:
                 data = json.loads(clean)
                 data["_provider"] = provider
                 data["_quota"] = dict(self.last_call)
+                self._provider_cooldown_until.pop(provider, None)
                 return data
             except Exception as exc:
                 self._record_error(provider, exc)
+                self._provider_cooldown_until[provider] = time.time() + self._cooldown_for_error(exc)
                 errors.append(f"{provider}: {exc}")
                 logger.warning("%s çağrısı başarısız oldu; sıradaki sağlayıcı deneniyor.", provider.upper())
         raise RuntimeError("Havuzdaki tüm LLM motorlarının kotası doldu! Tüm LLM sağlayıcıları hata verdi. " + " | ".join(errors))

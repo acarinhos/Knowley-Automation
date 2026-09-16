@@ -35,12 +35,15 @@ def generate_question_hash(question_text: str) -> str:
     clean_text = question_text.strip().lower()
     return hashlib.sha256(clean_text.encode('utf-8')).hexdigest()
 
-def save_question_to_firestore(db, question_obj) -> bool:
+def save_question_to_firestore(db, question_obj, collection_name: str = "questions") -> bool:
     """
-    Pydantic GeneratedQuestion nesnesini Firestore'a kaydeder.
+    Pydantic GeneratedQuestion nesnesini belirtilen Firestore koleksiyonuna kaydeder.
     Eğer soru daha önce eklenmişse kaydetmez.
     """
     try:
+        collection_name = str(collection_name or "questions").strip()
+        if not collection_name or "/" in collection_name:
+            raise ValueError("Geçersiz Firestore koleksiyon adı.")
         if isinstance(question_obj, dict):
             q_dict = question_obj
         else:
@@ -60,7 +63,7 @@ def save_question_to_firestore(db, question_obj) -> bool:
         q_hash = generate_question_hash(hash_seed)
         
         # Hash'i ID olarak kullanarak doküman çakışmasını/tekrarını önlüyoruz
-        doc_ref = db.collection("questions").document(q_hash)
+        doc_ref = db.collection(collection_name).document(q_hash)
         doc = doc_ref.get()
         
         if doc.exists:
@@ -71,7 +74,10 @@ def save_question_to_firestore(db, question_obj) -> bool:
         q_dict["question_hash"] = q_hash
         q_dict["created_at"] = firestore.SERVER_TIMESTAMP
         q_dict["status"] = "published"
-        q_dict["version"] = "1.0.3"
+        # Firestore sözleşmesi: eski ``version`` alanı artık kalıcı şemada yok.
+        # Üretim modeli geriye dönük olarak version taşısa bile yazma sınırında
+        # tek kanonik alan olan dbVersion'a dönüştürülür.
+        q_dict["dbVersion"] = str(q_dict.pop("version", None) or q_dict.get("dbVersion") or "1.1.0")
         q_dict.setdefault("scope", "global")
         q_dict.setdefault("target_country", (q_dict.get("countries") or ["Global"])[0])
         q_dict.setdefault("target_country_credit", 10)
@@ -91,7 +97,7 @@ def save_question_to_firestore(db, question_obj) -> bool:
             q_dict.setdefault("duration_seconds", durations["duration_seconds"])
         
         doc_ref.set(q_dict)
-        print(f"✅ Soru Firestore'a kaydedildi: {hash_seed[:45]}...")
+        print(f"✅ Soru Firestore '{collection_name}' koleksiyonuna kaydedildi: {hash_seed[:45]}...")
         return True
     except Exception as e:
         print(f"❌ Firestore'a yazılırken hata: {e}")
