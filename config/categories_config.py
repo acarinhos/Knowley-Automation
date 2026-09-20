@@ -1,7 +1,45 @@
 # ==============================================================================
-# 20 ANA KATEGORİ VE ALT DALLAR KONFİGÜRASYONU
-# Kullanıcının resmi şemasına (HEX renkleri, alt dallar, odak filtreleri) %100 uyumludur.
+# Eski alt dal/görsel yapılandırması; güncel 21 renk aşağıdaki Sheet eşleşmesindedir.
 # ==============================================================================
+
+SHEET_CATEGORY_COLORS = {
+    "Tarih": "#795548",
+    "Coğrafya": "#004D40",
+    "Spor": "#FF6D00",
+    "Fizik": "#2979FF",
+    "Kimya": "#1DE9B6",
+    "Biyoloji": "#00E676",
+    "Ekonomi": "#2E7D32",
+    "Edebiyat": "#3A0054",
+    "Felsefe": "#3F51B5",
+    "Sinema": "#880E4F",
+    "Müzik": "#FF1493",
+    "Mitoloji": "#AA00FF",
+    "Genel Kültür": "#111111",
+    "Teknoloji": "#00E5FF",
+    "Sağlık": "#FF1744",
+    "Psikoloji": "#E1BEE7",
+    "Astronomi": "#0A1931",
+    "Siyaset": "#9E9E9E",
+    "Oyun": "#651FFF",
+    "Gastronomi": "#D84315",
+    "Resim": "#FF8A80",
+}
+
+LEGACY_CATEGORY_COLOR_NAMES = {
+    "Ekonomi & Finans": "Ekonomi",
+    "Felsefe & Mantık": "Felsefe",
+    "Sinema & Dizi": "Sinema",
+    "Genel Kültür & Mitoloji": "Genel Kültür",
+    "Bilgisayar & Yazılım": "Teknoloji",
+    "Tıp & Sağlık": "Sağlık",
+    "Sosyoloji & Psikoloji": "Psikoloji",
+    "Astronomi & Uzay": "Astronomi",
+    "Hukuk & Siyaset": "Siyaset",
+    "Oyun & Espor": "Oyun",
+    "Gastronomi & Mutfak": "Gastronomi",
+    "Mimarlık & Sanat": "Resim",
+}
 
 CATEGORIES_META = {
     "Tarih": {
@@ -224,6 +262,12 @@ CATEGORIES_META = {
     }
 }
 
+# Eski alt dal kayıtları korunur, ancak tüm doğrudan metadata tüketicileri
+# güncel Sheet rengini görür.
+for _category_name, _metadata in CATEGORIES_META.items():
+    _sheet_name = LEGACY_CATEGORY_COLOR_NAMES.get(_category_name, _category_name)
+    _metadata["color"] = SHEET_CATEGORY_COLORS[_sheet_name]
+
 DEFAULT_FALLBACK_IMAGE = "https://storage.googleapis.com/knowley-1-categories/categories/Genel/default_fallback.jpg"
 DEFAULT_FALLBACK_COLOR = "#6366F1"
 
@@ -301,15 +345,13 @@ CATEGORY_ALIASES = {
 }
 
 def get_category_color(category_name: str) -> str:
-    """Kategoriye ait HEX renk kodunu getirir."""
-    if category_name in CATEGORIES_META:
-        return CATEGORIES_META[category_name].get("color", DEFAULT_FALLBACK_COLOR)
-    
-    canonical = CATEGORY_ALIASES.get(category_name)
-    if canonical and canonical in CATEGORIES_META:
-        return CATEGORIES_META[canonical].get("color", DEFAULT_FALLBACK_COLOR)
-        
-    return DEFAULT_FALLBACK_COLOR
+    """Sheet'in 21 kategori rengini eski kategori adlarıyla uyumlu döndürür."""
+    name = str(category_name or "").strip()
+    if name in SHEET_CATEGORY_COLORS:
+        return SHEET_CATEGORY_COLORS[name]
+    canonical = CATEGORY_ALIASES.get(name, name)
+    sheet_name = LEGACY_CATEGORY_COLOR_NAMES.get(canonical, canonical)
+    return SHEET_CATEGORY_COLORS.get(sheet_name, DEFAULT_FALLBACK_COLOR)
 
 def get_category_filters(category_name: str) -> list:
     """Kategoriye ait odak filtrelerini (filters) getirir."""

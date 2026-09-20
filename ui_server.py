@@ -34,9 +34,16 @@ class JobManager:
         self.lock = threading.Lock()
         self.jobs: Dict[str, Dict[str, Any]] = {}
         self.repository = get_sheet_algorithm_repository()
-        self.llm_manager = MultiLLMManager()
+        try:
+            self.llm_manager = MultiLLMManager()
+        except ValueError as exc:
+            if "Hiçbir LLM API anahtarı bulunamadı" not in str(exc):
+                raise
+            self.llm_manager = None
 
     def start(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        if self.llm_manager is None:
+            raise RuntimeError("Soru üretimi için .env içinde en az bir LLM API anahtarı gerekli.")
         with self.lock:
             active = next((job for job in self.jobs.values() if job["status"] in {"starting", "running"}), None)
             if active:
@@ -218,7 +225,7 @@ class KnowleyHandler(BaseHTTPRequestHandler):
                         {"code": "de", "label": "Deutsch"},
                     ],
                     "firebase": firebase_summary(live=False),
-                    "providers": MANAGER.llm_manager.status(live=False),
+                    "providers": MANAGER.llm_manager.status(live=False) if MANAGER.llm_manager else {},
                     "latest_job": MANAGER.latest(),
                 }
             )
@@ -231,7 +238,7 @@ class KnowleyHandler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/providers":
             live = parse_qs(parsed.query).get("live", ["0"])[0] == "1"
-            self._json({"providers": MANAGER.llm_manager.status(live=live)})
+            self._json({"providers": MANAGER.llm_manager.status(live=live) if MANAGER.llm_manager else {}})
             return
         if parsed.path == "/api/firebase":
             self._json(firebase_summary(live=True))

@@ -142,6 +142,8 @@ class ExternalImporterTests(unittest.TestCase):
         database = Database()
         question = {
             "version": "1.1.0",
+            "categories": ["Mitoloji"],
+            "categories_meta": [{"name": "Mitoloji", "color": "#000000"}],
             "translations": {"tr": {"question": "Türkiye'nin başkenti hangisidir?", "options": {"A": "İzmir", "B": "Ankara", "C": "Bursa", "D": "Antalya"}}},
             "correct_answer": "B",
             "correct_option": "B",
@@ -152,6 +154,7 @@ class ExternalImporterTests(unittest.TestCase):
         self.assertTrue(save_question_to_firestore(database, question, collection_name="dbquestions"))
         self.assertEqual(database.collection_name, "dbquestions")
         self.assertEqual(database.document.saved["dbVersion"], "1.1.0")
+        self.assertEqual(database.document.saved["categories_meta"], [{"name": "Mitoloji", "color": "#AA00FF"}])
         self.assertNotIn("version", database.document.saved)
 
 

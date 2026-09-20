@@ -11,8 +11,9 @@ from core.llm_manager import MultiLLMManager
 class TestMultiLLMManager(unittest.TestCase):
 
     def setUp(self):
-        # MultiLLMManager nesnesi oluştur
-        self.manager = MultiLLMManager()
+        # Birim testleri gerçek anahtar veya ağ erişimi gerektirmemeli.
+        with patch.dict("os.environ", {"NVIDIA_API_KEY": "test-only-placeholder"}):
+            self.manager = MultiLLMManager()
 
     def test_providers_initialized(self):
         """Sağlayıcı havuzunda en az bir sağlayıcı bulunmalıdır."""

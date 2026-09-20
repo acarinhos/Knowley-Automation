@@ -6,15 +6,24 @@ import ctypes
 import logging
 import os
 import queue
+import subprocess
 import sys
 import threading
 import time
 import webbrowser
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
+
+# Windows'ta `python ui_tkinter.py` farklı bir Python'a çözülse bile kurulu
+# bağımlılıkların bulunduğu proje sanal ortamını kullan.
+if __name__ == "__main__":
+    venv_python = Path(__file__).resolve().parent / ".venv" / "Scripts" / "python.exe"
+    if venv_python.is_file() and Path(sys.executable).resolve() != venv_python.resolve():
+        raise SystemExit(subprocess.call([str(venv_python), str(Path(__file__).resolve()), *sys.argv[1:]]))
 
 # High DPI netliği (Windows)
 try:

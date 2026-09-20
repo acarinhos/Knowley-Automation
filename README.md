@@ -6,19 +6,20 @@ akışını ve Firebase Firestore teslimatını tek bir üretim motorunda birle�
 ## Hızlı başlangıç
 
 ```powershell
-python -m pip install -r requirements.txt
-python ui_server.py
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe ui_server.py
 ```
 
 Kontrol paneli varsayılan olarak `http://127.0.0.1:8765` adresinde açılır.
 Tarayıcıyı otomatik açmadan başlatmak için:
 
 ```powershell
-python ui_server.py --no-browser
+.\.venv\Scripts\python.exe ui_server.py --no-browser
 ```
 
-Masaüstü arayüzü için `run_ui.bat` dosyasını açın veya `python ui_tkinter.py`
-komutunu çalıştırın.
+Masaüstü arayüzü için `run_ui.bat` dosyasını açın veya
+`.\.venv\Scripts\python.exe ui_tkinter.py` komutunu çalıştırın.
+`python ui_tkinter.py` de mevcut `.venv` ortamına yönlendirilir.
 
 ### Dış soru veri seti içe aktarma
 

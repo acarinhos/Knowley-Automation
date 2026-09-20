@@ -45,9 +45,23 @@ def save_question_to_firestore(db, question_obj, collection_name: str = "questio
         if not collection_name or "/" in collection_name:
             raise ValueError("Geçersiz Firestore koleksiyon adı.")
         if isinstance(question_obj, dict):
-            q_dict = question_obj
+            q_dict = dict(question_obj)
         else:
             q_dict = question_obj.model_dump(by_alias=True)
+
+        # Yazma sınırında rengi yeniden hesapla: LLM veya eski içe aktarma
+        # payload'ındaki categories_meta.color değeri güvenilir kaynak değildir.
+        from config.categories_config import get_category_color
+        categories = q_dict.get("categories") or q_dict.get("category") or []
+        if isinstance(categories, str):
+            categories = [categories]
+        if not categories:
+            categories = [item.get("name") for item in q_dict.get("categories_meta", []) if isinstance(item, dict)]
+        if categories:
+            q_dict["categories_meta"] = [
+                {"name": str(category).strip(), "color": get_category_color(category)}
+                for category in categories if str(category).strip()
+            ]
 
         if "difficulty_profile" in q_dict and isinstance(q_dict["difficulty_profile"], dict):
             prof = q_dict["difficulty_profile"]
