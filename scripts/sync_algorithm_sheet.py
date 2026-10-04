@@ -130,6 +130,18 @@ def write_snapshot(payload: Dict[str, Any], output_path: Path) -> None:
     temporary.replace(output_path)
 
 
+def clear_connector_export_sidecars() -> None:
+    """Drop one-time connector exports after the full workbook snapshot is refreshed."""
+    data_dir = ROOT_DIR / "data"
+    paths = [
+        data_dir / "knowley_country_region_metadata.json",
+        data_dir / "knowley_localize_sub_snapshot.json",
+        *data_dir.glob("knowley_country_profiles_*.json"),
+    ]
+    for path in paths:
+        path.unlink(missing_ok=True)
+
+
 def main() -> None:
     load_dotenv(ROOT_DIR / ".env")
     parser = argparse.ArgumentParser(description="Knowley Google Sheets algoritma snapshot'ını yeniler.")
@@ -144,6 +156,7 @@ def main() -> None:
     except (RuntimeError, FileNotFoundError) as exc:
         parser.exit(2, f"Hata: {exc}\n")
     write_snapshot(payload, args.output)
+    clear_connector_export_sidecars()
     print(
         f"Snapshot güncellendi: {args.output} | "
         f"{len(payload['sheets'])} sayfa | sürüm {payload['source']['version']}"

@@ -20,7 +20,9 @@ from core.generator import (
 from database.db_manager import init_firebase, generate_question_hash, get_storage_bucket
 from firebase_admin import firestore
 from core.llm_manager import MultiLLMManager
+from core.llm_manager import AllProvidersCoolingDown
 from core.sheet_algorithm import SheetAlgorithmRepository, get_sheet_algorithm_repository
+from core.translation_service import COUNTRY_LANGUAGE_CODES, SUPPORTED_LANGUAGE_CODES
 from core.starting_difficulty import StartingDifficultyAssigner
 from core.visual_questions import (
     VisualQuestionSchedule,
@@ -49,8 +51,10 @@ TARGET_COUNTRIES: List[str] = [
     "EG", "ZA", "NG", "MA", "KE", "IE", "BE", "CH", "AT", "AZ"
 ]
 
-SUPPORTED_LANGUAGES = ["tr", "en", "es", "pt", "de"]
-COUNTRY_PROFILES = ["Türkiye", "ABD", "Çin", "Japonya", "Almanya"]
+SUPPORTED_LANGUAGES = list(SUPPORTED_LANGUAGE_CODES)
+COUNTRY_PROFILES = [
+    item["name"] for item in get_sheet_algorithm_repository().country_profiles()
+]
 
 
 @dataclass
@@ -88,14 +92,16 @@ class GenerationOptions:
         self.credit_pool = "64" if mode == "64" else "154"
         if self.country_profile_enabled:
             if self.country not in COUNTRY_PROFILES:
-                raise ValueError("Ülke profili açıldığında beş profilden biri seçilmelidir.")
+                raise ValueError("Ülke profili seçimi, kategorizasyon sayfası bulunan profillerden biri olmalıdır.")
         else:
             self.country = None
             # Profil kapalıyken Sheets GL/LO oranı ve GenerationPlanner ülke
             # seçimi doğal biçimde çalışır; global kapsam zorlanmaz.
             self.scope = None
         self.combo_percent = max(0, min(100, int(self.combo_percent)))
-        self.languages = [lang for lang in self.languages if lang in SUPPORTED_LANGUAGES]
+        self.languages = [
+            lang for lang in self.languages if lang in COUNTRY_LANGUAGE_CODES
+        ]
         if not self.languages:
             raise ValueError("En az bir dil seçilmelidir.")
         # v1.1.0 üretimlerinde süre yalnızca soru içeriğinden otomatik hesaplanır.
@@ -108,6 +114,26 @@ def save_worker_question(db: Any, question_obj: GeneratedQuestion) -> bool:
             q_dict = question_obj
         else:
             q_dict = question_obj.model_dump(by_alias=True)
+
+        if q_dict.get("is_visual_question") and not str(q_dict.get("question_image_url") or "").strip():
+            raise ValueError("Görsel soru question_image_url olmadan Firestore'a kaydedilemez.")
+        if q_dict.get("is_visual_question") and isinstance(q_dict.get("payload"), dict):
+            q_dict["payload"] = dict(q_dict["payload"])
+            q_dict["payload"]["question_image_url"] = q_dict["question_image_url"]
+            q_dict["payload"]["question_image_search_query"] = None
+
+        question_scope = str(q_dict.get("scope") or "global").strip().lower()
+        target_country = q_dict.get("target_country") or "Global"
+        if question_scope == "global":
+            target_country_code = "GL"
+        else:
+            target_country_code = str(q_dict.get("target_country_code") or "").strip()
+            if not target_country_code or target_country_code == "GL":
+                target_country_code = get_sheet_algorithm_repository().country_code(
+                    target_country, "local"
+                )
+        q_dict["target_country_code"] = target_country_code
+        q_dict["countries"] = [target_country_code]
         
         # Firestore'a 'global' anahtarıyla kaydedilmesini garanti et
         if "difficulty_profile" in q_dict and isinstance(q_dict["difficulty_profile"], dict):
@@ -115,10 +141,31 @@ def save_worker_question(db: Any, question_obj: GeneratedQuestion) -> bool:
             if "global_scope" in prof and "global" not in prof:
                 prof["global"] = prof.pop("global_scope")
 
-        hash_seed = (
-            q_dict.get("translations", {}).get("en", {}).get("question")
-            or q_dict.get("translations", {}).get("tr", {}).get("question")
-            or str(time.time())
+        q_dict.setdefault("base_points", 100)
+        q_dict.setdefault("community_distribution", None)
+        if not q_dict.get("difficulty"):
+            q_dict["difficulty"] = (
+                q_dict.get("difficulty_global") or q_dict.get("difficulty_local")
+                if question_scope == "global"
+                else q_dict.get("difficulty_local")
+            )
+
+        translations = q_dict.get("translations", {})
+        hash_seed = next(
+            (
+                translations.get(lang, {}).get("question")
+                for lang in ("en", "tr")
+                if isinstance(translations.get(lang), dict)
+                and translations.get(lang, {}).get("question")
+            ),
+            None,
+        ) or next(
+            (
+                content.get("question")
+                for content in translations.values()
+                if isinstance(content, dict) and content.get("question")
+            ),
+            str(time.time()),
         )
         q_hash = generate_question_hash(hash_seed)
         doc_ref = db.collection("questions").document(q_hash)
@@ -308,20 +355,27 @@ def run_generation(
         visual_question = bool(
             options.visual_questions_enabled and visual_schedule.peek(credit_queue[:10])
         )
-        section = getattr(algorithm_target, "section", "")
-        planned_country = None
-        preferred_local_country = None
-        planned_scope = options.scope
-        if section == "section_3":
-            planned_country = (
-                options.country
-                if options.country_profile_enabled
-                else getattr(algorithm_target, "target_country", None)
-            )
-        elif section == "section_1" and options.country_profile_enabled:
-            # GL/LO oranı planlandıktan sonra yalnızca local sonuçta kullanılır.
-            preferred_local_country = options.country
-        # Bölüm 2 her zaman öge/odak tabanlı ve ülkesizdir.
+        profile_country = (
+            options.country
+            if options.country_profile_enabled
+            else getattr(algorithm_target, "target_country", None)
+        )
+        generation_plan = gen_planner.create_plan(
+            category=primary_cat,
+            subcategory=target_sub,
+            force_scope=options.scope,
+            force_country=profile_country,
+        )
+        planned_scope = generation_plan.scope
+        planned_country = generation_plan.target_country
+        if planned_scope == "local":
+            question_languages = repository.languages_for_country(planned_country)
+            if not question_languages:
+                question_languages = ["en"]
+        else:
+            # All global questions, including section 2 / item-focused questions,
+            # must carry the complete configured 35-language set.
+            question_languages = list(SUPPORTED_LANGUAGE_CODES)
 
         focus_info = []
         if getattr(algorithm_target, "category_focus", None):
@@ -368,14 +422,13 @@ def run_generation(
                     target_subcategory=target_sub,
                     secondary_category=secondary_cat,
                     target_country=planned_country,
-                    target_country_credit=None,
-                    preferred_local_country=preferred_local_country,
+                    target_country_credit=generation_plan.target_country_credit,
                     scope=planned_scope,
                     base_difficulty=options.difficulty,
                     balance_categories=False,
                     difficulty_balancer=diff_balancer,
                     generation_planner=gen_planner,
-                    languages=options.languages,
+                    languages=question_languages,
                     duration_seconds=options.duration_seconds,
                     algorithm_context=algorithm_context,
                     algorithm_version=repository.version,
@@ -455,6 +508,25 @@ def run_generation(
                 if starting_assignment_pending:
                     starting_difficulty_assigner.rollback(q_data)
                 err_str = str(err)
+                if isinstance(err, AllProvidersCoolingDown):
+                    wait_sec = min(90, max(1, err.retry_after + 1))
+                    _emit(
+                        on_event,
+                        "provider_unavailable",
+                        index=processed_count,
+                        retry_after=wait_sec,
+                        message=err_str[:500],
+                    )
+                    logging.warning(
+                        "LLM havuzu geçici olarak kullanılamıyor; %ss sonra otomatik yeniden denenecek.",
+                        wait_sec,
+                    )
+                    if attempt < options.max_retries:
+                        stop_event.wait(wait_sec)
+                        continue
+                    failed_count += 1
+                    logging.error("LLM havuzu yeniden denemelerden sonra kullanılamadı: %s", err)
+                    break
                 is_quota = "429" in err_str or "RESOURCE_EXHAUSTED" in err_str
                 wait_sec = extract_retry_delay(err_str) if is_quota else attempt * 5
                 _emit(

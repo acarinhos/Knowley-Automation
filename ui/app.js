@@ -47,7 +47,7 @@ async function loadConfig() {
   $('sheet-link').href = summary.source.url;
   $('pool-total').textContent = summary.pool_totals['154'];
   cfg.countries.forEach(item => $('country').append(option(item.name, item.name)));
-  $('languages').innerHTML = cfg.languages.map(lang => `<label class="language-chip"><input type="checkbox" value="${escapeHtml(lang.code)}" checked><span>${escapeHtml(lang.label)}</span></label>`).join('');
+  $('languages').textContent = `${cfg.languages.length} aktif dil`;
   renderProviders(cfg.providers);
   if (cfg.latest_job && ['starting','running','stopping'].includes(cfg.latest_job.status)) watchJob(cfg.latest_job.id);
   await Promise.allSettled([loadFirebase(), probeProviders()]);
@@ -87,7 +87,7 @@ function payloadFromForm() {
     country_profile_enabled: countryProfileEnabled,
     country: countryProfileEnabled ? $('country').value : '',
     combo_percent: Number($('combo-percent').value),
-    languages: [...document.querySelectorAll('#languages input:checked')].map(input => input.value),
+    languages: state.config.languages.map(language => language.code),
   };
 }
 

@@ -191,22 +191,51 @@ class OptionBalancer:
         for orig_k, dest_k in zip(orig_distractors, shuffled_target_distractors):
             letter_map[orig_k] = dest_k
 
+        def remap_index(value: Any) -> Any:
+            if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value < len(VALID_OPTIONS):
+                return value
+            original_letter = VALID_OPTIONS[value]
+            return VALID_OPTIONS.index(letter_map[original_letter])
+
+        def remap_question_helper_indices(target: Any, *, mapping: bool) -> None:
+            fields = (
+                "weakest_distractor_index",
+                "strongest_distractor_index",
+            )
+            for field in fields:
+                current = target.get(field) if mapping else getattr(target, field, None)
+                updated = remap_index(current)
+                if mapping:
+                    if field in target:
+                        target[field] = updated
+                else:
+                    setattr(target, field, updated)
+            for field in ("logical_order", "option_difficulty_order"):
+                current_order = target.get(field) if mapping else getattr(target, field, None)
+                if isinstance(current_order, list):
+                    updated_order = [remap_index(value) for value in current_order]
+                    if mapping:
+                        target[field] = updated_order
+                    else:
+                        setattr(target, field, updated_order)
+
         # Çoklu dilli çevirilerdeki seçenekleri bu haritaya göre yeniden konumlandır
         if isinstance(question, dict):
             translations = question.get("translations", {})
             for lang, content in translations.items():
-                if isinstance(content, dict) and "options" in content:
-                    orig_opts = content["options"]
-                    if isinstance(orig_opts, dict):
-                        new_opts = {
-                            letter_map[orig]: orig_opts[orig]
-                            for orig in VALID_OPTIONS
-                            if orig in orig_opts
-                        }
-                        content["options"] = new_opts
+                if isinstance(content, dict):
+                    for field in ("options", "clarified_options"):
+                        orig_opts = content.get(field)
+                        if isinstance(orig_opts, dict):
+                            content[field] = {
+                                letter_map[orig]: orig_opts[orig]
+                                for orig in VALID_OPTIONS
+                                if orig in orig_opts
+                            }
 
             question["correct_answer"] = target_option
             question["correct_option"] = target_option
+            remap_question_helper_indices(question, mapping=True)
 
             # Kök düzeyde options varsa güncelle
             if "options" in question and isinstance(question["options"], dict):
@@ -221,8 +250,10 @@ class OptionBalancer:
             # Pydantic GeneratedQuestion nesnesi
             translations = getattr(question, "translations", {})
             for lang, content in translations.items():
-                orig_opts = getattr(content, "options", None)
-                if orig_opts is not None:
+                for field in ("options", "clarified_options"):
+                    orig_opts = getattr(content, field, None)
+                    if orig_opts is None:
+                        continue
                     if isinstance(orig_opts, dict):
                         orig_opts_dict = orig_opts
                     elif hasattr(orig_opts, "model_dump"):
@@ -235,12 +266,13 @@ class OptionBalancer:
                         for orig in VALID_OPTIONS
                     }
 
-                    # Options modelini içe aktar veya yeniden oluştur
+                    # Preserve the helper option variant using the same canonical answer mapping.
                     from core.generator import Options
-                    content.options = Options(**new_opts_dict)
+                    setattr(content, field, Options(**new_opts_dict))
 
             setattr(question, "correct_answer", target_option)
             setattr(question, "correct_option", target_option)
+            remap_question_helper_indices(question, mapping=False)
 
         logger.info(
             f"🔀 Soru Şıkları Dengelendi: LLM '{raw_correct}' -> Hedef '{target_option}' "

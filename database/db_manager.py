@@ -48,6 +48,12 @@ def save_question_to_firestore(db, question_obj, collection_name: str = "questio
             q_dict = dict(question_obj)
         else:
             q_dict = question_obj.model_dump(by_alias=True)
+        if q_dict.get("is_visual_question") and not str(q_dict.get("question_image_url") or "").strip():
+            raise ValueError("Görsel soru question_image_url olmadan Firestore'a kaydedilemez.")
+        if q_dict.get("is_visual_question") and isinstance(q_dict.get("payload"), dict):
+            q_dict["payload"] = dict(q_dict["payload"])
+            q_dict["payload"]["question_image_url"] = q_dict["question_image_url"]
+            q_dict["payload"]["question_image_search_query"] = None
 
         # Yazma sınırında rengi yeniden hesapla: LLM veya eski içe aktarma
         # payload'ındaki categories_meta.color değeri güvenilir kaynak değildir.
@@ -67,6 +73,15 @@ def save_question_to_firestore(db, question_obj, collection_name: str = "questio
             prof = q_dict["difficulty_profile"]
             if "global_scope" in prof and "global" not in prof:
                 prof["global"] = prof.pop("global_scope")
+
+        q_dict.setdefault("base_points", 100)
+        q_dict.setdefault("community_distribution", None)
+        if not q_dict.get("difficulty"):
+            q_dict["difficulty"] = (
+                q_dict.get("difficulty_global") or q_dict.get("difficulty_local")
+                if str(q_dict.get("scope") or "global").lower() == "global"
+                else q_dict.get("difficulty_local")
+            )
 
         hash_seed = (
             q_dict.get("question")

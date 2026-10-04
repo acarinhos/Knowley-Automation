@@ -20,6 +20,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 from core.llm_manager import MultiLLMManager
 from core.generator import QUESTION_SCHEMA_VERSION
 from core.sheet_algorithm import get_sheet_algorithm_repository
+from core.translation_service import LANGUAGE_CODE_TO_SHEET_NAME, SUPPORTED_LANGUAGE_CODES
 from database.db_manager import init_firebase
 from database.question_audit import fetch_question_audit
 from worker import GenerationOptions, run_generation
@@ -61,7 +62,7 @@ class JobManager:
             scope=None,
             country=payload.get("country") or None,
             country_profile_enabled=bool(payload.get("country_profile_enabled", False)),
-            languages=list(payload.get("languages") or ["tr", "en", "es", "pt", "de"]),
+            languages=list(payload.get("languages") or SUPPORTED_LANGUAGE_CODES),
             duration_seconds=None,
             generation_mode=gen_mode,
             combo_percent=int(payload.get("combo_percent", 40)),
@@ -218,11 +219,8 @@ class KnowleyHandler(BaseHTTPRequestHandler):
                     "question_schema_version": QUESTION_SCHEMA_VERSION,
                     "countries": repo.country_profiles(),
                     "languages": [
-                        {"code": "tr", "label": "Türkçe"},
-                        {"code": "en", "label": "English"},
-                        {"code": "es", "label": "Español"},
-                        {"code": "pt", "label": "Português"},
-                        {"code": "de", "label": "Deutsch"},
+                        {"code": code, "label": LANGUAGE_CODE_TO_SHEET_NAME[code]}
+                        for code in SUPPORTED_LANGUAGE_CODES
                     ],
                     "firebase": firebase_summary(live=False),
                     "providers": MANAGER.llm_manager.status(live=False) if MANAGER.llm_manager else {},

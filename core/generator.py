@@ -26,7 +26,13 @@ try:
     SERVER_TIMESTAMP = firestore.SERVER_TIMESTAMP
 except Exception:
     SERVER_TIMESTAMP = None
-from core.llm_manager import MultiLLMManager
+from core.llm_manager import AllProvidersCoolingDown, MultiLLMManager
+from core.translation_service import (
+    COUNTRY_LANGUAGE_CODES,
+    LANGUAGE_CODE_TO_NAME,
+    SUPPORTED_LANGUAGE_CODES,
+    translate_localized_content,
+)
 
 from config.categories_config import (
     CATEGORIES_META,
@@ -45,11 +51,23 @@ class Options(BaseModel):
     C: str = Field(description="C şıkkı metni")
     D: str = Field(description="D şıkkı metni")
 
+
+class BinaryFallback(BaseModel):
+    statement: str = Field(description="Doğru/Yanlış modunda gösterilecek kısa önerme")
+    is_true: bool = Field(description="Önermenin doğruluğu")
+
+
 class LocalizedContent(BaseModel):
     question: str = Field(description="Soru metni")
     options: Options = Field(description="4 seçenek")
     explanation: str = Field(description="Çözüm açıklaması")
     filter_tag: str = Field(description="Konu etiketi")
+    hint: Optional[str] = Field(default=None, description="Yetenek ipucu kartında gösterilecek yerelleştirilmiş metin")
+    distractor_trap_note: Optional[str] = Field(default=None, description="En güçlü yanlış seçeneğin neden yanlış olduğunu anlatan yerelleştirilmiş not")
+    keyword: Optional[str] = Field(default=None, description="Soru içindeki vurgulanacak yerelleştirilmiş anahtar ifade")
+    binary_fallback: Optional[BinaryFallback] = Field(default=None, description="Doğru/Yanlış biçimine geçiş için yerelleştirilmiş önerme")
+    simplified_question: str = Field(description="Soru kökünün aynı gerçeği ve cevabı koruyan sade yerelleştirilmiş sürümü")
+    clarified_options: Options = Field(description="A-D anahtarlarını ve doğru cevabı koruyan daha açık yerelleştirilmiş seçenekler")
 
 class CategoryMeta(BaseModel):
     name: str = Field(description="Kategori adı")
@@ -118,6 +136,7 @@ class GeneratedQuestion(BaseModel):
     is_combo: bool = Field(default=False, description="Hibrit soru mu")
     scope: Literal["global", "local"] = Field(default="global", description="Kapsam: global veya local")
     target_country: Optional[str] = Field(default=None, description="Hedef ülke")
+    target_country_code: str = Field(default="GL", description="Hedef ülke/bölge kodu veya GL")
     target_country_credit: Optional[int] = Field(default=None, description="Hedef ülke kredi puanı")
     is_global_eligible: bool = Field(default=True, description="Küresel elit ülke mi (çift zorluk mu)")
     countries: List[str] = Field(default_factory=lambda: ["Global"], description="İlgili ülkeler")
@@ -130,6 +149,17 @@ class GeneratedQuestion(BaseModel):
     difficulty_profile: DifficultyProfile = Field(description="Zorluk profili (yerel ve küresel)")
     correct_answer: Literal["A", "B", "C", "D"] = Field(description="Doğru cevap şıkkı")
     correct_option: Optional[Literal["A", "B", "C", "D"]] = Field(default=None, description="Hedef doğru cevap şıkkı")
+    weakest_distractor_index: Optional[int] = Field(default=None, ge=0, le=3, description="A-D sırasındaki en zayıf yanlış şıkkın 0 tabanlı indeksi")
+    strongest_distractor_index: Optional[int] = Field(default=None, ge=0, le=3, description="A-D sırasındaki en güçlü yanlış şıkkın 0 tabanlı indeksi")
+    hint: Optional[str] = Field(default=None, description="Seçili kaynak dilde yetenek ipucu")
+    distractor_trap_note: Optional[str] = Field(default=None, description="Seçili kaynak dilde güçlü çeldirici açıklaması")
+    keyword: Optional[str] = Field(default=None, description="Seçili kaynak dilde vurgulanacak anahtar kelime")
+    logical_order: Optional[List[int]] = Field(default=None, description="A-D seçenek indekslerinin anlamlı kronolojik/mantıksal sırası; anlamlı değilse null")
+    option_difficulty_order: Optional[List[int]] = Field(default=None, description="A-D indekslerinin hedef kitle için en kolay tanınandan en zor tanınana sıralaması; sıralama güvenilir değilse null")
+    binary_fallback: Optional[BinaryFallback] = Field(default=None, description="Seçili kaynak dilde Doğru/Yanlış biçimi")
+    community_distribution: Optional[List[int]] = Field(default=None, description="Gerçek oyuncu oylarından sunucu tarafında hesaplanır; üretimde null bırakılır")
+    base_points: int = Field(default=100, ge=0, description="Yetenek puan çarpanlarının uygulandığı taban soru puanı")
+    difficulty: Optional[Literal["Kolay", "Orta", "Zor"]] = Field(default=None, description="Soru kapsamı için yetenek koşullarında kullanılan zorluk etiketi")
     duration_local: int = Field(default=15, description="Yerel soru süresi (saniye)")
     duration_global: int = Field(default=15, description="Küresel soru süresi (saniye)")
     duration_seconds: int = Field(default=15, description="Varsayılan soru süresi (saniye)")
@@ -137,9 +167,45 @@ class GeneratedQuestion(BaseModel):
     wrong_count: int = Field(default=0, description="Yanlış cevaplanma sayısı")
     created_at: Optional[Any] = Field(default=None, description="ISO-8601 UTC veya firestore.SERVER_TIMESTAMP")
     shuffle_key: float = Field(default_factory=lambda: round(random.random(), 6), description="Rastgele sorgulama ve çekim anahtarı (0.0 - 1.0)")
-    supported_languages: List[str] = Field(default=["tr", "en", "es", "pt", "de"], description="Desteklenen diller")
-    translations: Dict[str, LocalizedContent] = Field(description="5 dilde çeviriler")
+    supported_languages: List[str] = Field(
+        default_factory=lambda: list(SUPPORTED_LANGUAGE_CODES),
+        description="Bu soru için üretilen dil kodları",
+    )
+    translations: Dict[str, LocalizedContent] = Field(description="Desteklenen dillerde soru içerikleri")
     generation_provider: Optional[str] = Field(default="GEMINI", description="Üretimi gerçekleştiren LLM sağlayıcısı")
+    translation_provider: Optional[str] = Field(default=None, description="Çeviri sağlayıcısı")
+
+    @field_validator("logical_order")
+    @classmethod
+    def validate_logical_order(cls, value: Optional[List[int]]) -> Optional[List[int]]:
+        if value is not None and sorted(value) != [0, 1, 2, 3]:
+            raise ValueError("logical_order must be a permutation of option indices 0, 1, 2, and 3")
+        return value
+
+    @field_validator("option_difficulty_order")
+    @classmethod
+    def validate_option_difficulty_order(cls, value: Optional[List[int]]) -> Optional[List[int]]:
+        if value is not None and sorted(value) != [0, 1, 2, 3]:
+            raise ValueError("option_difficulty_order must be a permutation of option indices 0, 1, 2, and 3")
+        return value
+
+
+def normalize_generated_payload(data: Dict[str, Any], fallback_filter_tag: str) -> Dict[str, Any]:
+    """Harmless omissions from otherwise usable JSON should not trigger another API call."""
+    translations = data.get("translations")
+    correct = str(data.get("correct_answer") or "A")
+    if not isinstance(translations, dict):
+        return data
+    for content in translations.values():
+        if not isinstance(content, dict):
+            continue
+        options = content.get("options")
+        answer = options.get(correct) if isinstance(options, dict) else None
+        if not str(content.get("explanation") or "").strip() and answer:
+            content["explanation"] = f"Doğru cevap: {answer}."
+        if not str(content.get("filter_tag") or "").strip():
+            content["filter_tag"] = fallback_filter_tag
+    return data
 
 # İstemcileri Başlat
 gemini_client: Optional[genai.Client] = (
@@ -364,6 +430,7 @@ def build_prompt(
     target_subcategory: Optional[str] = None,
     secondary_category: Optional[str] = None,
     target_country: Optional[str] = None,
+    target_country_code: Optional[str] = None,
     target_country_credit: Optional[int] = None,
     scope: Optional[str] = "global",
     is_global_eligible: bool = True,
@@ -399,14 +466,20 @@ def build_prompt(
     if target_score is None:
         target_score = DifficultyBalancer.validate_and_clamp_score(target_diff)
 
-    allowed_languages = ["tr", "en", "es", "pt", "de"]
-    selected_languages = [lang for lang in (languages or allowed_languages) if lang in allowed_languages]
+    allowed_languages = COUNTRY_LANGUAGE_CODES
+    selected_languages = [
+        lang for lang in (languages or SUPPORTED_LANGUAGE_CODES)
+        if lang in allowed_languages
+    ]
     if not selected_languages:
-        selected_languages = ["tr", "en", "es", "pt", "de"]
+        selected_languages = list(SUPPORTED_LANGUAGE_CODES)
     language_json = json.dumps(selected_languages, ensure_ascii=False)
     translation_schema = ",\n".join(
-        f'    "{lang}": {{ "question": "...", "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}}, "explanation": "...", "filter_tag": "..." }}'
+        f'    "{lang}": {{ "question": "...", "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}}, "explanation": "...", "filter_tag": "...", "hint": "...", "distractor_trap_note": "...", "keyword": "...", "binary_fallback": {{"statement": "...", "is_true": true}}, "simplified_question": "...", "clarified_options": {{"A": "...", "B": "...", "C": "...", "D": "..."}} }}'
         for lang in selected_languages
+    )
+    language_instruction = ", ".join(
+        f"{lang} ({LANGUAGE_CODE_TO_NAME.get(lang, lang)})" for lang in selected_languages
     )
 
     algorithm_instruction = (
@@ -431,6 +504,8 @@ def build_prompt(
 - Tüm dillerde soru kökü "Bu görseldeki..." mantığıyla görsele açıkça bağlı olmalıdır; kişinin/nesnenin adı soru kökünde geçmemelidir.
 - `is_visual_question` true olmalıdır.
 - `question_image_search_query`, doğru cevabı gösteren telifsiz bir Wikimedia Commons görseli bulmaya uygun, kesin ve kısa bir İNGİLİZCE sorgu olmalıdır. Yalnızca konu ve görsel türünü yaz.
+- Sorgunun başına görselde gerçekten bulunması gereken kişi/nesne/yapının İngilizce özel adını yaz; şehir, müze, "Wikimedia Commons" gibi aramayı genişleten ek sözcükler kullanma. Gerçek kişi için fotoğraf iste: örneğin "Michael Jackson photograph"; yalnızca "moonwalk" yazma.
+- Görseldeki kişi/nesnenin kimliğini sordur; görselden kanıtlanamayan "icat eden", "ilk yapan" veya "ünlü yapan" gibi tarihsel ilişki soruları kurma.
 - `question_image_alt_text`, cevabın özel adını söylemeden görselde görülebilen ayırt edici özellikleri Türkçe betimlemelidir.
 - `question_image_url` null kalmalıdır; sunucu görseli bulup yükleyecektir.
 """
@@ -496,6 +571,12 @@ def build_prompt(
         schema_meta_global = "null"
         schema_profile_global = "null"
 
+    difficulty_schema_value = (
+        schema_global_level
+        if scope_clean == "global" and schema_global_level != "null"
+        else json.dumps(target_diff, ensure_ascii=False)
+    )
+
     difficulty_instruction = (
         f"ZORLUK SEVİYESİ VE HEDEF PUAN TALİMATI (ZORUNLU):\n"
         f"- Hedef Yerel Zorluk Seviyesi: {target_diff}\n"
@@ -507,7 +588,7 @@ def build_prompt(
 
     return f"""
 Sen profesyonel ve çok dilli bir soru hazırlama uzmanısın.
-Aşağıdaki kriterlere göre yüksek kaliteli, özgün tek bir çoktan seçmeli soru üret ve şu dillerde hazırla: {language_json}.
+Aşağıdaki kriterlere göre yüksek kaliteli, özgün tek bir çoktan seçmeli soru üret ve şu dillerde hazırla: {language_instruction}.
 
 Kriterler:
 - Birincil Kategori: {primary_category}
@@ -551,6 +632,18 @@ KESİN YASAKLI KALIPLAR VE EVRAK KELİMELERİ (KARA LİSTE):
 ZORUNLU KENDİ KENDİNİ DOĞRULAMA (SELF-VERIFICATION KURALI):
 "{SELF_VERIFICATION_RULE}"
 
+[KARAKTER YETENEKLERİ İÇİN SORU YARDIMCI ALANLARI]:
+- `weakest_distractor_index` ve `strongest_distractor_index` 0 tabanlı seçenek indeksidir: A=0, B=1, C=2, D=3. İkisi de doğru cevaptan farklı yanlış seçenekleri göstermelidir.
+- `hint` cevabı doğrudan söylemeyen kısa, yararlı bir ipucu; `keyword` soru kökündeki gerçek kilit ifade; `distractor_trap_note` en güçlü yanlış seçeneğin neden yanlış olduğunu açıklar. Bunları HER hedef dilin çevirisinde doğal biçimde yaz.
+- `binary_fallback` her hedef dilde doğru/yanlış biçimine çevrilebilen tek bir önerme ve bu önermenin doğruluğunu gösteren `is_true` içerir.
+- `logical_order`, yalnızca seçeneklerin gerçekten sıralanabileceği sorularda A-D'nin 0 tabanlı indekslerinden oluşan tam bir permütasyondur; uygun değilse null.
+- `option_difficulty_order`, seçeneklerin hedef kitle için en kolay tanınandan en zor tanınana doğru A-D indeks permütasyonudur; güvenilir biçimde sıralanamıyorsa null bırak.
+- Her dil için `simplified_question` alanında soru kökünü aynı olguları, koşulları ve cevap eşleşmesini koruyarak daha sade yaz. `clarified_options` içinde A-D seçeneklerini daha açık anlat; seçenek anahtarlarını ve doğru cevabı değiştirme.
+- `simplified_question` ve `clarified_options` bütün istenen dillerde doldurulmalıdır; belirsiz soruda sadeleştirme yaparken yeni ipucu veya cevap ekleme.
+- Bu yardımcı metinler her dilin `translations` nesnesinde yer almalı; kök düzeyindeki aynı alanlar seçilmiş kaynak dilde tutulmalı.
+- `base_points` 100 olmalı. `difficulty`, soru global ise `difficulty_global`, yerel ise `difficulty_local` ile eşleşmeli.
+- `community_distribution` statik üretilmez; canlı oyuncu oylarından sunucu tarafında hesaplandığı için null bırakılır.
+
 Kategoriye özgü ayrıntılı trivia örnekleri ve anti-bürokrasi kuralları sistem
 talimatında zaten verilmiştir; aynı kuralları eksiksiz uygula.
 
@@ -592,9 +685,10 @@ Zorunlu JSON Şeması:
   "is_combo": {str(is_combo).lower()},
   "scope": "{scope_clean}",
   "target_country": "{country_rule}",
+  "target_country_code": "{target_country_code or 'GL'}",
   "target_country_credit": {credit_rule},
   "is_global_eligible": {str(is_global_eligible).lower()},
-  "countries": ["{country_rule}"],
+  "countries": ["{target_country_code or 'GL'}"],
   "version": "{QUESTION_SCHEMA_VERSION}",
   "difficulty_local": "{target_diff}",
   "difficulty_local_score": {target_score},
@@ -609,6 +703,17 @@ Zorunlu JSON Şeması:
     "global": {schema_profile_global}
   }},
   "correct_answer": "A",
+  "weakest_distractor_index": 1,
+  "strongest_distractor_index": 2,
+  "hint": "Cevabı açıklamayan kısa ipucu",
+  "distractor_trap_note": "En güçlü yanlış seçeneğin neden yanlış olduğu",
+  "keyword": "Soru kökündeki anahtar ifade",
+  "logical_order": null,
+  "option_difficulty_order": [0, 1, 2, 3],
+  "binary_fallback": {{"statement": "Kısa ve doğrulanabilir önerme.", "is_true": true}},
+  "base_points": 100,
+  "difficulty": {difficulty_schema_value},
+  "community_distribution": null,
   "supported_languages": {language_json},
   "translations": {{
 {translation_schema}
@@ -625,6 +730,7 @@ def generate_with_gemini(client: genai.Client, model_name: str, prompt: str) -> 
             response_mime_type="application/json",
             response_schema=GeneratedQuestion,
             temperature=0.7,
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
         ),
     )
     if isinstance(response.parsed, GeneratedQuestion):
@@ -755,6 +861,17 @@ def generate_question_with_fallback(
     final_country = target_country or plan.target_country
     final_country_credit = target_country_credit if target_country_credit is not None else plan.target_country_credit
     final_is_global_eligible = plan.is_global_eligible
+    from core.sheet_algorithm import get_sheet_algorithm_repository
+    repository = getattr(planner, "sheet_repository", None) or get_sheet_algorithm_repository()
+    final_country_code = repository.country_code(final_country, final_scope)
+
+    requested_languages = list(dict.fromkeys(
+        lang for lang in (languages or SUPPORTED_LANGUAGE_CODES)
+        if lang in COUNTRY_LANGUAGE_CODES
+    ))
+    if not requested_languages:
+        requested_languages = ["en"] if final_scope == "local" else list(SUPPORTED_LANGUAGE_CODES)
+    source_language = "en" if "en" in requested_languages else requested_languages[0]
 
     # 3. Zorluk dengelemesi (4-4-2 kuralı ve 1-10 puan dengesi)
     from core.difficulty_balancer import get_difficulty_balancer, DifficultyBalancer
@@ -780,12 +897,13 @@ def generate_question_with_fallback(
         target_subcategory=target_subcategory,
         secondary_category=secondary_category,
         target_country=final_country,
+        target_country_code=final_country_code,
         target_country_credit=final_country_credit,
         scope=final_scope,
         is_global_eligible=final_is_global_eligible,
         base_difficulty=target_diff,
         target_score=target_score,
-        languages=languages,
+        languages=[source_language],
         algorithm_context=algorithm_context,
         visual_question=visual_question,
     )
@@ -802,14 +920,32 @@ def generate_question_with_fallback(
         try:
             data = active_llm_manager.generate_trivia(SYSTEM_PROMPT, prompt)
             provider_name = str(data.get("_provider", "GEMINI")).upper()
-            
+            data = normalize_generated_payload(
+                data,
+                str(target_subcategory or primary_category),
+            )
             candidate_q = GeneratedQuestion.model_validate(data)
             if visual_question and not str(candidate_q.question_image_search_query or "").strip():
                 raise ValueError("Görsel soru için question_image_search_query üretilmedi.")
             # Anti-Bürokrasi ve Trivia uyumluluk doğrulaması (Python Guard)
             validate_trivia_compliance(candidate_q)
+            source_content = candidate_q.translations[source_language].model_dump()
+            translated_content, translation_provider = translate_localized_content(
+                source_content,
+                source_language,
+                requested_languages,
+                llm_manager=active_llm_manager,
+            )
+            candidate_q.translations = {
+                language: LocalizedContent.model_validate(content)
+                for language, content in translated_content.items()
+            }
+            candidate_q.supported_languages = list(translated_content)
+            candidate_q.translation_provider = translation_provider
             q = candidate_q
             break
+        except AllProvidersCoolingDown:
+            raise
         except Exception as err:
             last_error = err
             logging.warning(f"Soru üretim/doğrulama denemesi ({attempt}/{max_retries}) başarısız: {err}")
@@ -853,10 +989,11 @@ def generate_question_with_fallback(
     q.version = QUESTION_SCHEMA_VERSION
     q.scope = final_scope
     q.target_country = final_country
+    q.target_country_code = final_country_code
     q.target_country_credit = final_country_credit
     q.is_global_eligible = final_is_global_eligible
     q.generation_provider = provider_name
-    q.countries = [final_country]
+    q.countries = [final_country_code]
     q.created_at = server_ts
     q.shuffle_key = random.random()
     q.correct_count = 0
@@ -870,6 +1007,14 @@ def generate_question_with_fallback(
     q.difficulty_local_score = clamped_local_score
     q.difficulty_global = final_global_level
     q.difficulty_global_score = clamped_global_score
+    q.difficulty = (
+        final_global_level
+        if final_scope == "global" and final_global_level
+        else final_local_level
+    )
+    q.base_points = max(0, int(q.base_points or 100))
+    # Poll statistics are derived from live votes and must never be model-generated.
+    q.community_distribution = None
     
     local_meta = {
         "level": final_local_level,

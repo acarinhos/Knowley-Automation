@@ -1,0 +1,4124 @@
+[
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 2,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sinema",
+    "subcategory": "Temel Sinema",
+    "name": "Charlie Chaplin",
+    "role": "",
+    "skills": [
+      "Sessiz İroni: Çeldirici olmayan en zayıf şıkkı seçeneklerden siler",
+      "Yedek Çekim: Soruyu iptal edip aynı sub'dan denk yeni bir soru çeker",
+      "Büyük Diktatör: 4 seçenekli soruyu doğrudan \"Doğru / Yanlış\" ikili seçimine çevirir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 3,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sinema",
+    "subcategory": "Temel Sinema",
+    "name": "Tom Cruise",
+    "role": "",
+    "skills": [
+      "Dublör Sigortası: Yanlış cevap verildiğinde can eksilmesini engeller",
+      "Ölümcül Görev: Oyuncuya aynı anda 2 şıkkı birden seçme (çift deneme) yetkisi tanır",
+      "İmkânsız Görev: Soruyu düşünmeden doğrudan doğru kabul ettirip tam puanla geçer"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 4,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sinema",
+    "subcategory": "Temel Sinema",
+    "name": "Steven Spielberg",
+    "role": "",
+    "skills": [
+      "Metin Taslağı: Sorunun çözümüne giden kilit ipucu kartını (hint) açar",
+      "Gişe Bahsi: Bu soruda doğru bilinirse soru puanını 3 katına çıkarır",
+      "Hollywood Kurgusu: 2 yanlış seçeneği eler ve kombo serisini kasaya kilitler"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 5,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sinema",
+    "subcategory": "Oyuncular",
+    "name": "Marilyn Monroe",
+    "role": "",
+    "skills": [
+      "Harf Fısıltısı: Doğru cevabın baş harfini ve kelime uzunluğunu metin olarak verir",
+      "Tuzak İtirafı: En güçlü çeldirici şıkkın neden yanlış olduğunu (trap_note) gösterir",
+      "İkonik Miras: Yanlış yapılsa dahi soruyu doğru sayıp seriyi kurtarır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 6,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sinema",
+    "subcategory": "Oyuncular",
+    "name": "Leonardo DiCaprio",
+    "role": "",
+    "skills": [
+      "Metot Analizi: Soru kökündeki anahtar kavramı metin olarak panoda gösterir",
+      "Oscar Sezonu: Şıkları %50 eleme ile doğrudan 2 seçeneğe düşürür",
+      "Revenant Direnci: Can 1 kaldığında sonraki 3 soruda can kaybını tamamen dondurur"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 7,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sinema",
+    "subcategory": "Oyuncular",
+    "name": "Brad Pitt",
+    "role": "",
+    "skills": [
+      "Seri Kasası: Yanlış cevap verilse bile kombo serisini sıfırlanmaktan kurtarır",
+      "Kadro Çalımı: Rastgele bir yanlış şıkkı diziden ekarte eder",
+      "Kusursuz Soygun: Tükenmiş rastgele bir aktif yeteneğin haklarını anında tam şarj eder"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 8,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sinema",
+    "subcategory": "Sinema Tarihi",
+    "name": "Alfred Hitchcock",
+    "role": "",
+    "skills": [
+      "Zaman Baskısı Kalkanı: Süre bitse dahi oyuncuya soru başına ek 7 sn düşünme süresi verir",
+      "Kurgu Odası: Seçenekleri kronolojik veya nedensel mantık sırasına göre dizer",
+      "MacGuffin: Kararsız kalınan soruyu tek tıkla kayıpsız atlatıp tam puan yazdırır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 9,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sinema",
+    "subcategory": "Sinema Tarihi",
+    "name": "Christopher Nolan",
+    "role": "",
+    "skills": [
+      "Zaman Döngüsü: Sayacı sıfırlayıp başa sarar ve baştan başlatır",
+      "Katmanlı Kurgu: Topluluğun şıklara verdiği oy yüzdelerini (community_distribution) açar",
+      "Interstellar: Yanlış basılan şıkkı hafızadan silip 1 kez daha seçim hakkı tanır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 10,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sinema",
+    "subcategory": "Sinema Tarihi",
+    "name": "Quentin Tarantino",
+    "role": "",
+    "skills": [
+      "Önemsiz Şık İnfazı: Seçeneklerdeki en alakasız şıkkı anında eler",
+      "Doğrusal Olmayan Kurgu: 4 şıkkı doğruluk olasılığına göre yukarıdan aşağıya listeler",
+      "Kült Final: Zorluk seviyesi 'Zor' olan sorunun puanını doğrudan 3.5x yapar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 11,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sinema",
+    "subcategory": "Televizyon Programları",
+    "name": "Oprah Winfrey",
+    "role": "",
+    "skills": [
+      "Can Sepeti: Kaybedilmiş 1 canı anında geri kazanıp yeniler",
+      "Stüdyo Anketi: Topluluğun en çok işaretlediği şıkkın oranını gösterir",
+      "Büyük Röportaj: Soruyu doğru kabul ettirip soru puanını doğrudan ikiye katlar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 12,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sinema",
+    "subcategory": "Televizyon Programları",
+    "name": "Gordon Ramsay",
+    "role": "",
+    "skills": [
+      "Mutfaktan Kovma: En alakasız 1 seçeneği masadan çöpe atar",
+      "Usta Tabağı: Şıkları doğrudan 2 seçeneğe indirir",
+      "Michelin Standardı: Soruyu pas geçip doğrudan doğru saydırır ve seriyi +2 artırır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 13,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sinema",
+    "subcategory": "Televizyon Programları",
+    "name": "Jimmy Fallon",
+    "role": "",
+    "skills": [
+      "Gece Oyunu: Hızlı cevap verildiğinde ekrandaki puan katsayısını 2x yapar",
+      "Arkadaş Jokeri: Oyuncunun işaretlediği şık yanlışsa 2. bir deneme hakkı açar",
+      "Canlı Yayın Kurtarışı: Soruyu ceza almadan atlayıp yerine bonus puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 14,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Teknoloji",
+    "subcategory": "Temel Teknoloji",
+    "name": "Elon Musk",
+    "role": "",
+    "skills": [
+      "Oto-Pilot: En bariz yanlış şıkkı algoritmayla eler",
+      "Falcon İtişi (Hız): İlk 3 saniyede cevaplanırsa seri çarpanını 2x yapar",
+      "Mars Görevi: Şıkları ikiye indirir, süreyi durdurur ve tam skor yazdırır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 15,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Teknoloji",
+    "subcategory": "Temel Teknoloji",
+    "name": "Steve Jobs",
+    "role": "",
+    "skills": [
+      "Sade Tasarım: Soru kökünü tek ve net bir cümleye indirger",
+      "Sezgisel Karar: Yanlış 2 seçeneği arayüzden tamamen siler",
+      "One More Thing: Maç bitiminde kazanılan toplam skora tek tuşla +%30 ekler"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 16,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Teknoloji",
+    "subcategory": "Temel Teknoloji",
+    "name": "Bill Gates",
+    "role": "",
+    "skills": [
+      "Geri Yükleme Noktası: Yapılacak ilk yanlışta kombonun bozulmasını engeller",
+      "Açık Lisans: Soruya ait detaylı ipucu kartını bedelsiz açar",
+      "Windows Protokolü: Doğru şıkkı sistemde kilitler ve doğrudan onaylar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 17,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Teknoloji",
+    "subcategory": "Donanım Yapıları & Cihazlar",
+    "name": "Tony Stark (Iron Man)",
+    "role": "",
+    "skills": [
+      "Ark Reaktörü: Yanlış 1 seçeneği sistemden doğrudan siler",
+      "Jarvis Taraması: Şıkları doğrudan 2 seçeneğe indirir",
+      "Hulkbuster: 2 soru boyunca yanlış yapılsa dahi can kaybettirmez"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 18,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Teknoloji",
+    "subcategory": "Donanım Yapıları & Cihazlar",
+    "name": "Thomas Edison",
+    "role": "",
+    "skills": [
+      "Çift Filaman: İlk tıklanan şık yanlışsa ikinci bir şık deneme hakkı tanır",
+      "Metin Analizi: Doğru şıkkın ilk harfini fısıldar",
+      "Patent Kalkanı: Yanlış cevabın hasarını sıfırlar ve seriyi korur"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 19,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Teknoloji",
+    "subcategory": "Donanım Yapıları & Cihazlar",
+    "name": "Nikola Tesla",
+    "role": "",
+    "skills": [
+      "Alternatif Akım: Sayacı 8 saniye boyunca tamamen durdurur",
+      "Ters Çevirme: En tehlikeli çeldirici şıkkı ekarte eder",
+      "Kablosuz Ağ: Yanlış 2 şıkkı diziden siler"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 20,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Teknoloji",
+    "subcategory": "Yazılım & Algoritmalar",
+    "name": "Alan Turing",
+    "role": "",
+    "skills": [
+      "Şifre Kırıcı: Şıklardaki mantık çelişkilerini belirten notu açar",
+      "Enigma Analizi: 2 yanlış seçeneği anında algoritmadan eler",
+      "Turing Zaferi: Doğru cevabı seçenek metninin içinde netleştirip onaylar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 21,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Teknoloji",
+    "subcategory": "Yazılım & Algoritmalar",
+    "name": "Mark Zuckerberg",
+    "role": "",
+    "skills": [
+      "Hızlı Derleme: Soru süresini anında 8 saniye uzatır",
+      "Veri Tabanı İstatistiği: Topluluğun şık tercih dağılımını ekrana döker",
+      "Metaverse Atlaması: Soruyu kayıpsız pas geçip yerine yeni soru getirir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 22,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Teknoloji",
+    "subcategory": "Yazılım & Algoritmalar",
+    "name": "Neo (The Matrix)",
+    "role": "",
+    "skills": [
+      "Bullet Time: Sayacın akış hızını yarı yarıya düşürür",
+      "Kaynak Kodu: Yanlış 2 seçeneği diziden siler",
+      "Seçilmiş Kişi: Doğru şıkkı doğrudan işaretler ve 2.5x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 23,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Teknoloji",
+    "subcategory": "Yapay Zeka",
+    "name": "Sam Altman",
+    "role": "",
+    "skills": [
+      "Prompt Yardımı: Soru hakkında yapay zeka tarafından üretilen nokta atışı ipucunu verir",
+      "LLM Filtresi: Şıkları doğrudan 2 seçeneğe indirir",
+      "AGI Yetkisi: 4 şıklı soruyu anında \"Doğru / Yanlış\" ikili formatına çevirir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 24,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Teknoloji",
+    "subcategory": "Yapay Zeka",
+    "name": "JARVIS",
+    "role": "",
+    "skills": [
+      "Tehdit Tespiti: En zayıf seçeneği arayüzden siler",
+      "Otonom Yönlendirme: İstatistiksel olarak en olası doğru şıkkı açıklar",
+      "Tam Protokol: Yanlış basılsa dahi işlemi tersine çevirip doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 25,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Teknoloji",
+    "subcategory": "Yapay Zeka",
+    "name": "Terminator (T-800)",
+    "role": "",
+    "skills": [
+      "Hedef Kilidi: Yanlış 1 seçeneği anında eler",
+      "Zırhlı Titanyum: Yanlış cevapta can kaybını tamamen bloke eder",
+      "Yargı Günü: 2 yanlış seçeneği patlatır ve süreyi durdurur"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 26,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Teknoloji",
+    "subcategory": "İnternet & Ağ Sistemleri",
+    "name": "Jeff Bezos",
+    "role": "",
+    "skills": [
+      "Prime Teslimat: Çözüm ipucu kartını beklemeden açar",
+      "Hızlı Depolama: Yanlış 2 seçeneği depodan ekarte eder",
+      "AWS Bulut Gücü: Bu alt kategorideki tüm doğru cevaplara 2x kalıcı puan kilitler"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 27,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Teknoloji",
+    "subcategory": "İnternet & Ağ Sistemleri",
+    "name": "Tim Berners-Lee",
+    "role": "",
+    "skills": [
+      "Köprü Protokolü: Soru kökündeki kavramsal anahtar kelimeyi gösterir",
+      "Ağ Güvenliği: Çeldirici 2 seçeneği güvenlik kuralıyla eler",
+      "Açık Web: Kararsız kalınan soruyu sıfır riskle pas geçer"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 28,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Teknoloji",
+    "subcategory": "İnternet & Ağ Sistemleri",
+    "name": "PewDiePie",
+    "role": "",
+    "skills": [
+      "Brofist Darbesi: Yanlış 1 şıkkı masadan anında eler",
+      "Topluluk Fısıltısı: Doğru şıkkı belirten ipucu panelini açar",
+      "Viral Patlama: Doğru bilinen soru için tek seferde 3x puan kazandırır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 29,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Oyun",
+    "subcategory": "Temel Oyun",
+    "name": "Mario",
+    "role": "",
+    "skills": [
+      "Mantar Kalkanı: Yanlış cevapta can eksilmesini engeller",
+      "Ateş Çiçeği: Yanlış 2 seçeneği yakarak ekrandan kaldırır",
+      "Yıldız Gücü: 2 soru boyunca yanlış yapılsa da doğru sayılır (Yenilmezlik)"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 30,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Oyun",
+    "subcategory": "Temel Oyun",
+    "name": "Pac-Man",
+    "role": "",
+    "skills": [
+      "Nokta Yutucu: En alakasız 1 seçeneği yutar",
+      "Meyve Çarpanı: Sayacı durdurur ve doğru cevaba anında 2x puan yansıtır",
+      "Büyük Pelet: Seçenekleri doğrudan 2 adede indirger (%50 eleme)"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 31,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Oyun",
+    "subcategory": "Temel Oyun",
+    "name": "Pikachu",
+    "role": "",
+    "skills": [
+      "Statik Yük: Yanlış 1 şıkkı çarparak eler",
+      "Hızlı Saldırı: İlk 2 saniyede basılırsa seri puanını ikiye katlar",
+      "Volt Patlaması: Şıkları ikiye indirir, süreyi kilitler ve doğruyu onaylar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 32,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Oyun",
+    "subcategory": "FPS & Nişancı Oyunları",
+    "name": "Master Chief",
+    "role": "",
+    "skills": [
+      "Zırh Şarjı: Yapılan 1 yanlış cevabı hasar almadan affeder",
+      "Taktik Dürbün: Yanlış 2 seçeneği anında eler",
+      "Spartan Taarruzu: Doğru cevaba doğrudan 2.5x skor kazandırır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 33,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Oyun",
+    "subcategory": "FPS & Nişancı Oyunları",
+    "name": "Ghost",
+    "role": "",
+    "skills": [
+      "Sessiz Adım: Yanlış cevapta serinin bozulmasını tamamen önler",
+      "Taktik Telsiz: Çözüm açıklamasını metin olarak panele verir",
+      "Sessiz İnfaz: Soruyu sıfır kayıpla eler ve oyuncuya tam puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 34,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Oyun",
+    "subcategory": "FPS & Nişancı Oyunları",
+    "name": "Gabe Newell",
+    "role": "",
+    "skills": [
+      "İndirim Kuponu: Yanlış yapılan soruda seriyi ve canı korur",
+      "Steam İndirimi: Şık sayısını doğrudan 4'ten 2'ye düşürür",
+      "Koleksiyon Kartı: Doğru şıkkı doğrudan onaylatır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 35,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Oyun",
+    "subcategory": "Hayatta Kalma & Battle Royale",
+    "name": "Steve",
+    "role": "",
+    "skills": [
+      "Taş Blok: Yanlış cevabın hasarını tamamen bloke eder",
+      "Elmas Kılıç: Yanlış 2 şıkkı parçalayarak eler",
+      "Totem Kurtarışı: Oyuncuyu ölümden kurtarır ve soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 36,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Oyun",
+    "subcategory": "Hayatta Kalma & Battle Royale",
+    "name": "Katniss Everdeen",
+    "role": "",
+    "skills": [
+      "Hedef Kilidi: Yanlış şıklardan en tehlikeli çeldiriciyi vurur",
+      "Sponsor Sandığı: İpucu paneli açar ve süreyi 8 sn uzatır",
+      "İsabetli Ok: Şıkları 2 seçeneğe indirger ve doğrulatır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 37,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Oyun",
+    "subcategory": "Hayatta Kalma & Battle Royale",
+    "name": "John Wick",
+    "role": "",
+    "skills": [
+      "Hızlı Çekim: Yanlış 1 şıkkı anında eler",
+      "Zırhlı Kumaş: Yanlış cevapta seriyi ve canı korur",
+      "Kusursuz Suikast: Doğru şıkkı hedefler ve tek tıkla 3x puan yazdırır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 38,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Oyun",
+    "subcategory": "Açık Dünya & Macera",
+    "name": "Lara Croft",
+    "role": "",
+    "skills": [
+      "Arkeolog Sezgisi: Soruya dair gizli ipucu kartını açar",
+      "Antik Tuzak: Yanlış 2 seçeneği ortadan kaldırır",
+      "Gizli Geçit: Kararsız kalınan soruyu doğru sayıp diğer soruya atlatır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 39,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Oyun",
+    "subcategory": "Açık Dünya & Macera",
+    "name": "Geralt of Rivia",
+    "role": "",
+    "skills": [
+      "Witcher Hissi: Tuzak şıkların analiz notunu gösterir",
+      "Quen Kalkanı: Yanlış cevabın hasarını tamamen emer",
+      "Aksiy İkna: Şıkları ikiye indirir, süreyi durdurur ve onaylatır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 40,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Oyun",
+    "subcategory": "Açık Dünya & Macera",
+    "name": "Kratos",
+    "role": "",
+    "skills": [
+      "Savaş Narası: Yanlış 1 seçeneği baltayla parçalar",
+      "Spartan Kalkanı: Yanlış cevapta can gitmesini önler",
+      "Spartan Öfkesi: Yanlış 2 şıkkı yok eder ve soruya 3x öfke puanı verir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 41,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Oyun",
+    "subcategory": "MOBA & Spor Simülasyonları",
+    "name": "Jinx",
+    "role": "",
+    "skills": [
+      "Kılçık Roketi: Yanlış 1 şıkkı anında kaldırır",
+      "Manyak Güçlü Roket: Seçenekleri doğrudan 2 adede indirir",
+      "Süper Heyecan: Doğru cevaba 3x katlama puanı uygular"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 42,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Oyun",
+    "subcategory": "MOBA & Spor Simülasyonları",
+    "name": "Pudge",
+    "role": "",
+    "skills": [
+      "Et Yığını: Yanlış cevapta can kaybını engeller",
+      "Taktik Kanca: Doğru seçeneği havuzdan öne doğru çeker",
+      "Çürüme: Yanlış 2 seçeneği tamamen siler"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 43,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Oyun",
+    "subcategory": "MOBA & Spor Simülasyonları",
+    "name": "Sonic",
+    "role": "",
+    "skills": [
+      "Hızlı Dönüş: Sayacı dondurur ve süreye 8 saniye ekler",
+      "Altın Halka: Yanlış cevapta can kaybını halkalarla öder",
+      "Süper Sonic: Soruyu doğrudan doğru kabul ederek tamamlar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 44,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sağlık",
+    "subcategory": "Temel Sağlık",
+    "name": "Hippokrates",
+    "role": "",
+    "skills": [
+      "Önce Zarar Verme: Yanlış cevapta can kaybını sıfırlar",
+      "Klinik Teşhis: Yanlış 2 seçeneği listeden eler",
+      "Tıbbi Yemin: Sayacı durdurur ve doğru şıkkı işaretler"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 45,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sağlık",
+    "subcategory": "Temel Sağlık",
+    "name": "İbn-i Sina",
+    "role": "",
+    "skills": [
+      "Semptom Tespiti: Soru kökündeki anahtar kelimeyi metin kutusunda açıklar",
+      "El-Kanun: Seçenekleri doğrudan 2 şıkka düşürür",
+      "Şifa Reçetesi: Yanlış yapılsa bile soruyu doğru kabul ettirir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 46,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sağlık",
+    "subcategory": "Temel Sağlık",
+    "name": "Dr. Gregory House",
+    "role": "",
+    "skills": [
+      "Lupus Değil: En saçma yanlış şıkkı alaycı bir notla eler",
+      "Aykırı Teşhis: Yanlış 2 seçeneği anında siler",
+      "Dahi Fikri: Doğru şıkkı doğrudan onaylatıp geçer"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 47,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sağlık",
+    "subcategory": "İlk Yardım",
+    "name": "Florence Nightingale",
+    "role": "",
+    "skills": [
+      "Şefkat Eli: Yanlış cevapta serinin sıfırlanmasını önler",
+      "Işıklı Lamba: Seçenekleri doğrudan ikiye indirir",
+      "Kusursuz Bakım: Kaybedilen 1 canı anında geri doldurur"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 48,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sağlık",
+    "subcategory": "İlk Yardım",
+    "name": "Henry Dunant",
+    "role": "",
+    "skills": [
+      "Kızılhaç Kalkanı: Yanlış yapılan 1 soruyu cezasız affeder",
+      "Acil Müdahale: Sayacı dondurur ve ipucu kartını açar",
+      "Güvenli Bölge: Soruyu hasar almadan kayıpsız atlatır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 49,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sağlık",
+    "subcategory": "İlk Yardım",
+    "name": "Superman",
+    "role": "",
+    "skills": [
+      "Çelik Gövde: Yanlış cevabın hasarını tamamen sıfırlar",
+      "Süper Hız: Sayacı durdurur ve şıkları ikiye indirir",
+      "Kurtarıcı Güç: Soruyu doğrudan doğru sayar ve 2.5x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 50,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sağlık",
+    "subcategory": "Beslenme & Diyet",
+    "name": "Jamie Oliver",
+    "role": "",
+    "skills": [
+      "Taze Tarif: Soru terimlerini sadeleştirip ipucu verir",
+      "Mutfak Temizliği: Yanlış 2 seçeneği menüden çıkarır",
+      "Sağlıklı Devrim: Doğru cevaba doğrudan 2.5x puan uygular"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 51,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sağlık",
+    "subcategory": "Beslenme & Diyet",
+    "name": "Temel Reis",
+    "role": "",
+    "skills": [
+      "Ispanak Gücü: Yanlış 1 şıkkı anında ekrandan kaldırır",
+      "Demir Direnç: Yanlış cevapta can kaybını sıfırlar",
+      "Süper Güç: Yanlış şıkların tamamını eleyip doğruyu onaylar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 52,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sağlık",
+    "subcategory": "Beslenme & Diyet",
+    "name": "Remy (Ratatouille)",
+    "role": "",
+    "skills": [
+      "Kusursuz Koku: Doğru cevabın baş harfini fısıldar",
+      "Gurme Seçimi: Şıkları doğrudan 2 seçeneğe indirir",
+      "Şefin Başyapıtı: Kararsız kalınan soruyu doğru kabul ettirir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 53,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sağlık",
+    "subcategory": "Hastalıklar & Korunma",
+    "name": "Louis Pasteur",
+    "role": "",
+    "skills": [
+      "Pastörizasyon: Yanlış seçeneklerdeki mantık tuzaklarını temizler",
+      "Kuduz Aşısı: Yanlış cevabın seriyi kırmasını bloke eder",
+      "Mikrop Avcısı: Seçenekleri 2 şıkka düşürür ve onaylatır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 54,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sağlık",
+    "subcategory": "Hastalıklar & Korunma",
+    "name": "Alexander Fleming",
+    "role": "",
+    "skills": [
+      "Şanslı Keşif: Doğru seçeneğin ilk harfini fısıldar",
+      "Penisilin: Yanlış cevaptan sonraki soruda canı korur",
+      "Mucize İlaç: Yanlış 2 seçeneği doğrudan nötralize eder"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 55,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sağlık",
+    "subcategory": "Hastalıklar & Korunma",
+    "name": "Edward Jenner",
+    "role": "",
+    "skills": [
+      "Aşı Dozu: Yanlış 1 seçeneği etkisiz hale getirir",
+      "Kalıcı Bağışıklik: Yanlış cevapta seriyi ve canı korur",
+      "Tam Koruma: Sayacı dondurur ve şıkları ikiye indirir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 56,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sağlık",
+    "subcategory": "Tıp Tarihi",
+    "name": "Joseph Lister",
+    "role": "",
+    "skills": [
+      "Antiseptik Filtre: Seçeneklerdeki mantık çelişkilerini temizler",
+      "Cerrahi Hijyen: Yanlış 2 seçeneği anında eler",
+      "Listerine Kalkanı: Yanlış cevapta can kaybını tamamen sıfırlar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 57,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sağlık",
+    "subcategory": "Tıp Tarihi",
+    "name": "Galen",
+    "role": "",
+    "skills": [
+      "Hümor Dengesi: Seçeneklerin doğruluk oranlarını gösterir",
+      "Gladyatör Zırhı: Yanlış cevapta can eksilmesini önler",
+      "Kadim Tıp: Şıkları 2 seçeneğe indirger ve onaylar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 58,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Sağlık",
+    "subcategory": "Tıp Tarihi",
+    "name": "William Osler",
+    "role": "",
+    "skills": [
+      "Klinik Gözlem: Hatalı şıkkın neden yanlış olduğunu açıklar",
+      "Yatak Başı Metodu: Yanlış 1 seçeneği eler",
+      "Hekimlik Zaferi: Doğru şıkkı kilitler ve onaylatır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 59,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Psikoloji",
+    "subcategory": "Temel Psikoloji",
+    "name": "Sigmund Freud",
+    "role": "",
+    "skills": [
+      "Teori Analizi: Soruya ait ipucu metnini açar",
+      "İd ve Ego: Şıkları doğrudan 2 seçeneğe düşürür",
+      "Psikanaliz: Yanlış yapılsa bile soruyu doğru onaylatır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 60,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Psikoloji",
+    "subcategory": "Temel Psikoloji",
+    "name": "Ivan Pavlov",
+    "role": "",
+    "skills": [
+      "Zil Sesi: Doğru cevapta seriye ekstra +%25 puan ekler",
+      "Şartlı Refleks: Sayacı 6 saniye durdurur",
+      "Salya Tepkisi: Yanlış cevapta serinin sıfırlanmasını engeller"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 61,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Psikoloji",
+    "subcategory": "Temel Psikoloji",
+    "name": "Carl Jung",
+    "role": "",
+    "skills": [
+      "Gölge Taraf: En karanlık ve tuzak çeldiriciyi siler",
+      "Kolektif Bilinç: Topluluğun en güvendiği şıkkı gösterir",
+      "Kozmik Arketip: Doğru cevabı tek tıkla onaylar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 62,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Psikoloji",
+    "subcategory": "İnsan İlişkileri",
+    "name": "Dale Carnegie",
+    "role": "",
+    "skills": [
+      "Dostça İpucu: Soru metnini anlaşılır biçimde sadeleştirir",
+      "İkna Sanatı: Şıkları 2 seçeneğe indirger",
+      "Kusursuz İletişim: Yanlış seçilse bile şıkkı doğru kabul ettirir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 63,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Psikoloji",
+    "subcategory": "İnsan İlişkileri",
+    "name": "Sherlock Holmes",
+    "role": "",
+    "skills": [
+      "Çıkarım Sanatı: Mantıksız şıkların tuzak notunu gösterir",
+      "Zihin Sarayı: Sayacı tamamen durdurup sakinlik verir",
+      "İmkânsızı Elemek: 2 yanlış seçeneği kesin olarak eler"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 64,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Psikoloji",
+    "subcategory": "İnsan İlişkileri",
+    "name": "Patrick Jane",
+    "role": "",
+    "skills": [
+      "Gözlem Metodu: Doğru şıkkın harf bilgisini açar",
+      "Zihin Okuma: Yanlış 2 seçeneği zihinden siler",
+      "Mentalist Oyunu: Soruyu pas geçer ve tam doğru puanı verir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 65,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Psikoloji",
+    "subcategory": "Kişilik Tipleri",
+    "name": "The Joker",
+    "role": "",
+    "skills": [
+      "Kaotik Şaka: Yanlış 1 şıkkı patlatıp ekrandan atar",
+      "Zihin Oyunu: Seçenek sayısını doğrudan 2'ye indirir",
+      "Saf Kaos: Doğru cevabı otomatik seçtirip 3x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 66,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Psikoloji",
+    "subcategory": "Kişilik Tipleri",
+    "name": "Carl Rogers",
+    "role": "",
+    "skills": [
+      "Koşulsuz Kabul: Yanlış cevapta seriyi ve canı korur",
+      "Ayna Tekniği: Soru ipucunu metin olarak açar",
+      "Bütüncül Terapi: İki şıkkı aynı anda deneme hakkı tanır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 67,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Psikoloji",
+    "subcategory": "Kişilik Tipleri",
+    "name": "Hannibal Lecter",
+    "role": "",
+    "skills": [
+      "Soğuk Bakış: Sayacın süresine fazladan 8 sn ekler",
+      "Kusursuz Analiz: Yanlış 2 seçeneği bir kenara ayırır",
+      "Zihinsel Güç: Doğru cevabı doğrudan onaylatır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 68,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Psikoloji",
+    "subcategory": "Bilişsel Yanılgılar & Ekoller",
+    "name": "Daniel Kahneman",
+    "role": "",
+    "skills": [
+      "Sistem 2: İlk 3 saniyedeki aceleci yanlış tıklamayı affeder",
+      "Yanılgı Filtresi: En tehlikeli çeldirici seçeneği eler",
+      "Rasyonel Karar: Şıkları 2'ye düşürür ve süreyi dondurur"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 69,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Psikoloji",
+    "subcategory": "Bilişsel Yanılgılar & Ekoller",
+    "name": "B.F. Skinner",
+    "role": "",
+    "skills": [
+      "Pekiştirme: Doğru cevapta seriyi 1.5x bonusla ödüllendirir",
+      "Kutu Deneyi: Doğru şıkkı açan ipucunu fısıldar",
+      "Tam Şartlama: Yanlış cevapta can eksilmesini bloke eder"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 70,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Psikoloji",
+    "subcategory": "Bilişsel Yanılgılar & Ekoller",
+    "name": "Jean Piaget",
+    "role": "",
+    "skills": [
+      "Şema Düzeni: Soruyu en sade dille yeniden kurar",
+      "Mantık Basamağı: Yanlış 2 seçeneği ekrandan kaldırır",
+      "Bilişsel Denge: Doğru şıkkı otomatik onaylatır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 71,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Resim",
+    "subcategory": "Temel Resim",
+    "name": "Bob Ross",
+    "role": "",
+    "skills": [
+      "Tatlı Kaza: \"Hata yoktur\": Yapılan ilk yanlışı affeder",
+      "Huzurlu Fırça: Şıklardan bariz yanlış olanını siler",
+      "Mutlu Seçenek: Yanlış 2 seçeneği ekrandan kaldırır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 72,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Resim",
+    "subcategory": "Temel Resim",
+    "name": "Vincent van Gogh",
+    "role": "",
+    "skills": [
+      "Tutku: Doğru cevapta 1.5x puan kazandırır",
+      "Zamanı Durdur: Sayacı tamamen durdurup 8 saniye ekler",
+      "Ayçiçeği Gücü: Doğru cevabı seçenekler arasında doğrudan kilitler"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 73,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Resim",
+    "subcategory": "Temel Resim",
+    "name": "Pablo Picasso",
+    "role": "",
+    "skills": [
+      "Perspektif Kırma: Şıkların sırasını zorluk derecesine göre dizer",
+      "Kübist Darbe: Yanlış 2 seçeneği doğrudan eler",
+      "Guernica: Soruyu pas geçip yerine yeni soru çeker"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 74,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Resim",
+    "subcategory": "Ünlü Tablolar & Ressamlar",
+    "name": "Leonardo da Vinci",
+    "role": "",
+    "skills": [
+      "Metin Analizi: Soru içindeki gizli ipucu kartını açar",
+      "Vitruvius Dengesi: Şıkları 2 seçeneğe kusursuz dengeler",
+      "Mona Lisa: 2 yanlış seçeneği ekrandan tamamen siler"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 75,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Resim",
+    "subcategory": "Ünlü Tablolar & Ressamlar",
+    "name": "Salvador Dalí",
+    "role": "",
+    "skills": [
+      "Bilinçaltı: Yanlış cevapta seriyi ve kombo çarpanını korur",
+      "Eriyen Saatler: Sayacı 10 saniyeliğine tamamen dondurur",
+      "Sürreal Çözüm: Doğru cevabı öne çıkarıp onaylatır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 76,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Resim",
+    "subcategory": "Ünlü Tablolar & Ressamlar",
+    "name": "Frida Kahlo",
+    "role": "",
+    "skills": [
+      "Direnç Kalkanı: Can azaldığında puan çarpanını 2x yapar",
+      "İrade Gücü: Yanlış yapılan soruda seriyi korur",
+      "Viva La Vida: Kaybedilen 1 canı anında geri kazandırır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 77,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Resim",
+    "subcategory": "Rönesans & Klasik Dönem",
+    "name": "Michelangelo",
+    "role": "",
+    "skills": [
+      "Mermer Blok: Yanlış cevabın hasarını sıfırlar",
+      "Davud'un Hamlesi: En güçlü çeldirici seçeneği eler",
+      "Kusursuz Kubbe: Doğru şıkkı doğrudan işaretler"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 78,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Resim",
+    "subcategory": "Rönesans & Klasik Dönem",
+    "name": "Raffaello Sanzio",
+    "role": "",
+    "skills": [
+      "Klasik Uyum: Şıklar arasındaki terim karmaşasını çözer",
+      "Atina Okulu: Seçenekleri 2 şıkka düşürür",
+      "Harmoni: Doğru cevabı anında onaylar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 79,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Resim",
+    "subcategory": "Rönesans & Klasik Dönem",
+    "name": "Caravaggio",
+    "role": "",
+    "skills": [
+      "Metinsel Netlik: Doğru şıkkın baş harfini fısıldar",
+      "Dramatik Tezat: Yanlış 2 seçeneği tamamen siler",
+      "Barok Zaferi: Sayacı dondurur ve 2.5x puan yazdırır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 80,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Resim",
+    "subcategory": "Modern Sanat Akımları",
+    "name": "Andy Warhol",
+    "role": "",
+    "skills": [
+      "Seri Üretim: Doğru cevapta seri çarpanını 1.5x yapar",
+      "Konserve Mantığı: Yanlış 2 seçeneği raftan kaldırır",
+      "15 Dakika Şöhret: Tur bitene kadar tüm puanları 2 katına çıkarır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 81,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Resim",
+    "subcategory": "Modern Sanat Akımları",
+    "name": "Banksy",
+    "role": "",
+    "skills": [
+      "Grafiti: Yanlış 1 şıkkı anında eler",
+      "Şablon Mantığı: Şıkları doğrudan 2 seçeneğe indirir",
+      "Balon Kurtarışı: Yanlış yapılan soruda seriyi korur"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 82,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Resim",
+    "subcategory": "Modern Sanat Akımları",
+    "name": "Claude Monet",
+    "role": "",
+    "skills": [
+      "Sakinlik: Sayacın akışını durdurup uzatır",
+      "Nilüferler: En çeldirici yanlış seçeneği siler",
+      "İzlenimcilik: Doğru şıkkı fısıldayıp onaylatır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 83,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Astronomi",
+    "subcategory": "Temel Astronomi",
+    "name": "Galileo Galilei",
+    "role": "",
+    "skills": [
+      "Net Bakış: Karmaşık şıkları sadeleştirir",
+      "Jüpiter Uyduları: Şıkları 2 seçeneğe indirir",
+      "Yine de Dönüyor: Yanlış cevapta seriyi ve canı korur"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 84,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Astronomi",
+    "subcategory": "Temel Astronomi",
+    "name": "Nicolaus Copernicus",
+    "role": "",
+    "skills": [
+      "Merkez Odak: Doğru şıkkı ilk sıraya taşır",
+      "Kozmik Devrim: Yanlış 2 seçeneği yörüngeden atar",
+      "Evrenin Merkezi: Doğru cevabı anında onaylar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 85,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Astronomi",
+    "subcategory": "Temel Astronomi",
+    "name": "Carl Sagan",
+    "role": "",
+    "skills": [
+      "Soluk Mavi Nokta: Yanıltıcı şıkları silip eler",
+      "Kozmik Takvim: Sayacı 8 saniye durdurur",
+      "Milyarlarca Yıldız: Kararsız kalınan soruyu bedelsiz pas geçer"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 86,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Astronomi",
+    "subcategory": "Güneş Sistemi",
+    "name": "Neil Armstrong",
+    "role": "",
+    "skills": [
+      "Küçük Bir Adım: Yanlış 1 şıkkı ekrandan kaldırır",
+      "Modül İnişi: Sayacı durdurur ve şıkları ikiye indirir",
+      "İnsanlık İçin Dev Adım: Doğru cevaba 3x dev puan yazar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 87,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Astronomi",
+    "subcategory": "Güneş Sistemi",
+    "name": "Johannes Kepler",
+    "role": "",
+    "skills": [
+      "Elips Rotası: Süreye bağlı puan çarpanını katlar",
+      "Gezegenler Kanunu: Doğru şıkkın harf yerini fısıldar",
+      "Kozmik Uyum: Yanlış 2 seçeneği yörüngeden siler"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 88,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Astronomi",
+    "subcategory": "Güneş Sistemi",
+    "name": "Buzz Aldrin",
+    "role": "",
+    "skills": [
+      "Ay Kartalı: Yanlış yapılan soruda seriyi kurtarır",
+      "Kabin Kalkanı: Yanlış 1 seçeneği eler",
+      "Apollo Zaferi: Doğru şıkkı doğrudan işaretler"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 89,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Astronomi",
+    "subcategory": "Yıldızlar & Galaksiler",
+    "name": "Edwin Hubble",
+    "role": "",
+    "skills": [
+      "Spektrum Analizi: Yanlış 1 şıkkı diziden siler",
+      "Derin Uzay: Seçenekleri doğrudan 2'ye düşürür",
+      "Genişleyen Evren: Kategori puanını tek dokunuşla %35 artırır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 90,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Astronomi",
+    "subcategory": "Yıldızlar & Galaksiler",
+    "name": "Neil deGrasse Tyson",
+    "role": "",
+    "skills": [
+      "Kozmik Bilgi: Soru metnini akıcı bir dille özetler",
+      "Astrofizik Notu: Doğru cevaba yönlendiren ipucu verir",
+      "Kara Delik Atışı: Yanlış 2 şıkkı yok eder"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 91,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Astronomi",
+    "subcategory": "Yıldızlar & Galaksiler",
+    "name": "Arthur Eddington",
+    "role": "",
+    "skills": [
+      "Gölge Analizi: Yanlış şıkların tuzak notunu gösterir",
+      "Yer Çekimsel Bükülme: Şıkları 2 seçeneğe indirger",
+      "Genel İzafiyet: Doğru cevabı doğrulatıp tam puan yazar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 92,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Astronomi",
+    "subcategory": "Uzay Keşifleri & Kozmoloji",
+    "name": "Stephen Hawking",
+    "role": "",
+    "skills": [
+      "Hawking Işıması: Bilgi kirliliği yaratan 1 şıkkı buharlaştırır",
+      "Zamanın Efendisi: Sayacı tersine işletip ek süre verir",
+      "Kara Delik Tekilliği: Yanlış 2 şıkkı yutar ve süreyi dondurur"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 93,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Astronomi",
+    "subcategory": "Uzay Keşifleri & Kozmoloji",
+    "name": "Yuri Gagarin",
+    "role": "",
+    "skills": [
+      "Poyekhali: Hızlı cevapta kalkış puan bonusu verir",
+      "Yörünge Turu: Yanlış cevapta seriyi ve canı korur",
+      "Kozmonot Zaferi: Şıkları ikiye indirir ve doğruyu onaylar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 94,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Astronomi",
+    "subcategory": "Uzay Keşifleri & Kozmoloji",
+    "name": "Felix Baumgartner",
+    "role": "",
+    "skills": [
+      "Stratosfer Atlayışı: Sayacı dondurur ve doğru cevabın harfini fısıldar",
+      "Ses Duvarı: Yanlış 2 seçeneği doğrudan eler",
+      "Serbest Düşüş: Soruyu kayıpsız tamamlayıp doğrudan 2.5x puan yazar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 95,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Biyoloji",
+    "subcategory": "Temel Biyoloji",
+    "name": "Charles Darwin",
+    "role": "",
+    "skills": [
+      "Doğal Seçilim: En zayıf yanlış seçeneği ekrandan eler",
+      "Türlerin Kökeni: Şıkları doğrudan 2 seçeneğe indirir",
+      "Evrimsel Uyum: Yanlış yapılsa bile soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 96,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Biyoloji",
+    "subcategory": "Temel Biyoloji",
+    "name": "Carl Linnaeus",
+    "role": "",
+    "skills": [
+      "İkili Adlandırma: Soru kökündeki biyolojik anahtar terimi açıklar",
+      "Taksonomi: Yanlış 2 seçeneği sistemden siler",
+      "Canlılar Alemi: Doğru şıkkı anında onaylatır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 97,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Biyoloji",
+    "subcategory": "Temel Biyoloji",
+    "name": "David Attenborough",
+    "role": "",
+    "skills": [
+      "Belgesel Notu: Sorunun kilit ipucu kartını açar",
+      "Yaşayan Gezegen: Sayacı 8 saniye durdurur",
+      "Doğa Zırhı: Yanlış cevapta seriyi ve canı korur"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 98,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Biyoloji",
+    "subcategory": "İnsan Fizyolojisi",
+    "name": "Wolverine (Logan)",
+    "role": "",
+    "skills": [
+      "Rejenerasyon: Doğru cevapta eksilen canı anında doldurur",
+      "Adamantium Zırh: Yanlış cevabın hasarını tamamen emer",
+      "Pençe Darbesi: Yanlış 2 şıkkı kesip atarak 2 seçenek bırakır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 99,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Biyoloji",
+    "subcategory": "İnsan Fizyolojisi",
+    "name": "William Harvey",
+    "role": "",
+    "skills": [
+      "Nabız Takibi: Süre kritik seviyeye indiğinde sayacı 6 sn uzatır",
+      "Kan Dolaşımı: Yanlış 1 seçeneği filtreler",
+      "Aort Gücü: Şıkları 2 seçeneğe indirger ve 2x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 100,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Biyoloji",
+    "subcategory": "İnsan Fizyolojisi",
+    "name": "Usain Bolt",
+    "role": "",
+    "skills": [
+      "Yıldırım Deparı: İlk 3 saniyede cevaplanırsa 2x puan verir",
+      "Son 100 Metre: Yanlış 2 seçeneği geride bırakır",
+      "Dünya Rekoru: Soruyu doğrudan doğru kabul ettirir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 101,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Biyoloji",
+    "subcategory": "Hücre & Genetik",
+    "name": "Gregor Mendel",
+    "role": "",
+    "skills": [
+      "Çekinik Gen: Yanlış 1 şıkkı listeden kaldırır",
+      "Bezelye Çaprazlaması: Şıkları %50 eleme ile 2'ye düşürür",
+      "Baskın Saf Döl: Doğru cevabı baskın gen gibi onaylatır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 102,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Biyoloji",
+    "subcategory": "Hücre & Genetik",
+    "name": "Rosalind Franklin",
+    "role": "",
+    "skills": [
+      "Kırınım Analizi: Doğru şıkkın kritik kelimesini fısıldar",
+      "Moleküler Ayrım: Yanlış 2 seçeneği kaldırır",
+      "Çift Sarmal: Kararsız kalınan soruyu doğru kabul ettirir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 103,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Biyoloji",
+    "subcategory": "Hücre & Genetik",
+    "name": "James Watson",
+    "role": "",
+    "skills": [
+      "Baz Eşleşmesi: Doğru cevaba giden mantık köprüsünü kurar",
+      "Klonlama: Önceki sorunun bonus puanını bu soruya kopyalar",
+      "DNA Kodu: Sayacı dondurur ve şıkları ikiye indirir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 104,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Biyoloji",
+    "subcategory": "Botanik, Zooloji & Ekoloji",
+    "name": "Jane Goodall",
+    "role": "",
+    "skills": [
+      "Primat Zekâsı: İnsan aklını karıştıran yanıltıcı şıkkı siler",
+      "Orman Kalkanı: Yanlış cevapta seriyi ve canı korur",
+      "Doğal Yaşam: Şıkları 2 seçeneğe indirger ve 2x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 105,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Biyoloji",
+    "subcategory": "Botanik, Zooloji & Ekoloji",
+    "name": "Steve Irwin",
+    "role": "",
+    "skills": [
+      "Timsah Refleksi: Yanlış basılan şıkkı ceza almadan kurtarır",
+      "Vahşi Yakalama: Yanlış 2 seçeneği yakalayıp eler",
+      "Danger Danger: Kararsız kalınan soruyu kayıpsız tamamlatır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 106,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Biyoloji",
+    "subcategory": "Botanik, Zooloji & Ekoloji",
+    "name": "Greta Thunberg",
+    "role": "",
+    "skills": [
+      "İklim Kalkanı: Yanlış cevapta can kaybını engeller",
+      "Farkındalık: Soru çözümünü ipucu olarak fısıldar",
+      "Gelecek Direnişi: Soruyu ceza almadan es geçip yeni soru ister"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 107,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Felsefe",
+    "subcategory": "Temel Felsefe",
+    "name": "Sokrates",
+    "role": "",
+    "skills": [
+      "Sokratik İroni: Çelişkili yanlış seçeneği ekrandan kovar",
+      "Mayötik Doğurtma: Şıkları doğrudan 2 seçeneğe indirir",
+      "Felsefi Doğum: Bilinmeyen soruyu bedelsiz pas geçer"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 108,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Felsefe",
+    "subcategory": "Temel Felsefe",
+    "name": "Platon",
+    "role": "",
+    "skills": [
+      "Gölge Tespiti: Yanlış şıklardan en zayıf olanını siler",
+      "İdealar Dünyası: Doğru cevabın ipucu kartını açar",
+      "Filozof Kral: Kararsız kalınan soruyu doğru kabul ettirir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 109,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Felsefe",
+    "subcategory": "Temel Felsefe",
+    "name": "René Descartes",
+    "role": "",
+    "skills": [
+      "Kartezyen Şüphe: Şüphe duyulan en zayıf seçeneği eler",
+      "Açık ve Seçik: Sayacı durdurup ipucu panelini açar",
+      "\"Cogito Ergo Sum\": Doğru cevabı saf akılla bulup 2.5x puan yazar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 110,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Felsefe",
+    "subcategory": "Antik Felsefe",
+    "name": "Diyojen",
+    "role": "",
+    "skills": [
+      "Gölge Etme: Yanlış seçeneklerin yarattığı gürültüyü kovar",
+      "Kinik Fener: Gündüz feneriyle doğru şıkkı işaretler",
+      "Fıçı Huzuru: Yanlış cevapta can kaybını tamamen sıfırlar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 111,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Felsefe",
+    "subcategory": "Antik Felsefe",
+    "name": "Aristoteles",
+    "role": "",
+    "skills": [
+      "Altın Orta: Aşırı uçlardaki 2 yanlış seçeneği eler",
+      "Organon Mantığı: Şıkları doğru mantık sırasına dizer",
+      "İlk Neden: Doğru şıkkı anında onaylatır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 112,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Felsefe",
+    "subcategory": "Antik Felsefe",
+    "name": "Marcus Aurelius",
+    "role": "",
+    "skills": [
+      "Stoacı Sükunet: Sayacı 7 saniyeliğine durdurur",
+      "Kendime Notlar: Felsefi ipucunu ekrana yansıtır",
+      "Yıkılmaz İrade: Yapılan yanlışı yok sayıp seriyi korur"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 113,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Felsefe",
+    "subcategory": "Epistemoloji & Bilgi",
+    "name": "John Locke",
+    "role": "",
+    "skills": [
+      "Tabula Rasa: Seçeneklerin üzerindeki yanıltıcı ekleri siler",
+      "Deneycilik: Şıkları 2 seçeneğe indirger",
+      "Kavram Temizliği: Yanlış basılsa bile can eksilmesini bloke eder"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 114,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Felsefe",
+    "subcategory": "Epistemoloji & Bilgi",
+    "name": "Immanuel Kant",
+    "role": "",
+    "skills": [
+      "A Priori: Mantık kuralıyla 1 yanlış seçeneği eler",
+      "Saf Akıl: Sayacı durdurur ve ipucu kartını açar",
+      "Kategorik Buyruk: Doğru cevabı evrensel doğru olarak onaylar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 115,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Felsefe",
+    "subcategory": "Epistemoloji & Bilgi",
+    "name": "David Hume",
+    "role": "",
+    "skills": [
+      "Şüphe Testi: Yanlış kurulan neden-sonuç bağını koparır",
+      "Algı Demeti: Yanlış 2 seçeneği zihinden siler",
+      "Ampirik Kanıt: Doğru şıkkı öne çıkarıp 2x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 116,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Felsefe",
+    "subcategory": "Etik & Ahlak Felsefesi",
+    "name": "Friedrich Nietzsche",
+    "role": "",
+    "skills": [
+      "Öldürmeyen Güç: Yanlış cevap sonrasında seriye +%50 güç verir",
+      "Tragedya: Mantık yoluyla yanlış 2 şıkkı eler",
+      "Böyle Buyurdu Zerdüşt: Şıkları ikiye indirir ve doğruyu işaretletir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 117,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Felsefe",
+    "subcategory": "Etik & Ahlak Felsefesi",
+    "name": "Baruch Spinoza",
+    "role": "",
+    "skills": [
+      "Panteist Akıl: Yanlış 1 şıkkı mantıksal olarak eler",
+      "Geometrik Düzen: Şıkları 2 seçeneğe kusursuz dengeler",
+      "Kozmik Zihin: Doğru cevabı evrenin gerçeği gibi açar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 118,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Felsefe",
+    "subcategory": "Etik & Ahlak Felsefesi",
+    "name": "John Stuart Mill",
+    "role": "",
+    "skills": [
+      "Fayda Analizi: Puan kazancını maksimize eden ipucunu açar",
+      "Özgürlük İlkesi: Yanlış cevapta can kaybını veto eder",
+      "En Büyük Mutluluk: Doğru cevap puanını doğrudan 2.5x katına çıkarır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 119,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Felsefe",
+    "subcategory": "Mantık & Varlık Felsefesi",
+    "name": "Albert Camus",
+    "role": "",
+    "skills": [
+      "Sisifos Direnci: Yanlış cevapta serinin sıfırlanmasını önler",
+      "Absürt Başkaldırı: Yanlış 2 seçeneği ekrandan atar",
+      "Yabancı: Kararsız kalınan soruyu tek tıkla doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 120,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Felsefe",
+    "subcategory": "Mantık & Varlık Felsefesi",
+    "name": "Jean-Paul Sartre",
+    "role": "",
+    "skills": [
+      "Bulantı: Kötü niyetli çeldirici seçeneği sistemden siler",
+      "Özgür Seçim: İki şıkkı aynı anda deneme hakkı tanır",
+      "Varoluş Gücü: Doğru şıkkı netleştirip 2x puan yazar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 121,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Felsefe",
+    "subcategory": "Mantık & Varlık Felsefesi",
+    "name": "Karl Marx",
+    "role": "",
+    "skills": [
+      "Sermaye Eleştirisi: Yanlış şıkların çeldirici tuzağını bozar",
+      "Diyalektik: Şıkları 2 seçeneğe indirir ve süreyi dondurur",
+      "Devrim: Soruyu kayıpsız atlatıp tam puan yazdırır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 122,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Fizik",
+    "subcategory": "Temel Fizik",
+    "name": "Archimedes",
+    "role": "",
+    "skills": [
+      "\"Evreka!\": Doğru seçeneğin ilk kelimesini fısıldar",
+      "Kaldıraç: Yanlış 2 seçeneği kaldıraçla devirir",
+      "Kaldırma Gücü: Yanlış cevapta can kaybını tamamen engeller"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 123,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Fizik",
+    "subcategory": "Temel Fizik",
+    "name": "Isaac Newton",
+    "role": "",
+    "skills": [
+      "Elma Ağacı: Yer çekimi ipucu kartını açar",
+      "Kütle Çekimi: Doğru şıkkı en üst sıraya çeker",
+      "Yer Çekimi Kanunu: Şıkları ikiye indirir ve 2x puan yazar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 124,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Fizik",
+    "subcategory": "Temel Fizik",
+    "name": "Blaise Pascal",
+    "role": "",
+    "skills": [
+      "Basınç Dengesi: Süre azalırken sayacı 8 saniyeliğine durdurur",
+      "Hidrolik Güç: Yanlış 2 seçeneği sistemden atar",
+      "Pascal Kalkanı: Yanlış cevapta can eksilmesini bloke eder"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 125,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Fizik",
+    "subcategory": "Mekanik",
+    "name": "Daniel Bernoulli",
+    "role": "",
+    "skills": [
+      "Akışkan Çözüm: Yanlış 1 şıkkı diziden siler",
+      "Kaldırma İlkesi: Sorunun üzerinden uçup kayıpsız geçer",
+      "Kusursuz Akış: Seçenekleri doğrudan 2 adede indirger"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 126,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Fizik",
+    "subcategory": "Mekanik",
+    "name": "James Watt",
+    "role": "",
+    "skills": [
+      "Kondansatör: Yanlış cevapta seriyi ve canı korur",
+      "Buhar Basıncı: Sayacı durdurur ve şıkları ikiye böler",
+      "Beygir Gücü: Doğru bilinen soru için 3x dev puan yazar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 127,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Fizik",
+    "subcategory": "Mekanik",
+    "name": "Henry Ford",
+    "role": "",
+    "skills": [
+      "Montaj Hattı: Yanlış 1 seçeneği konveyör bandından atar",
+      "Model T Zırhı: Yanlış cevapta seriyi ve canı korur",
+      "Seri Üretim: Doğru cevabı anında onaylar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 128,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Fizik",
+    "subcategory": "Termodinamik & Enerji",
+    "name": "James Prescott Joule",
+    "role": "",
+    "skills": [
+      "Mekanik Eşdeğer: Yanlış cevapta serinin kırılmasını önler",
+      "Isı Enerjisi: Yanlış 2 seçeneği doğrudan eler",
+      "Joule Yasası: Doğru bilinen sorunun puanını doğrudan 2.5x yapar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 129,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Fizik",
+    "subcategory": "Termodinamik & Enerji",
+    "name": "Lord Kelvin",
+    "role": "",
+    "skills": [
+      "Sıfır Kelvin: Sayacı 10 saniye boyunca dondurur",
+      "Mutlak Sıfır: Yanlış 2 seçeneği dondurup ekrandan siler",
+      "Termodinamik Kuralı: Soruyu tek tıkla doğru onaylatır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 130,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Fizik",
+    "subcategory": "Termodinamik & Enerji",
+    "name": "Rudolf Diesel",
+    "role": "",
+    "skills": [
+      "Buji Olmadan: Şık eleme jokerini bedelsiz tetikler",
+      "Yüksek Basınç: Yanlış 2 seçeneği ezerek yok eder",
+      "Ağır Tork: Doğru cevaba doğrudan 2.5x puan uygular"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 131,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Fizik",
+    "subcategory": "Optik",
+    "name": "İbnü'l-Heysem",
+    "role": "",
+    "skills": [
+      "Optik Teori: Soruya ait çözümsel ipucunu açar",
+      "Kırılma Kanunu: Yanlış 2 seçeneğin illüzyonunu bozar",
+      "Kitabü'l-Menazır: Sayacı durdurur ve doğruyu onaylar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 132,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Fizik",
+    "subcategory": "Optik",
+    "name": "Thomas Young",
+    "role": "",
+    "skills": [
+      "Çift Yarık: Oyuncuya aynı anda 2 şıkkı birden deneme yetkisi tanır",
+      "Girişim Dalgası: Yanlış 2 seçeneği sistemden eler",
+      "Işık Teorisi: Doğru şıkkı tek hamlede onaylatıp geçer"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 133,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Fizik",
+    "subcategory": "Optik",
+    "name": "Hans Lippershey",
+    "role": "",
+    "skills": [
+      "Kavram Odağı: Kritik kelimeyi metin panelinde vurgular",
+      "Çift Odak: Yanlış 2 seçeneği dışarı atar",
+      "Net Çözüm: Kararsız kalınan soruyu doğru kabul ettirir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 134,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Fizik",
+    "subcategory": "Elektromanyetizma & Kuantum",
+    "name": "Albert Einstein",
+    "role": "",
+    "skills": [
+      "Görelilik: Zamanı aşırı yavaşlatıp düşünme payı açar",
+      "Foton Etkisi: Yanlış 2 seçeneği sistemden söker",
+      "E = mc²: Doğru cevaba devasa 3x kütle puanı verir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 135,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Fizik",
+    "subcategory": "Elektromanyetizma & Kuantum",
+    "name": "Erwin Schrödinger",
+    "role": "",
+    "skills": [
+      "Kutu Deneyi: Yanlış 2 şıkkı süperpozisyondan siler",
+      "Dalga Çöküşü: İki şıkkı birden seçme hakkı tanır",
+      "Yaşayan Kedi: Yanlış yapılsa bile soruyu doğru onaylatır"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 136,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Fizik",
+    "subcategory": "Elektromanyetizma & Kuantum",
+    "name": "Robert Oppenheimer",
+    "role": "",
+    "skills": [
+      "Kritik Kütle: Yanlış 1 seçeneği anında eler",
+      "Manhattan Projesi: Şıkları doğrudan 2'ye düşürür",
+      "Nükleer Zafer: Doğru cevaba doğrudan 3x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 137,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Kimya",
+    "subcategory": "Temel Kimya",
+    "name": "Marie Curie",
+    "role": "",
+    "skills": [
+      "Radyoaktif İpucu: Doğru şıkkın baş harfini fısıldar",
+      "İki Nobel: Yanlış 2 seçeneği anında eritir",
+      "Polonyum Gücü: Tur sonuna kadar puan serisini kilitler"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 138,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Kimya",
+    "subcategory": "Temel Kimya",
+    "name": "Antoine Lavoisier",
+    "role": "",
+    "skills": [
+      "Kütlenin Korunumu: Yanlış cevapta seriyi ve canı korur",
+      "Kimyasal Terazi: Şıkları 2 seçeneğe kusursuz dengeler",
+      "Modern Kimya: Sayacı dondurur ve doğruyu onaylar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 139,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Kimya",
+    "subcategory": "Temel Kimya",
+    "name": "Robert Boyle",
+    "role": "",
+    "skills": [
+      "P-V Dengesi: Sayacın üzerindeki baskıyı azaltıp süreyi uzatır",
+      "Kuşkucu Kimyager: Yanlış 1 seçeneği buharlaştırır",
+      "Boyle Yasası: Soruyu kayıpsız atlatıp tam puan yazar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 140,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Kimya",
+    "subcategory": "Periyodik Tablo & Elementler",
+    "name": "Dmitri Mendeleev",
+    "role": "",
+    "skills": [
+      "Boş Kutu: Doğru cevabın harfini önceden tahmin eder",
+      "Periyodik Kural: Şıkları periyodik mantık sırasına sokar",
+      "Galyum Keşfi: Şıkları 2'ye düşürür ve doğruyu onaylar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 141,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Kimya",
+    "subcategory": "Periyodik Tablo & Elementler",
+    "name": "Alfred Nobel",
+    "role": "",
+    "skills": [
+      "Fünye: Seçeneklerden en çok yanıltanı eler",
+      "Dinamit: Yanlış 2 seçeneği tek darbede siler",
+      "Nobel Ödülü: Doğru cevaba anında 3x prestij puanı ekler"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 142,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Kimya",
+    "subcategory": "Periyodik Tablo & Elementler",
+    "name": "Ernest Rutherford",
+    "role": "",
+    "skills": [
+      "Alfa Parçacığı: Çeldirici 1 yanlış şıkkı delip geçer",
+      "Çekirdek Modeli: Şıkları doğrudan 2 seçeneğe indirger",
+      "Altın Levha: Yanlış cevapta can kaybını tamamen geri saçar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 143,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Kimya",
+    "subcategory": "Fizikokimya",
+    "name": "Michael Faraday",
+    "role": "",
+    "skills": [
+      "Katot-Anot: Doğru ve yanlış şıkları iki kutba ayırır",
+      "Faraday Kafesi: Seriyi olası tüm yanlışlara karşı kilitler",
+      "Elektroliz Gücü: 2 yanlış seçeneği eritip yok eder"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 144,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Kimya",
+    "subcategory": "Fizikokimya",
+    "name": "Svante Arrhenius",
+    "role": "",
+    "skills": [
+      "Aktivasyon: Zihinsel süreyi durdurup sakinlik verir",
+      "İyonlaşma: Yanlış 2 seçeneği suda çözer gibi yok eder",
+      "Sera Etkisi: Doğru cevaba doğrudan 2.5x puan uygular"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 145,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Kimya",
+    "subcategory": "Fizikokimya",
+    "name": "Amedeo Avogadro",
+    "role": "",
+    "skills": [
+      "Sabit Sayı: Doğru serisi bozulsa bile seriyi korur",
+      "Mol Dengesi: Şıkları doğrudan 2 seçeneğe indirir",
+      "Avogadro Hipotezi: Kararsız kalınan soruyu doğru kabul ettirir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 146,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Kimya",
+    "subcategory": "Organik & İnorganik Kimya",
+    "name": "Walter White (Heisenberg)",
+    "role": "",
+    "skills": [
+      "%99.1 Saflık: Yanlış 1 şıkkı asitle eritir",
+      "\"Say My Name\": Yanlış 2 seçeneği anında buharlaştırır",
+      "Mavi Kristal: Doğru bilinen soru için doğrudan 3x saf puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 147,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Kimya",
+    "subcategory": "Organik & İnorganik Kimya",
+    "name": "Friedrich Wöhler",
+    "role": "",
+    "skills": [
+      "Üre Sentezi: Yapay olan yanıltıcı seçeneği eler",
+      "Organik Köprü: Şıkları 2 seçeneğe indirger ve ipucu verir",
+      "Laboratuvar Zaferi: Kararsız kalınan soruyu doğru kabul ettirir"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Öge Bazlı Kategoriler",
+    "source_row": 148,
+    "scope": "global",
+    "scope_basis": "category-wide object character; inferred global",
+    "display_order": null,
+    "category": "Kimya",
+    "subcategory": "Organik & İnorganik Kimya",
+    "name": "Alexander Shulgin",
+    "role": "",
+    "skills": [
+      "Molekül Tasarımı: Sayacı durdurup sorunun analizini açar",
+      "Sentez Gücü: Yanlış cevapta can kaybını tamamen sıfırlar",
+      "Reaksiyon Patlaması: Şıkları ikiye indirir ve doğruyu onaylar"
+    ],
+    "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Spor",
+    "source_row": 2,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "1",
+    "category": "Spor",
+    "subcategory": "Temel Spor",
+    "name": "Pelé",
+    "role": "Futbol Efsanesi",
+    "skills": [
+      "Joga Bonito: En zayıf yanıltıcı seçeneği şıklar arasından eler",
+      "Sambacı Çalımı: Şıkları doğrudan 2 seçeneğe indirger (%50 eleme)",
+      "Kralın Tacı: Kararsız kalınan soruyu tek tıkla doğru saydırıp 3x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Spor",
+    "source_row": 3,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "2",
+    "category": "Spor",
+    "subcategory": "Temel Spor",
+    "name": "Michael Phelps",
+    "role": "Yüzme Efsanesi",
+    "skills": [
+      "Kulaç Hızı: Sayacın akışını dondurup süreye 8 saniye ekler",
+      "Yunus Vuruşu: Yanlış 2 seçeneği havuzdan tamamen eler",
+      "23 Altın Madalya: Doğru şıkkı kilitler ve soruya doğrudan 3x puan kazandırır"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Spor",
+    "source_row": 4,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "3",
+    "category": "Spor",
+    "subcategory": "Temel Spor",
+    "name": "Roger Federer",
+    "role": "Tenis Efsanesi",
+    "skills": [
+      "Zarif Servis: Soruya ait kritik anahtar ipucu kartını açar",
+      "Kusursuz Backhand: Yanlış cevapta serinin ve canın bozulmasını önler",
+      "Grand Slam Rekortmeni: Şıkları ikiye indirir, süreyi dondurur ve doğruyu onaylar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Spor",
+    "source_row": 5,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "4",
+    "category": "Spor",
+    "subcategory": "Temel Spor",
+    "name": "Usain Bolt",
+    "role": "Atletizm Efsanesi",
+    "skills": [
+      "Yıldırım Deparı: İlk 3 saniyede cevaplanırsa puan çarpanını 2x yapar",
+      "Son 100 Metre: Yanlış 2 seçeneği geride bırakıp ekrandan siler",
+      "Dünya Rekoru: Soruyu doğrudan doğru kabul ettirip tam skor yazdırır"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Spor",
+    "source_row": 6,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "5",
+    "category": "Spor",
+    "subcategory": "Temel Spor",
+    "name": "Muhammad Ali",
+    "role": "Boks Efsanesi",
+    "skills": [
+      "Kelebek Dansı: Yanlış basılan ilk şıkkı hasar almadan affeder",
+      "Arı İğnesi: En güçlü çeldirici şıkkı nakavt ederek eler",
+      "En Büyük Benim: Yanlış yapılsa bile soruyu doğru saydırıp seriyi korur"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Spor",
+    "source_row": 7,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "6",
+    "category": "Spor",
+    "subcategory": "Temel Spor",
+    "name": "Lionel Messi",
+    "role": "Futbol Efsanesi",
+    "skills": [
+      "Sihirli Sol Ayak: Çeldirici en zayıf seçeneği ustalıkla eler",
+      "Slalom Çalımı: Şıkları doğrudan 2 seçeneğe indirger",
+      "Sekizinci Ballon d'Or: Kararsız kalınan soruyu doğru sayıp 3x kupa puanı verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Spor",
+    "source_row": 8,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "7",
+    "category": "Spor",
+    "subcategory": "Temel Spor",
+    "name": "Cristiano Ronaldo",
+    "role": "Futbol Efsanesi",
+    "skills": [
+      "Siuu Vuruşu: İlk 3 saniyede cevaplanırsa puan çarpanını 2x yapar",
+      "Roket Frikik: Yanlış 2 seçeneği barajın dışına fırlatır",
+      "Mr. Champions League: Doğru şıkkı kilitler ve soruya 3x rekor puanı kazandırır"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Spor",
+    "source_row": 9,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "8",
+    "category": "Spor",
+    "subcategory": "Temel Spor",
+    "name": "Ayrton Senna",
+    "role": "Formula 1 Efsanesi",
+    "skills": [
+      "Yağmur Ustası: Sayacın akışını dondurup süreye 8 saniye ekler",
+      "Kusursuz Pole: Yanlış 2 seçeneği pistin dışına iter",
+      "Monaco Zaferi: Soruyu doğrudan doğru kabul ettirir ve kombo serisini korur"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Spor",
+    "source_row": 10,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "9",
+    "category": "Spor",
+    "subcategory": "Temel Spor",
+    "name": "Nadia Comăneci",
+    "role": "Jimnastik Efsanesi",
+    "skills": [
+      "Kusursuz Denge: Yanlış basılan ilk şıkkı hasar almadan affeder",
+      "Asimetrik Paralel: En güçlü çeldirici seçeneği saf dışı bırakır",
+      "Kusursuz 10 (Perfect 10): Doğru şıkkı anında onaylar ve soruya tam 3x mükemmel puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Spor",
+    "source_row": 11,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "10",
+    "category": "Spor",
+    "subcategory": "Temel Spor",
+    "name": "Tiger Woods",
+    "role": "Golf Efsanesi",
+    "skills": [
+      "Yeşil Çim Odağı: Soruya ait kritik anahtar ipucu kartını açar",
+      "Hole-in-One: Şıkları doğrudan 2 seçeneğe indirir",
+      "15 Major Zaferi: Kararsız kalınan soruyu doğru kabul ettirip 2.5x puan kazandırır"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Edebiyat",
+    "source_row": 2,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "1",
+    "category": "Edebiyat",
+    "subcategory": "Temel Edebiyat",
+    "name": "William Shakespeare",
+    "role": "Oyun Yazarı ve Şair",
+    "skills": [
+      "Trajedi Kalkanı: Yanlış basılan ilk şıkkı hasar almadan affeder",
+      "Hamlet Monoloğu: Şıkları doğrudan 2 seçeneğe indirger (%50 eleme)",
+      "Olmak ya da Olmamak: Kararsız kalınan soruyu doğru kabul ettirip 3x puan kazandırır"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Edebiyat",
+    "source_row": 3,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "2",
+    "category": "Edebiyat",
+    "subcategory": "Temel Edebiyat",
+    "name": "Lev Tolstoy",
+    "role": "Roman Yazarı",
+    "skills": [
+      "Savaş ve Barış: Sayacın akışını dondurup süreye 8 saniye ekler",
+      "Epik Kurgu: Yanlış 2 seçeneği havuzdan tamamen eler",
+      "Anna Karenina: Doğru şıkkı kilitler ve soruya doğrudan 3x puan kazandırır"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Edebiyat",
+    "source_row": 4,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "3",
+    "category": "Edebiyat",
+    "subcategory": "Temel Edebiyat",
+    "name": "Fyodor Dostoyevski",
+    "role": "Roman Yazarı",
+    "skills": [
+      "Yeraltından Notlar: Soruya ait kritik anahtar ipucu kartını açar",
+      "Suç ve Ceza: Yanlış cevapta serinin ve canın bozulmasını önler",
+      "Karamazov Kardeşler: Şıkları ikiye indirir, süreyi dondurur ve doğruyu onaylar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Edebiyat",
+    "source_row": 5,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "4",
+    "category": "Edebiyat",
+    "subcategory": "Temel Edebiyat",
+    "name": "Victor Hugo",
+    "role": "Şair ve Yazar",
+    "skills": [
+      "Sefiller Ruhu: İlk 3 saniyede cevaplanırsa puan çarpanını 2x yapar",
+      "Barikat Savunması: Yanlış 2 seçeneği geride bırakıp ekrandan siler",
+      "Kozet'in Umudu: Soruyu doğrudan doğru kabul ettirip tam skor yazdırır"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Edebiyat",
+    "source_row": 6,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "5",
+    "category": "Edebiyat",
+    "subcategory": "Temel Edebiyat",
+    "name": "Johann Wolfgang von Goethe",
+    "role": "Şair ve Düşünür",
+    "skills": [
+      "Faust Pazarlığı: Yanlış basılan ilk şıkkı hasar almadan affeder",
+      "Doğu-Batı Divanı: En güçlü çeldirici şıkkı nakavt ederek eler",
+      "Genç Werther: Yanlış yapılsa bile soruyu doğru saydırıp seriyi korur"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Edebiyat",
+    "source_row": 7,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "6",
+    "category": "Edebiyat",
+    "subcategory": "Temel Edebiyat",
+    "name": "Dante Alighieri",
+    "role": "Şair",
+    "skills": [
+      "İlahi Komedya: Çeldirici en zayıf seçeneği ustalıkla eler",
+      "Cehennemden Çıkış: Şıkları doğrudan 2 seçeneğe indirger",
+      "Cennetin Işığı: Kararsız kalınan soruyu doğru sayıp 3x kupa puanı verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Edebiyat",
+    "source_row": 8,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "7",
+    "category": "Edebiyat",
+    "subcategory": "Temel Edebiyat",
+    "name": "Miguel de Cervantes",
+    "role": "Roman Yazarı",
+    "skills": [
+      "Don Kişot Seferi: İlk 3 saniyede cevaplanırsa puan çarpanını 2x yapar",
+      "Yel Değirmenleri: Yanlış 2 seçeneği barajın dışına fırlatır",
+      "Şövalye Yemini: Doğru şıkkı kilitler ve soruya 3x rekor puanı kazandırır"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Edebiyat",
+    "source_row": 9,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "8",
+    "category": "Edebiyat",
+    "subcategory": "Temel Edebiyat",
+    "name": "Homeros",
+    "role": "Antik Ozan",
+    "skills": [
+      "İlyada Destanı: Sayacın akışını dondurup süreye 8 saniye ekler",
+      "Troya Taktiği: Yanlış 2 seçeneği sahadan siler",
+      "Odysseia Dönüşü: Soruyu doğrudan doğru kabul ettirir ve kombo serisini korur"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Edebiyat",
+    "source_row": 10,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "9",
+    "category": "Edebiyat",
+    "subcategory": "Temel Edebiyat",
+    "name": "Franz Kafka",
+    "role": "Modernist Yazar",
+    "skills": [
+      "Dönüşüm: Yanlış basılan ilk şıkkı hasar almadan affeder",
+      "Dava Sorgusu: En güçlü çeldirici seçeneği saf dışı bırakır",
+      "Şato Labirenti: Doğru şıkkı anında onaylar ve soruya tam 3x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Edebiyat",
+    "source_row": 11,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "10",
+    "category": "Edebiyat",
+    "subcategory": "Temel Edebiyat",
+    "name": "Gabriel García Márquez",
+    "role": "Roman Yazarı",
+    "skills": [
+      "Büyülü Gerçekçilik: Soruya ait kritik anahtar ipucu kartını açar",
+      "Macondo Esintisi: Şıkları doğrudan 2 seçeneğe indirir",
+      "Yüzyıllık Yalnızlık: Kararsız kalınan soruyu doğru kabul ettirip 2.5x puan kazandırır"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Müzik",
+    "source_row": 2,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "1",
+    "category": "Müzik",
+    "subcategory": "Klasik Müzik Efsaneleri",
+    "name": "Ludwig van Beethoven",
+    "role": "Klasik Batı Müziği Bestecisi",
+    "skills": [
+      "Kader Motifi: Yanlış basılan ilk şıkkı hasar almadan affeder",
+      "Ayışığı Sonatı: Şıkları doğrudan 2 seçeneğe indirger (%50 eleme)",
+      "9. Senfoni: Kararsız kalınan soruyu doğru kabul ettirip 3x puan kazandırır"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Müzik",
+    "source_row": 3,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "2",
+    "category": "Müzik",
+    "subcategory": "Klasik Müzik Efsaneleri",
+    "name": "Wolfgang Amadeus Mozart",
+    "role": "Klasik Dönem Bestecisi",
+    "skills": [
+      "Küçük Bir Gece Müziği: Sayacın akışını dondurup süreye 8 saniye ekler",
+      "Sihirli Flüt: Yanlış 2 seçeneği havuzdan tamamen eler",
+      "Requiem: Doğru şıkkı kilitler ve soruya doğrudan 3x puan kazandırır"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Müzik",
+    "source_row": 4,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "3",
+    "category": "Müzik",
+    "subcategory": "Klasik Müzik Efsaneleri",
+    "name": "Johann Sebastian Bach",
+    "role": "Barok Dönem Bestecisi",
+    "skills": [
+      "Kanon & Füg: Soruya ait kritik anahtar ipucu kartını açar",
+      "Brandenburg Konçertosu: Yanlış cevapta serinin ve canın bozulmasını önler",
+      "Matthäus-Passion: Şıkları ikiye indirir, süreyi dondurur ve doğruyu onaylar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Müzik",
+    "source_row": 5,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "4",
+    "category": "Müzik",
+    "subcategory": "Klasik Müzik Efsaneleri",
+    "name": "Frédéric Chopin",
+    "role": "Romantik Dönem Piyanist ve Besteci",
+    "skills": [
+      "Nocturne Tınısı: İlk 3 saniyede cevaplanırsa puan çarpanını 2x yapar",
+      "Devrim Etüdü: Yanlış 2 seçeneği barajın dışına fırlatır",
+      "Cenaze Marşı: Soruyu doğrudan doğru kabul ettirip tam skor yazdırır"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Müzik",
+    "source_row": 6,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "5",
+    "category": "Müzik",
+    "subcategory": "Klasik Müzik Efsaneleri",
+    "name": "Pyotr Ilyich Tchaikovsky",
+    "role": "Romantik Dönem Rus Besteci",
+    "skills": [
+      "Kuğu Gölü: En güçlü çeldirici seçeneği saf dışı bırakır",
+      "Fındıkkıran Süiti: Yanlış basılan ilk şıkkı cezasız affeder",
+      "1812 Uvertürü: Şıkları ikiye indirir ve soruya 3x zafer puanı verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Müzik",
+    "source_row": 7,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "6",
+    "category": "Müzik",
+    "subcategory": "Pop, Rock & Caz Efsaneleri",
+    "name": "Michael Jackson",
+    "role": "Pop'un Kralı",
+    "skills": [
+      "Moonwalk: Yanlış tıklanan şıkkı geriye alıp 1 hak daha tanır",
+      "Billie Jean Bası: Şıkları doğrudan 2 seçeneğe indirger (%50 eleme)",
+      "Thriller: Soruyu anında doğru kabul ettirir ve 3x efsane puanı kazandırır"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Müzik",
+    "source_row": 8,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "7",
+    "category": "Müzik",
+    "subcategory": "Pop, Rock & Caz Efsaneleri",
+    "name": "Freddie Mercury",
+    "role": "Queen Solisti / Rock İkonu",
+    "skills": [
+      "Vokal Resitali: Sayacın akışını dondurup süreye 8 saniye ekler",
+      "Radio Ga Ga: Yanlış 2 seçeneği sahneden tamamen siler",
+      "Bohemian Rhapsody: Doğru şıkkı kilitler ve soruya devasa 3.5x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Müzik",
+    "source_row": 9,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "8",
+    "category": "Müzik",
+    "subcategory": "Pop, Rock & Caz Efsaneleri",
+    "name": "Elvis Presley",
+    "role": "Rock'n Roll'un Kralı",
+    "skills": [
+      "Jailhouse Rock: İlk 3 saniyede cevaplanırsa seri katsayısını 2x yapar",
+      "Blue Suede Shoes: Yanlış cevapta seriyi ve canı korur",
+      "Can't Help Falling in Love: Kararsız kalınan soruyu doğru sayıp seriyi kurtarır"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Müzik",
+    "source_row": 10,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "9",
+    "category": "Müzik",
+    "subcategory": "Pop, Rock & Caz Efsaneleri",
+    "name": "John Lennon",
+    "role": "The Beatles Kurucusu & Barış Aktivisti",
+    "skills": [
+      "Barış Çağrısı: Yanlış basılan ilk şıkkı hasar almadan affeder",
+      "Strawberry Fields: Soruya ait kilit ipucu kartını açar",
+      "Imagine: 4 seçenekli soruyu doğrudan Doğru/Yanlış ikili seçimine çevirir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Müzik",
+    "source_row": 11,
+    "scope": "global",
+    "scope_basis": "explicit global row",
+    "display_order": "10",
+    "category": "Müzik",
+    "subcategory": "Pop, Rock & Caz Efsaneleri",
+    "name": "Miles Davis",
+    "role": "Caz Trompetçisi & Öncüsü",
+    "skills": [
+      "Kind of Blue: Sayacın akışını durdurup ekrana sakinlik verir",
+      "Doğaçlama Solo: En tehlikeli çeldirici seçeneği ustalıkla eler",
+      "So What: Kararsız kalınan soruyu tek hamlede doğruya dönüştürür"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": null
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 2,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Tarih",
+    "subcategory": "Temel Tarih",
+    "name": "Herodotos",
+    "role": "Tarihin Babası",
+    "skills": [
+      "En zayıf şıkkı siler",
+      "Şıkları 2'ye indirger (%50)",
+      "Doğruyu onaylar + 2.5x puan"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%100 GL / %0 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 3,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Tarih",
+    "subcategory": "Temel Tarih",
+    "name": "Thukydides",
+    "role": "Bilimsel Tarihçiliğin Kurucusu",
+    "skills": [
+      "Tuzak analiz notunu açar",
+      "Şıkları mantık sırasına dizer",
+      "Doğru cevaba 3x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%100 GL / %0 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 5,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Tarih",
+    "subcategory": "Medeniyetin Doğuşu",
+    "name": "Hammurabi",
+    "role": "Babil Kanun Koyucusu",
+    "skills": [
+      "Anahtar kelimeyi gösterir",
+      "Yanlış 2 seçeneği eler",
+      "Doğru cevaba 3x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%60 GL / %40 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 6,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Tarih",
+    "subcategory": "Medeniyetin Doğuşu",
+    "name": "İmhotep",
+    "role": "Mısır İlk Piramit Mimarı",
+    "skills": [
+      "Sayacı 8 sn durdurur",
+      "Şıkları 2'ye indirger (%50)",
+      "Doğruyu onaylar + seriyi kilitler"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%60 GL / %40 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 8,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Tarih",
+    "subcategory": "Yerleşmeler",
+    "name": "Heinrich Schliemann",
+    "role": "Truva Höyüğü Kaşifi",
+    "skills": [
+      "Sayacı sıfırlayıp başa sarar",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%20 GL / %80 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 11,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Tarih",
+    "subcategory": "İmparatorluk ve Devletler",
+    "name": "Büyük İskender",
+    "role": "Makedonya İmparatoru",
+    "skills": [
+      "Hızlı cevapta 2x puan",
+      "Yanlış 2 seçeneği eler",
+      "Doğru cevaba 3x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%20 GL / %80 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 14,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Tarih",
+    "subcategory": "Savaşlar ve Antlaşmalar",
+    "name": "Julius Caesar",
+    "role": "Galya Fatihi / Alea Iacta Est",
+    "skills": [
+      "En zayıf şıkkı siler",
+      "Şıkları 2'ye indirger (%50)",
+      "Doğru cevaba 3x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%20 GL / %80 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 17,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Coğrafya",
+    "subcategory": "Temel Coğrafya",
+    "name": "Eratosthenes",
+    "role": "Dünyanın Çevresini İlk Ölçen",
+    "skills": [
+      "En zayıf şıkkı siler",
+      "Şıkları 2'ye indirger (%50)",
+      "Doğruyu onaylar + 2.5x puan"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%100 GL / %0 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 18,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Coğrafya",
+    "subcategory": "Temel Coğrafya",
+    "name": "Gerardus Mercator",
+    "role": "Modern Harita Projeksiyonu",
+    "skills": [
+      "Sayacı durdurup ipucunu açar",
+      "Şıkları mantık sırasına dizer",
+      "Doğru cevaba 3x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%100 GL / %0 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 20,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Coğrafya",
+    "subcategory": "Fiziki Coğrafya",
+    "name": "Alfred Wegener",
+    "role": "Kıtaların Kayması Kuramı",
+    "skills": [
+      "Sayacı durdurup 8 sn ekler",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%50 GL / %50 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 21,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Coğrafya",
+    "subcategory": "Fiziki Coğrafya",
+    "name": "Alexander von Humboldt",
+    "role": "Fiziki Coğrafya & İzoterm Öncüsü",
+    "skills": [
+      "Anahtar kelimeyi gösterir",
+      "Şıkları 2'ye indirger (%50)",
+      "Doğru cevaba 3x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%50 GL / %50 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 23,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Coğrafya",
+    "subcategory": "İklim",
+    "name": "Wladimir Köppen",
+    "role": "Köppen İklim Sınıflandırması",
+    "skills": [
+      "Soru ipucu kartını açar",
+      "Şıkları mantık sırasına dizer",
+      "Doğru cevaba 2.5x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%30 GL / %70 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 26,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Coğrafya",
+    "subcategory": "Yer Şekilleri",
+    "name": "William Morris Davis",
+    "role": "Jeomorfoloji / Aşınım Döngüsü",
+    "skills": [
+      "Sayacı 8 sn durdurur",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%0 GL / %100 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 29,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Coğrafya",
+    "subcategory": "Doğal Afetler",
+    "name": "Charles Richter",
+    "role": "Richter Deprem Ölçeği",
+    "skills": [
+      "Sayacı sıfırlayıp başa sarar",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%20 GL / %80 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 32,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Coğrafya",
+    "subcategory": "Sosyoekonomik",
+    "name": "Thomas Malthus",
+    "role": "Malthus Nüfus Teorisi",
+    "skills": [
+      "Tuzak analiz notunu açar",
+      "Şıkları mantık sırasına dizer",
+      "Doğru cevaba 2.5x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%20 GL / %80 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 35,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Ekonomi",
+    "subcategory": "Temel Ekonomi",
+    "name": "Adam Smith",
+    "role": "Görünmez El / Ulusların Zenginliği",
+    "skills": [
+      "En zayıf şıkkı siler",
+      "Şıkları 2'ye indirger (%50)",
+      "Doğru cevaba 3x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%100 GL / %0 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 36,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Ekonomi",
+    "subcategory": "Temel Ekonomi",
+    "name": "John Maynard Keynes",
+    "role": "Makroekonomik Müdahale",
+    "skills": [
+      "Sayacı durdurup 8 sn ekler",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%100 GL / %0 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 38,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Ekonomi",
+    "subcategory": "Borsa",
+    "name": "Warren Buffett",
+    "role": "Omaha Kahini / Değer Yatırımı",
+    "skills": [
+      "Hızlı cevapta 2x puan",
+      "Şıkları 2'ye indirger (%50)",
+      "Doğruyu onaylar + 3x puan"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%70 GL / %30 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 39,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Ekonomi",
+    "subcategory": "Borsa",
+    "name": "George Soros",
+    "role": "Kuantum Fonu / Spekülasyon",
+    "skills": [
+      "Sayacı durdurup ipucunu açar",
+      "Yanlış 2 seçeneği eler",
+      "Doğru cevaba 2.5x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%70 GL / %30 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 41,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Ekonomi",
+    "subcategory": "Piyasalar",
+    "name": "Milton Friedman",
+    "role": "Parasal İktisat / Serbest Piyasa",
+    "skills": [
+      "Anahtar kelimeyi gösterir",
+      "Şıkları 2'ye indirger (%50)",
+      "Doğru cevaba 3x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%70 GL / %30 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 42,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Ekonomi",
+    "subcategory": "Piyasalar",
+    "name": "Alan Greenspan",
+    "role": "Fed Faiz & Likidite İkonu",
+    "skills": [
+      "Sayacı 8 sn durdurur",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%70 GL / %30 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 44,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Ekonomi",
+    "subcategory": "Girişimcilik",
+    "name": "Peter Thiel",
+    "role": "Sıfırdan Bire / Risk Sermayesi",
+    "skills": [
+      "Hızlı cevapta 2x puan",
+      "Yanlış 2 seçeneği eler",
+      "Doğru cevaba 3x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%70 GL / %30 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 45,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Ekonomi",
+    "subcategory": "Girişimcilik",
+    "name": "Marc Andreessen",
+    "role": "Netscape / VC Öncüsü",
+    "skills": [
+      "Sayacı sıfırlayıp başa sarar",
+      "Şıkları 2'ye indirger (%50)",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%70 GL / %30 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 47,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Ekonomi",
+    "subcategory": "Kripto Dünyası",
+    "name": "Satoshi Nakamoto",
+    "role": "Bitcoin Yaratıcısı",
+    "skills": [
+      "En zayıf şıkkı siler",
+      "Şıkları 2'ye indirger (%50)",
+      "Doğruyu onaylar + 3x puan"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%100 GL / %0 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 48,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Ekonomi",
+    "subcategory": "Kripto Dünyası",
+    "name": "Vitalik Buterin",
+    "role": "Ethereum & Akıllı Sözleşmeler",
+    "skills": [
+      "Sayacı durdurup 8 sn ekler",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%100 GL / %0 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 50,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Ekonomi",
+    "subcategory": "Şirketler",
+    "name": "John D. Rockefeller",
+    "role": "Standard Oil / Sanayi Monopolü",
+    "skills": [
+      "Anahtar kelimeyi gösterir",
+      "Yanlış 2 seçeneği eler",
+      "Doğru cevaba 3x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%70 GL / %30 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 51,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Ekonomi",
+    "subcategory": "Şirketler",
+    "name": "Andrew Carnegie",
+    "role": "Çelik Devi & Hayırseverlik",
+    "skills": [
+      "Sayacı durdurup ipucunu açar",
+      "Şıkları 2'ye indirger (%50)",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%70 GL / %30 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 53,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Mitoloji",
+    "subcategory": "Temel Mitoloji",
+    "name": "Zeus",
+    "role": "Olimpos Panteon Lideri",
+    "skills": [
+      "En zayıf şıkkı siler",
+      "Şıkları 2'ye indirger (%50)",
+      "Doğruyu onaylar + 2.5x puan"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%100 GL / %0 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 54,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Mitoloji",
+    "subcategory": "Temel Mitoloji",
+    "name": "Odin",
+    "role": "İskandinav Bilgelik & Savaş Tanrısı",
+    "skills": [
+      "Sayacı 8 sn durdurur",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%100 GL / %0 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 56,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Mitoloji",
+    "subcategory": "Mitoloji Yapıları",
+    "name": "Poseidon",
+    "role": "Denizler ve Depremler Tanrısı",
+    "skills": [
+      "Hızlı cevapta 2x puan",
+      "Yanlış 2 seçeneği eler",
+      "Doğru cevaba 2.5x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%90 GL / %10 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 57,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Mitoloji",
+    "subcategory": "Mitoloji Yapıları",
+    "name": "Anubis",
+    "role": "Mısır Mumyalama ve Yeraltı Rehberi",
+    "skills": [
+      "Sayacı durdurup 8 sn ekler",
+      "Şıkları 2'ye indirger (%50)",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%90 GL / %10 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 59,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Mitoloji",
+    "subcategory": "Yerel Mitoloji",
+    "name": "Thor",
+    "role": "İskandinav Şimşek Tanrısı / Mjölnir",
+    "skills": [
+      "Hızlı cevapta 2x puan",
+      "Yanlış 2 seçeneği eler",
+      "Doğru cevaba 3x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%10 GL / %90 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 62,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Mitoloji",
+    "subcategory": "Efsaneler",
+    "name": "Kral Arthur",
+    "role": "Excalibur & Yuvarlak Masa Efsanesi",
+    "skills": [
+      "En zayıf şıkkı siler",
+      "1 soruda 2 şık seçme hakkı",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%30 GL / %70 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 65,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Mitoloji",
+    "subcategory": "Halk Hikayeleri",
+    "name": "Robin Hood",
+    "role": "Sherwood Ormanı Halk Kahramanı",
+    "skills": [
+      "Hızlı cevapta 2x puan",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%20 GL / %80 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 68,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Genel Kültür",
+    "subcategory": "Temel Genel Kültür",
+    "name": "Marco Polo",
+    "role": "İpek Yolu Seyyahı",
+    "skills": [
+      "Anahtar kelimeyi gösterir",
+      "Şıkları mantık sırasına dizer",
+      "Doğru cevaba 2.5x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%100 GL / %0 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 69,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Genel Kültür",
+    "subcategory": "Temel Genel Kültür",
+    "name": "Ferdinand Magellan",
+    "role": "Dünyanın Çevresini Dolaşan İlk Kaşif",
+    "skills": [
+      "Hızlı cevapta 2x puan",
+      "Yanlış 2 seçeneği eler",
+      "Doğru cevaba 3x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%100 GL / %0 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 71,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Genel Kültür",
+    "subcategory": "Kültürel İkonlar",
+    "name": "Gustave Eiffel",
+    "role": "Eyfel Kulesi Mimarı",
+    "skills": [
+      "Sayacı 8 sn durdurur",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%15 GL / %85 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 74,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Genel Kültür",
+    "subcategory": "Danslar",
+    "name": "Mihail Barışnikov",
+    "role": "Dünya Bale ve Dans Efsanesi",
+    "skills": [
+      "Sayacı sıfırlayıp başa sarar",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%10 GL / %90 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 77,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Genel Kültür",
+    "subcategory": "Festivaller",
+    "name": "Kral Momo",
+    "role": "Rio Karnavalı Sembolik Kralı",
+    "skills": [
+      "Hızlı cevapta 2x puan",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%10 GL / %90 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 80,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Genel Kültür",
+    "subcategory": "Bayramlar",
+    "name": "Noel Baba (St. Nicholas)",
+    "role": "Yılbaşı ve Hediye Geleneği İkonu",
+    "skills": [
+      "Sayacı durdurup 8 sn ekler",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%10 GL / %90 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 83,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Siyaset",
+    "subcategory": "Temel Siyaset",
+    "name": "Montesquieu",
+    "role": "Kuvvetler Ayrılığı İlkesi",
+    "skills": [
+      "Tuzak analiz notunu açar",
+      "Şıkları mantık sırasına dizer",
+      "Doğru cevaba 3x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%100 GL / %0 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 84,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Siyaset",
+    "subcategory": "Temel Siyaset",
+    "name": "Jean-Jacques Rousseau",
+    "role": "Toplum Sözleşmesi / Halk Egemenliği",
+    "skills": [
+      "Anahtar kelimeyi gösterir",
+      "Şıkları 2'ye indirger (%50)",
+      "Doğruyu onaylar + 2.5x puan"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%100 GL / %0 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 86,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Siyaset",
+    "subcategory": "Uluslararası İlişkiler",
+    "name": "Henry Kissinger",
+    "role": "Reelpolitik ve Diplomasi Mimarı",
+    "skills": [
+      "Soru ipucu kartını açar",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%20 GL / %80 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 89,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Siyaset",
+    "subcategory": "Siyasal Tarih",
+    "name": "Otto von Bismarck",
+    "role": "Demir Şansölye / Realpolitik",
+    "skills": [
+      "Anahtar kelimeyi gösterir",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%0 GL / %100 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 92,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Siyaset",
+    "subcategory": "Kurumlar ve Yönetimler",
+    "name": "Max Weber",
+    "role": "Bürokrasi ve Meşru Otorite Tipleri",
+    "skills": [
+      "Tuzak analiz notunu açar",
+      "Şıkları mantık sırasına dizer",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%0 GL / %100 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 95,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Siyaset",
+    "subcategory": "Liderler ve Seçimler",
+    "name": "Abraham Lincoln",
+    "role": "Gettysburg / Demokrasi İkonu",
+    "skills": [
+      "Anahtar kelimeyi gösterir",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%0 GL / %100 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 98,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Gastronomi",
+    "subcategory": "Temel Gastronomi",
+    "name": "Auguste Escoffier",
+    "role": "Modern Mutfak Hiyerarşisi / Şeflerin Kralı",
+    "skills": [
+      "En zayıf şıkkı siler",
+      "Şıkları 2'ye indirger (%50)",
+      "Doğru cevaba 3x puan verir"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%100 GL / %0 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 99,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Gastronomi",
+    "subcategory": "Temel Gastronomi",
+    "name": "Jean Anthelme Brillat-Savarin",
+    "role": "Lezzetin Fizyolojisi Yazarı",
+    "skills": [
+      "Sayacı durdurup ipucunu açar",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%100 GL / %0 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 101,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Gastronomi",
+    "subcategory": "Geleneksel Yemekler",
+    "name": "Paul Bocuse",
+    "role": "Nouvelle Cuisine & Geleneksel Fransız",
+    "skills": [
+      "Hızlı cevapta 2x puan",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%0 GL / %100 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 104,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Gastronomi",
+    "subcategory": "Sokak Lezzetleri",
+    "name": "Anthony Bourdain",
+    "role": "No Reservations / Sokak Mutfağı Kaşifi",
+    "skills": [
+      "Soru ipucu kartını açar",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%10 GL / %90 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 107,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Gastronomi",
+    "subcategory": "Tatlı Kültürleri",
+    "name": "Gaston Lenôtre",
+    "role": "Modern Pastacılık Okulunun Babası",
+    "skills": [
+      "Sayacı durdurup 8 sn ekler",
+      "Yanlış 2 seçeneği eler",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%10 GL / %90 LO"
+  },
+  {
+    "source_sheet": "Ülke / Bölge Bazlı Kategoriler (GL)",
+    "source_row": 110,
+    "scope": "global",
+    "scope_basis": "explicit [Global] row",
+    "display_order": null,
+    "category": "Gastronomi",
+    "subcategory": "Öğün Kültürleri",
+    "name": "John Montagu (Sandwich Kontu)",
+    "role": "Hızlı Öğün / Sandviç Kültürünün İsim Babası",
+    "skills": [
+      "En zayıf şıkkı siler",
+      "Şıkları 2'ye indirger (%50)",
+      "Kararsız soruyu doğru sayar"
+    ],
+    "quota": "Lvl 1: Y1 (3) / Lvl 2: Y1 (5)+Y2 (3) / Lvl 3: Y1 (7)+Y2 (5)+Y3 (2)",
+    "question_mix": "%0 GL / %100 LO"
+  }
+]

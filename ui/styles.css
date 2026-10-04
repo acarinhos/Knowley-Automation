@@ -57,6 +57,8 @@ h3 { margin: 10px 0; font-size: 18px; }
 .field-grid { display: grid; gap: 14px; }.field-grid.two { grid-template-columns: 1fr 1fr; }.field-grid.three { grid-template-columns: repeat(3, 1fr); }
 .field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
 .field > span { color: #b5bdd6; font-size: 12px; font-weight: 700; }
+.field-hint { color: var(--muted); font-size: 10px; line-height: 1.45; }
+.language-summary { color: var(--cyan); font-size: 12px; font-weight: 700; }
 .mode-fieldset { border: 0; padding: 0; margin: 0 0 17px; }
 .mode-fieldset legend { color: #b5bdd6; font-size: 12px; font-weight: 700; margin-bottom: 9px; }
 .mode-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }

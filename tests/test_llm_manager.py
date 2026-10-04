@@ -4,8 +4,8 @@ MultiLLMManager Çoklu Sağlayıcı ve Fallback Birim Testleri
 """
 
 import unittest
-from unittest.mock import patch
-from core.llm_manager import MultiLLMManager
+from unittest.mock import Mock, patch
+from core.llm_manager import AllProvidersCoolingDown, MultiLLMManager
 
 
 class TestMultiLLMManager(unittest.TestCase):
@@ -90,9 +90,30 @@ class TestMultiLLMManager(unittest.TestCase):
         self.manager.providers = ["gemini", "groq", "cohere"]
         self.manager.current_idx = 0
 
-        with self.assertRaises(RuntimeError) as ctx:
+        with self.assertRaises(AllProvidersCoolingDown) as ctx:
             self.manager.generate_trivia("sys", "user")
         self.assertIn("Tüm LLM sağlayıcıları hata verdi", str(ctx.exception))
+
+    @patch.object(MultiLLMManager, "_call_cohere")
+    def test_cooldown_provider_is_not_called_again(self, mock_cohere):
+        mock_cohere.side_effect = Exception("429 Too Many Requests")
+        self.manager.providers = ["cohere"]
+        with self.assertRaises(AllProvidersCoolingDown):
+            self.manager.generate_trivia("sys", "user")
+        with self.assertRaises(AllProvidersCoolingDown):
+            self.manager.generate_trivia("sys", "user")
+        self.assertEqual(mock_cohere.call_count, 1)
+
+    def test_cohere_stops_model_cascade_on_rate_limit(self):
+        client = Mock()
+        client.chat.side_effect = Exception("429 Too Many Requests")
+        self.manager.cohere_client = client
+        self.manager.cohere_models = ["one", "two", "three"]
+
+        with self.assertRaises(RuntimeError):
+            self.manager._call_cohere("sys", "user")
+
+        self.assertEqual(client.chat.call_count, 1)
 
     @patch.object(MultiLLMManager, "_call_cohere")
     def test_markdown_code_block_stripping(self, mock_cohere):

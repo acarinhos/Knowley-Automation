@@ -193,7 +193,7 @@ class GenerationPlanner:
         effective_scope = force_scope
         # Bölüm 2 öge/odak tabanlıdır. Kullanıcı bir ülke profili
         # seçmedikçe hiçbir somut ülkeye bağlanmaz.
-        if sheet_target and sheet_target.section == "section_2" and not force_country:
+        if sheet_target and sheet_target.section == "section_2":
             effective_scope = "global"
 
         scope, ratio_percent = self.plan_scope(
@@ -202,13 +202,20 @@ class GenerationPlanner:
             subcategory=subcategory,
             country=force_country,
         )
-        if sheet_target and sheet_target.section == "section_2" and not force_country:
+        if sheet_target and sheet_target.section == "section_2":
             ratio_percent = 100
 
         if force_country:
-            country, credit, eligible = self.plan_country(
-                norm_cat, scope=scope, force_country=force_country
-            )
+            if scope == "global":
+                country, credit, eligible = "Global", 10, True
+            elif sheet_target and sheet_target.source_sheet != "fallback":
+                country = str(force_country).strip()
+                credit = get_country_credit(norm_cat, country)
+                eligible = is_country_global_eligible(norm_cat, country)
+            else:
+                country, credit, eligible = self.plan_country(
+                    norm_cat, scope=scope, force_country=force_country
+                )
         elif sheet_target and sheet_target.section in {"section_1", "section_2", "section_3"}:
             if scope == "global" or sheet_target.section == "section_2":
                 country, credit, eligible = "Global", 10, True
@@ -223,7 +230,7 @@ class GenerationPlanner:
                     if preferred_local_country
                     else random.choice(countries) if countries else "Türkiye"
                 )
-                credit = max(1, get_country_credit(norm_cat, country))
+                credit = get_country_credit(norm_cat, country)
                 eligible = is_country_global_eligible(norm_cat, country)
         else:
             country, credit, eligible = self.plan_country(norm_cat, scope=scope)

@@ -16,6 +16,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
+from core.translation_service import language_codes_from_sheet
+
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_SNAPSHOT_PATH = ROOT_DIR / "data" / "knowley_algorithm_snapshot.json"
@@ -25,7 +27,7 @@ POOL_COLUMNS = {
     "64": "64 Kredi Havuzu",
 }
 
-COUNTRY_SHEET_ALIASES = {
+LEGACY_COUNTRY_SHEET_ALIASES = {
     "Türkiye": "Türkiye Kategorizasyon",
     "ABD": "ABD Kategorizasyon",
     "Çin": "Çin Kategorizasyon",
@@ -92,6 +94,7 @@ class AlgorithmTarget:
     category_drafts: str = ""
     section: str = ""
     target_country: Optional[str] = None
+    target_country_code: str = "GL"
 
 
 class SheetAlgorithmRepository:
@@ -105,11 +108,68 @@ class SheetAlgorithmRepository:
         self._sheets: Dict[str, Dict[str, Any]] = {
             sheet["title"]: sheet for sheet in self.payload.get("sheets", [])
         }
+        self._country_profile_sheets: Dict[str, str] = {}
+        self._load_country_sidecars()
         self._category_meta = self._build_category_meta()
         self._category_weights = self._build_category_weights()
         self._generic_records = self._build_generic_records()
         self._localized_records = self._build_localized_records()
         self._country_records = self._build_country_records()
+
+    def _load_country_sidecars(self) -> None:
+        """Merge connector-exported country data until the regular sheet sync runs."""
+        data_dir = ROOT_DIR / "data"
+        metadata_path = data_dir / "knowley_country_region_metadata.json"
+        if metadata_path.exists():
+            with metadata_path.open("r", encoding="utf-8") as handle:
+                metadata = json.load(handle)
+            self.source.update(metadata.get("source", {}))
+            self._sheets["Ülke/Bölge Listesi"] = {
+                "title": "Ülke/Bölge Listesi",
+                "rows": metadata.get("rows", []),
+            }
+
+        localize_path = data_dir / "knowley_localize_sub_snapshot.json"
+        if localize_path.exists():
+            with localize_path.open("r", encoding="utf-8") as handle:
+                localized_sheet = json.load(handle)
+            self._sheets["Localize Sub Kredi Dereceleri"] = localized_sheet
+
+        profile_paths = sorted(data_dir.glob("knowley_country_profiles_*.json"))
+        for path in profile_paths:
+            with path.open("r", encoding="utf-8") as handle:
+                profiles = json.load(handle)
+            for profile in profiles:
+                country = _clean(profile.get("name"))
+                title = _clean(profile.get("title"))
+                if not country or not title:
+                    continue
+                self._country_profile_sheets[country] = title
+                self._sheets[title] = {
+                    "title": title,
+                    "sheet_id": profile.get("sheet_id"),
+                    "columns": profile.get("columns", []),
+                    "rows": profile.get("rows", []),
+                }
+
+        if not self._country_profile_sheets:
+            known_countries = {
+                _clean(row.get("Ülke / Bölge"))
+                for row in self.sheet_rows("Ülke/Bölge Listesi")
+                if _clean(row.get("Ülke / Bölge"))
+            }
+            for title in self._sheets:
+                if title == "Birleşik Kralllık Kategorizasyon":
+                    country = "Birleşik Krallık"
+                else:
+                    country = re.sub(
+                        r"\s+Kategorizasyon(?:u)?$", "", title, flags=re.I
+                    )
+                if country in known_countries:
+                    self._country_profile_sheets[country] = title
+            for country, title in LEGACY_COUNTRY_SHEET_ALIASES.items():
+                if country not in self._country_profile_sheets and title in self._sheets:
+                    self._country_profile_sheets[country] = title
 
     @property
     def version(self) -> str:
@@ -288,7 +348,7 @@ class SheetAlgorithmRepository:
 
     def _build_country_records(self) -> Dict[str, List[Dict[str, Any]]]:
         result: Dict[str, List[Dict[str, Any]]] = {}
-        for country, sheet in COUNTRY_SHEET_ALIASES.items():
+        for country, sheet in self._country_profile_sheets.items():
             result[country] = self._rows_to_records(self.sheet_rows(sheet), sheet)
         return result
 
@@ -306,29 +366,66 @@ class SheetAlgorithmRepository:
             for category in self.categories()
         ]
 
-    def countries(self) -> List[Dict[str, str]]:
+    def countries(self) -> List[Dict[str, Any]]:
         result = []
         for row in self.sheet_rows("Ülke/Bölge Listesi"):
             country = _clean(row.get("Ülke / Bölge"))
             if country:
+                language_names = [
+                    _clean(value)
+                    for value in re.split(r"\s*,\s*", _clean(row.get("Eşleşen Dil(ler)")))
+                    if _clean(value)
+                ]
                 result.append(
                     {
                         "name": country,
                         "description": _clean(row.get("Kapsam / Açıklama")),
+                        "code": _clean(row.get("Kod")),
+                        "language_names": language_names,
+                        "languages": language_codes_from_sheet(
+                            row.get("Eşleşen Dil(ler)"), row.get("Kod")
+                        ),
+                        "profile_sheet": self._country_profile_sheets.get(country)
+                        or _clean(row.get("profile_sheet")),
                     }
                 )
         return result
 
-    def country_profiles(self) -> List[Dict[str, str]]:
+    def country_profiles(self) -> List[Dict[str, Any]]:
         """UI'da seçilebilen, kendine ait kategorizasyon sayfası olan profiller."""
-        descriptions = {item["name"]: item["description"] for item in self.countries()}
         return [
-            {"name": country, "description": descriptions.get(country, "")}
-            for country in COUNTRY_SHEET_ALIASES
+            country for country in self.countries() if country.get("profile_sheet")
         ]
 
-    def category_weights(self, pool: str = "154") -> Dict[str, int]:
-        return dict(self._category_weights.get(str(pool), self._category_weights["154"]))
+    def country_code(self, country: Optional[str], scope: Optional[str] = None) -> str:
+        """Return the configured country/region code, or GL for global questions."""
+        if str(scope or "").strip().lower() != "local":
+            return "GL"
+        normalized = _clean(country)
+        for item in self.countries():
+            if item["name"] == normalized:
+                return item.get("code") or "GL"
+        return "GL"
+
+    def languages_for_country(self, country: Optional[str]) -> List[str]:
+        for item in self.countries():
+            if item["name"] == _clean(country):
+                return list(item.get("languages") or [])
+        return []
+
+    def category_weights(
+        self, pool: str = "154", country: Optional[str] = None
+    ) -> Dict[str, int]:
+        pool_key = "64" if str(pool) == "64" else "154"
+        if country and country in self._country_records:
+            weights: Dict[str, int] = {}
+            for record in self._country_records[country]:
+                weight = max(0, int(record.get(f"weight_{pool_key}", 0)))
+                if weight:
+                    category = record["category"]
+                    weights[category] = weights.get(category, 0) + weight
+            return weights
+        return dict(self._category_weights.get(pool_key, self._category_weights["154"]))
 
     def basic_category_weights(self, country: Optional[str] = None) -> Dict[str, int]:
         """Yalnızca ``Temel Kategoriler`` işaretli alt hedeflerin ağırlıkları."""
@@ -342,8 +439,12 @@ class SheetAlgorithmRepository:
         return weights
 
     def records_for_country(self, country: Optional[str] = None) -> List[Dict[str, Any]]:
+        country_name = _clean(country)
+        if country_name in self._country_records:
+            return [dict(record) for record in self._country_records[country_name]]
+
         records = [dict(record) for record in self._generic_records]
-        localized = self._localized_records.get(_clean(country), []) if country else []
+        localized = self._localized_records.get(country_name, []) if country_name else []
         if not localized:
             return records
         # Ülke profili yalnızca Bölüm 3 (Spor/Müzik/Edebiyat)
@@ -398,7 +499,11 @@ class SheetAlgorithmRepository:
         country: Optional[str] = None,
     ) -> str:
         normalized_allowed = [normalize_category(item) for item in allowed] if allowed else None
-        weights = self.basic_category_weights(country) if basic_only else self.category_weights(pool)
+        weights = (
+            self.basic_category_weights(country)
+            if basic_only
+            else self.category_weights(pool, country)
+        )
         return self._weighted_deficit_choice(counts, weights, normalized_allowed)
 
     def choose_subcategory(
@@ -454,10 +559,11 @@ class SheetAlgorithmRepository:
         category_drafts = ", ".join(drafts_list)
 
         pool_key = "64" if str(pool) == "64" else "154"
+        category_weights = self.category_weights(pool_key, country)
         return AlgorithmTarget(
             category=normalize_category(category),
             subcategory=subcategory,
-            category_weight=self.category_weights(pool_key).get(normalize_category(category), 1),
+            category_weight=category_weights.get(normalize_category(category), 1),
             subcategory_weight=max(1, int(record.get(f"weight_{pool_key}", 1))),
             global_ratio=float(record.get("global_ratio", 0.5)),
             local_ratio=float(record.get("local_ratio", 0.5)),
@@ -467,6 +573,7 @@ class SheetAlgorithmRepository:
             category_drafts=category_drafts,
             section=_clean(record.get("section")),
             target_country=target_country,
+            target_country_code=self.country_code(target_country, "local"),
         )
 
     def _expand_localized_placeholders(
@@ -528,13 +635,24 @@ class SheetAlgorithmRepository:
 
         Slotlar kategoriler arasında dengeli ve dönüşümlü (interleaved) sıralanır.
         """
-        records = self.records_for_country(country)
         pool_key = "64" if str(pool) == "64" else "154"
-        if not country:
-            records = self._expand_localized_placeholders(
-                records,
-                basic_only=basic_only,
-            )
+        if country:
+            records = self.records_for_country(country)
+            for record in records:
+                record.setdefault("target_country", country)
+        else:
+            records = []
+            for country_info in self.countries():
+                country_name = country_info["name"]
+                for source_record in self.records_for_country(country_name):
+                    record = dict(source_record)
+                    record["target_country"] = country_name
+                    records.append(record)
+            if not records:
+                records = self._expand_localized_placeholders(
+                    self.records_for_country(None),
+                    basic_only=basic_only,
+                )
         if category:
             normalized_category = normalize_category(category)
             records = [record for record in records if record["category"] == normalized_category]
@@ -584,7 +702,7 @@ class SheetAlgorithmRepository:
                 record["subcategory"],
                 country=record.get("target_country") or country,
                 pool=pool_key,
-                target_country=record.get("target_country"),
+                target_country=record.get("target_country") or country,
             )
             cat_name = target_obj.category
             cat_slots.setdefault(cat_name, []).extend([target_obj] * slots_count)

@@ -1,16 +1,17 @@
 import unittest
 import inspect
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from core.sheet_algorithm import SheetAlgorithmRepository
-from worker import GenerationOptions, run_generation
+from worker import GenerationOptions, run_generation, save_worker_question
 from core.visual_questions import (
     VisualQuestionSchedule,
     is_visual_target,
     prioritize_visual_targets,
 )
-from core.generator import build_prompt, generate_question_with_fallback
+from core.generator import build_prompt, generate_question_with_fallback, normalize_generated_payload
+from core.llm_manager import AllProvidersCoolingDown
 
 
 class FakeManager:
@@ -47,7 +48,101 @@ class FakeImageResolver:
         return question.question_image_url
 
 
+class NonBlockingStopEvent:
+    def __init__(self):
+        self.waits = []
+        self.stopped = False
+
+    def is_set(self):
+        return self.stopped
+
+    def wait(self, seconds):
+        self.waits.append(seconds)
+        return False
+
+    def set(self):
+        self.stopped = True
+
+
 class RunGenerationCompletionTests(unittest.TestCase):
+    def test_temporary_provider_outage_waits_then_resumes(self):
+        repository = SheetAlgorithmRepository()
+        events = []
+        stop_event = NonBlockingStopEvent()
+        options = GenerationOptions(
+            question_count=1,
+            generation_mode="basic",
+            difficulty="Orta",
+            combo_percent=0,
+            sleep_between_requests=0,
+            max_retries=3,
+            write_to_firestore=False,
+            visual_questions_enabled=False,
+        )
+        with patch(
+            "worker.generate_question_with_fallback",
+            side_effect=[
+                AllProvidersCoolingDown(12, "temporary"),
+                fake_question(
+                    primary_category="Genel",
+                    target_subcategory="Genel",
+                    visual_question=False,
+                ),
+            ],
+        ):
+            summary = run_generation(
+                options,
+                repository=repository,
+                llm_manager=FakeManager(),
+                stop_event=stop_event,
+                on_event=events.append,
+            )
+
+        self.assertEqual(summary["produced"], 1)
+        self.assertFalse(summary["stopped"])
+        self.assertEqual(stop_event.waits, [13])
+        self.assertTrue(any(event["event"] == "provider_unavailable" for event in events))
+
+    def test_missing_translation_details_are_repaired_without_new_api_call(self):
+        payload = {
+            "correct_answer": "B",
+            "translations": {
+                "tr": {
+                    "question": "Soru?",
+                    "options": {"A": "Yanlış", "B": "Doğru", "C": "Yanlış 2", "D": "Yanlış 3"},
+                }
+            },
+        }
+        normalized = normalize_generated_payload(payload, "Danslar")
+        self.assertEqual(normalized["translations"]["tr"]["explanation"], "Doğru cevap: Doğru.")
+        self.assertEqual(normalized["translations"]["tr"]["filter_tag"], "Danslar")
+
+    def test_visual_question_without_image_url_is_not_written(self):
+        db = Mock()
+        question = {"is_visual_question": True, "question_image_url": None}
+
+        self.assertFalse(save_worker_question(db, question))
+        db.collection.assert_not_called()
+
+    def test_visual_question_image_url_is_copied_into_payload(self):
+        db = Mock()
+        db.collection.return_value.document.return_value.get.return_value.exists = False
+        question = {
+            "is_visual_question": True,
+            "question_image_url": "https://example.test/image.jpg",
+            "question_image_search_query": None,
+            "payload": {"question_image_url": None, "question_image_search_query": "subject"},
+            "translations": {"tr": {"question": "Görselde ne var?"}},
+            "duration_local": 15,
+            "duration_global": 15,
+            "duration_seconds": 15,
+        }
+
+        self.assertTrue(save_worker_question(db, question))
+        saved = db.collection.return_value.document.return_value.set.call_args.args[0]
+        self.assertEqual(saved["payload"]["question_image_url"], question["question_image_url"])
+        self.assertIsNone(saved["payload"]["question_image_search_query"])
+
     def test_generator_accepts_preferred_local_country_from_worker(self):
         parameters = inspect.signature(generate_question_with_fallback).parameters
         self.assertIn("preferred_local_country", parameters)

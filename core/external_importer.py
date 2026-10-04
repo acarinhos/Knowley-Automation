@@ -26,12 +26,13 @@ import requests
 from config.categories_config import get_category_color, get_subcategory_image
 from core.generator import QUESTION_SCHEMA_VERSION, normalize_text_for_search
 from core.sheet_algorithm import get_sheet_algorithm_repository
+from core.translation_service import SUPPORTED_LANGUAGE_CODES
 
 
 DEFAULT_SHARED_SOURCE = "https://share.gemini.google/QodHwCqezsIr"
 MAX_OPTION_CHARS = 80
 DIFFICULTY_BONUS = {"Kolay": 0, "Orta": 2, "Zor": 4}
-SUPPORTED_LANGUAGES = ["tr", "en", "es", "pt", "de"]
+SUPPORTED_LANGUAGES = list(SUPPORTED_LANGUAGE_CODES)
 
 IMAGE_KEYWORDS = (
     "bayrak",
@@ -500,6 +501,10 @@ def normalize_question(raw: Mapping[str, Any], repository: Any = None) -> Dict[s
     scope = plan.scope
     target_country = plan.target_country
     is_global_eligible = plan.is_global_eligible
+    from core.sheet_algorithm import get_sheet_algorithm_repository
+    target_country_code = get_sheet_algorithm_repository().country_code(
+        target_country, scope
+    )
     global_difficulty = difficulty if is_global_eligible else None
     global_score = score if is_global_eligible else None
     created_at = datetime.now(timezone.utc).isoformat()
@@ -515,9 +520,10 @@ def normalize_question(raw: Mapping[str, Any], repository: Any = None) -> Dict[s
         "is_combo": False,
         "scope": scope,
         "target_country": target_country,
+        "target_country_code": target_country_code,
         "target_country_credit": plan.target_country_credit,
         "is_global_eligible": is_global_eligible,
-        "countries": [target_country],
+        "countries": [target_country_code],
         "dbVersion": QUESTION_SCHEMA_VERSION,
         "difficulty_local": difficulty,
         "difficulty_local_score": score,
@@ -566,67 +572,30 @@ def normalize_question(raw: Mapping[str, Any], repository: Any = None) -> Dict[s
 
 
 def enrich_question_translations(question: Dict[str, Any], llm_manager: Any = None) -> Dict[str, Any]:
-    """Bir dış soruyu normal üretimde kullanılan beş dil sözleşmesine tamamlar."""
-    from core.llm_manager import get_llm_manager
+    """Complete translations with Azure first and the existing LLM path as fallback."""
+    from core.translation_service import translate_localized_content
 
-    manager = llm_manager or get_llm_manager()
     source_language = question["supported_languages"][0]
     source = question["translations"][source_language]
-    prompt = json.dumps(
-        {
-            "task": (
-                "Translate this multiple-choice trivia item into tr, en, es, pt and de. "
-                "Preserve meaning, factual answer and A/B/C/D option positions exactly. "
-                "Do not rewrite, solve, censor, shorten or add facts. Return only the requested JSON object."
-            ),
-            "required_schema": {
-                "translations": {
-                    lang: {
-                        "question": "string",
-                        "options": {letter: "string" for letter in "ABCD"},
-                        "explanation": "string",
-                        "filter_tag": "string",
-                    }
-                    for lang in SUPPORTED_LANGUAGES
-                }
-            },
-            "source_language": source_language,
-            "correct_option": question["correct_answer"],
-            "source_content": source,
-        },
-        ensure_ascii=False,
+    requested_languages = list(SUPPORTED_LANGUAGE_CODES)
+    if str(question.get("scope") or "").strip().lower() == "local":
+        repository = get_sheet_algorithm_repository()
+        country = str(question.get("target_country") or "").strip()
+        if not country:
+            code = str(question.get("target_country_code") or "").strip()
+            country = next(
+                (item["name"] for item in repository.countries() if item.get("code") == code),
+                "",
+            )
+        requested_languages = repository.languages_for_country(country) or requested_languages
+    normalized, provider = translate_localized_content(
+        source,
+        source_language,
+        requested_languages,
+        llm_manager=llm_manager,
     )
-    data = manager.generate_trivia(
-        "You are a precise localization engine. Output valid JSON only and preserve option-letter semantics.",
-        prompt,
-    )
-    translations = data.get("translations")
-    if not isinstance(translations, Mapping):
-        raise ValueError("Çeviri sağlayıcısı translations nesnesi döndürmedi.")
-
-    normalized: Dict[str, Dict[str, Any]] = {}
-    for lang in SUPPORTED_LANGUAGES:
-        content = translations.get(lang)
-        if not isinstance(content, Mapping):
-            raise ValueError(f"{lang} çevirisi eksik.")
-        options = content.get("options")
-        if not isinstance(options, Mapping):
-            raise ValueError(f"{lang} seçenekleri eksik.")
-        clean_options = {letter: _clean(options.get(letter)) for letter in "ABCD"}
-        if not _clean(content.get("question")) or any(not value for value in clean_options.values()):
-            raise ValueError(f"{lang} çevirisi tamamlanamadı.")
-        normalized[lang] = {
-            "question": _clean(content.get("question")),
-            "options": clean_options,
-            "explanation": _clean(content.get("explanation")) or source["explanation"],
-            "filter_tag": _clean(content.get("filter_tag")) or question["sub_categories"][0],
-        }
-
-    # Kaynak dilin özgün metnini ve seçeneklerini kayıpsız tut.
-    normalized[source_language] = dict(source)
     question["translations"] = normalized
-    question["supported_languages"] = list(SUPPORTED_LANGUAGES)
-    provider = _clean(data.get("_provider")).upper() or "LLM"
+    question["supported_languages"] = list(normalized)
     question["generation_provider"] = f"EXTERNAL_IMPORT_{provider}"
     question["translation_provider"] = provider
     question["import_audit"]["translation_status"] = "complete"

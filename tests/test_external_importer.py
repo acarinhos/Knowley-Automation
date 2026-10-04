@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import Mock
 
 from core.external_importer import (
     calculate_import_duration,
@@ -12,6 +13,31 @@ from database.db_manager import save_question_to_firestore
 
 
 class ExternalImporterTests(unittest.TestCase):
+    def test_visual_question_without_image_url_is_not_written(self):
+        db = Mock()
+        question = {"is_visual_question": True, "question_image_url": None}
+
+        self.assertFalse(save_question_to_firestore(db, question))
+        db.collection.assert_not_called()
+
+    def test_visual_question_image_url_is_copied_into_payload(self):
+        db = Mock()
+        db.collection.return_value.document.return_value.get.return_value.exists = False
+        question = {
+            "is_visual_question": True,
+            "question_image_url": "https://example.test/image.jpg",
+            "payload": {"question_image_url": None, "question_image_search_query": "subject"},
+            "translations": {"tr": {"question": "Görselde ne var?"}},
+            "duration_local": 15,
+            "duration_global": 15,
+            "duration_seconds": 15,
+        }
+
+        self.assertTrue(save_question_to_firestore(db, question))
+        saved = db.collection.return_value.document.return_value.set.call_args.args[0]
+        self.assertEqual(saved["payload"]["question_image_url"], question["question_image_url"])
+        self.assertIsNone(saved["payload"]["question_image_search_query"])
+
     def sample(self):
         return {
             "category": "Geography",

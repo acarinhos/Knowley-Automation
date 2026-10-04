@@ -33,6 +33,7 @@ except Exception:
 
 # Mevcut arka uç modülleri
 from core.generator import QUESTION_SCHEMA_VERSION
+from core.translation_service import SUPPORTED_LANGUAGE_CODES
 from core.external_importer import (
     DEFAULT_SHARED_SOURCE,
     ImportReport,
@@ -200,6 +201,32 @@ class SmoothProgressBar(tk.Canvas):
             self.create_rectangle(0, 0, fill_w, h, fill=CYAN, outline="")
 
 
+class ScrollablePanel(tk.Frame):
+    """Üst panel sütunlarını sabit yükseklikte tutup içeriği kaydırır."""
+
+    def __init__(self, parent: tk.Widget, background: str = BG_MAIN) -> None:
+        super().__init__(parent, bg=background)
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+
+        self.canvas = tk.Canvas(self, bg=background, highlightthickness=0, bd=0)
+        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        self.canvas.grid(row=0, column=0, sticky="nsew")
+        self.scrollbar.grid(row=0, column=1, sticky="ns")
+
+        self.content = tk.Frame(self.canvas, bg=background)
+        self.content_window = self.canvas.create_window((0, 0), window=self.content, anchor="nw")
+        self.content.bind("<Configure>", self._update_scroll_region)
+        self.canvas.bind("<Configure>", self._resize_content)
+
+    def _update_scroll_region(self, _event: tk.Event) -> None:
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+    def _resize_content(self, event: tk.Event) -> None:
+        self.canvas.itemconfigure(self.content_window, width=event.width)
+
+
 class KnowleyTkinterApp(tk.Tk):
     """Knowley Soru Üretim Kontrol Odası Tkinter Masaüstü Uygulaması."""
 
@@ -225,6 +252,9 @@ class KnowleyTkinterApp(tk.Tk):
 
         self._configure_styles()
         self._build_ui()
+        self.bind_all("<MouseWheel>", self._scroll_panel_under_pointer, add="+")
+        self.bind_all("<Button-4>", self._scroll_panel_under_pointer, add="+")
+        self.bind_all("<Button-5>", self._scroll_panel_under_pointer, add="+")
         self._install_console_capture()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.after_idle(self._apply_initial_layout)
@@ -423,6 +453,24 @@ class KnowleyTkinterApp(tk.Tk):
         self.main_panes.add(activity_host, minsize=300, stretch="always")
         self._build_activity_panel(activity_host)
 
+    def _scroll_panel_under_pointer(self, event: tk.Event) -> Optional[str]:
+        """Fare tekerleğini imlecin bulunduğu üst sütuna uygular."""
+        widget = self.winfo_containing(event.x_root, event.y_root)
+        while widget is not None:
+            for panel in (self.form_scroll, self.sidebar_scroll):
+                if widget is panel:
+                    if getattr(event, "num", None) == 4:
+                        steps = -1
+                    elif getattr(event, "num", None) == 5:
+                        steps = 1
+                    else:
+                        delta = getattr(event, "delta", 0)
+                        steps = -max(1, abs(delta) // 120) if delta > 0 else max(1, abs(delta) // 120)
+                    panel.canvas.yview_scroll(steps, "units")
+                    return "break"
+            widget = widget.master
+        return None
+
     def _apply_initial_layout(self) -> None:
         """Pencereyi büyütür ve terminale başlangıçta ekranın yaklaşık %42'sini ayırır."""
         try:
@@ -521,8 +569,10 @@ class KnowleyTkinterApp(tk.Tk):
         )
 
     def _build_form_panel(self, parent: tk.Widget) -> None:
-        card = tk.Frame(parent, bg=PANEL_BG, highlightbackground=PANEL_BORDER, highlightthickness=1, padx=20, pady=16)
-        card.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        self.form_scroll = ScrollablePanel(parent)
+        self.form_scroll.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        card = tk.Frame(self.form_scroll.content, bg=PANEL_BG, highlightbackground=PANEL_BORDER, highlightthickness=1, padx=20, pady=16)
+        card.pack(fill="x")
 
         # Panel Başlığı
         head = tk.Frame(card, bg=PANEL_BG)
@@ -617,18 +667,17 @@ class KnowleyTkinterApp(tk.Tk):
         self.combo_difficulty.set("4–4–2 otomatik dengesi")
         self.combo_difficulty.pack(fill="x", pady=(0, 8))
 
-        # Diller
-        tk.Label(self.adv_content, text="Diller", fg=TEXT_DIM, bg=PANEL_INNER, font=(FONT_FAMILY, 8, "bold")).pack(anchor="w", pady=(0, 3))
-        lang_frame = tk.Frame(self.adv_content, bg=PANEL_INNER)
-        lang_frame.pack(fill="x", pady=(0, 8))
-
-        self.lang_vars: Dict[str, tk.BooleanVar] = {}
-        languages_info = [("tr", "Türkçe"), ("en", "English"), ("es", "Español"), ("pt", "Português"), ("de", "Deutsch")]
-        for code, label in languages_info:
-            bvar = tk.BooleanVar(value=True)
-            self.lang_vars[code] = bvar
-            chk = ttk.Checkbutton(lang_frame, text=f"{label} ({code})", variable=bvar)
-            chk.pack(side="left", padx=(0, 10))
+        # Dil kapsamı
+        tk.Label(self.adv_content, text="Dil kapsamı", fg=TEXT_DIM, bg=PANEL_INNER, font=(FONT_FAMILY, 8, "bold")).pack(anchor="w", pady=(0, 3))
+        tk.Label(
+            self.adv_content,
+            text="35 aktif dil · Global ve öge soruları tüm dillerde; yerel sorular ülke/bölge satırındaki dillerde üretilir.",
+            fg=CYAN,
+            bg=PANEL_INNER,
+            font=(FONT_FAMILY, 8, "bold"),
+            wraplength=340,
+            justify="left",
+        ).pack(anchor="w", pady=(0, 8))
 
         # Combo Yüzdesi Slider
         combo_top = tk.Frame(self.adv_content, bg=PANEL_INNER)
@@ -679,8 +728,10 @@ class KnowleyTkinterApp(tk.Tk):
         ).pack(anchor="w")
 
     def _build_sidebar_panel(self, parent: tk.Widget) -> None:
-        sidebar = tk.Frame(parent, bg=BG_MAIN)
-        sidebar.grid(row=0, column=1, sticky="nsew")
+        self.sidebar_scroll = ScrollablePanel(parent)
+        self.sidebar_scroll.grid(row=0, column=1, sticky="nsew")
+        sidebar = tk.Frame(self.sidebar_scroll.content, bg=BG_MAIN)
+        sidebar.pack(fill="x")
 
         # 1. Kart: API Sağlayıcıları (Live Capacity)
         prov_card = tk.Frame(sidebar, bg=PANEL_BG, highlightbackground=PANEL_BORDER, highlightthickness=1, padx=16, pady=12)
@@ -1458,9 +1509,7 @@ class KnowleyTkinterApp(tk.Tk):
         if count < 1:
             raise ValueError("Soru adedi en az 1 olmalıdır.")
 
-        selected_langs = [code for code, var in self.lang_vars.items() if var.get()]
-        if not selected_langs:
-            raise ValueError("En az bir dil seçilmelidir.")
+        selected_langs = list(SUPPORTED_LANGUAGE_CODES)
 
         country_enabled = self.var_cp_enabled.get()
         country_val = self.combo_country.get() if country_enabled else None
@@ -1590,6 +1639,7 @@ class KnowleyTkinterApp(tk.Tk):
             "planning": "⌁",
             "saved": "✓",
             "retry": "↻",
+            "provider_unavailable": "!",
             "duplicate": "≋",
             "completed": "◆",
             "stopped": "■",
@@ -1616,6 +1666,11 @@ class KnowleyTkinterApp(tk.Tk):
                 msg = q_text or "Soru Firestore'a yazıldı."
             elif kind == "retry":
                 msg = f"{ev.get('message', 'API yeniden deneniyor')} · {ev.get('wait_seconds', '')}s"
+            elif kind == "provider_unavailable":
+                msg = (
+                    "Tüm LLM sağlayıcıları geçici olarak kullanılamıyor. "
+                    f"{ev.get('retry_after', '?')}s sonra otomatik yeniden denenecek."
+                )
             elif kind == "duplicate":
                 msg = f"{ev.get('category')} için tekrar soru atlandı."
             elif kind == "completed":

@@ -4,6 +4,12 @@ __pycache__/
 *.log
 *.json
 !data/
+!data/global_character_source.json
+!data/global_character_locales.json
+!data/global_character_catalog.json
+!data/knowley_country_region_metadata.json
+!data/knowley_localize_sub_snapshot.json
+!data/knowley_country_profiles_*.json
 !data/knowley_algorithm_snapshot.json
 !data/imports/
 !data/imports/gemini_shared_questions.json
