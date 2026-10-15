@@ -55,6 +55,13 @@ class Progress:
         except OSError:  # a reader may hold the file on Windows; the next write wins
             pass
 
+    def bump(self, section):
+        """Count a slot filled outside this process, never beyond the section target."""
+        with self.lock:
+            if self.done.get(section, 0) < self.targets.get(section, 0):
+                self.done[section] = self.done.get(section, 0) + 1
+                self._write()
+
     def event(self, slot, status, provider="", secs=0.0, note=""):
         """status: OK | REJ | FAIL"""
         with self.lock:

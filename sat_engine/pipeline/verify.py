@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from fractions import Fraction
 
 from .. import llm
@@ -14,23 +15,67 @@ CONVENTIONS = ("Boundaries", "Form, Structure, and Sense")
 
 
 def judge_providers(q, providers=None):
+    """Preference order only; the HARD generator exclusion is `exclusions(q)` passed to llm."""
     base = list(providers or llm.default_order())
     gen = q.meta.provider
+    if gen == "external":  # imported item: nobody to exclude, but a non-claude judge is preferred
+        return [p for p in base if p != "claude"] + [p for p in base if p == "claude"]
     others = [p for p in base if p != gen]
     return others + [p for p in base if p == gen] if others else base
 
 
-def to_number(s) -> float | None:
+def exclusions(q) -> list[str]:
+    gen = q.meta.provider
+    return [gen] if gen and gen != "external" else []
+
+
+_FRAC = re.compile(r"\\[dt]?frac\s*\{\s*(-?\d+(?:\.\d+)?)\s*\}\s*\{\s*(\d+(?:\.\d+)?)\s*\}")
+_TEX = re.compile(r"\\left|\\right|\\[()]|[$\s,]")
+
+
+def to_number(s) -> Fraction | None:
+    r"""Exact value of ints, decimals, a/b fractions, %, $ and simple LaTeX \frac{a}{b}; None if not a plain number."""
     try:
-        t = str(s).strip().replace(",", "").replace("$", "").rstrip("%")
-        return float(Fraction(t))
+        t = _TEX.sub("", _FRAC.sub(lambda m: f"{m[1]}/{m[2]}", str(s).replace("\u2212", "-"))).rstrip("%")
+        return Fraction(t)
     except (ValueError, ZeroDivisionError):
         return None
 
 
-def same_number(a, b, tol=1e-3) -> bool:
+def same_number(a, b, tol=1e-6) -> bool:
+    """Exact when the key b is an integer, otherwise relative tolerance `tol`."""
     x, y = to_number(a), to_number(b)
-    return x is not None and y is not None and abs(x - y) <= tol * max(1, abs(y))
+    if x is None or y is None:
+        return False
+    return x == y if y.denominator == 1 else abs(x - y) <= Fraction(tol) * abs(y)
+
+
+def duplicate_numeric_options(options) -> bool:
+    """True when two options of a math MCQ have the same numeric value."""
+    vals = [to_number(v) for v in (options or {}).values()]
+    vals = [v for v in vals if v is not None]
+    return len(vals) != len(set(vals))
+
+
+def _norm(s) -> str:
+    return _TEX.sub("", str(s)).lower()
+
+
+def math_ok(q, r: dict) -> bool:
+    """Solver result r must agree with the key; a returned letter must also match the returned answer."""
+    ans = str(r.get("answer") if r.get("answer") is not None else "").strip()
+    if q.answer_type != "mcq":
+        return same_number(ans, q.correct_answer)
+    choice = str(r.get("choice") or "").strip().upper()
+    if choice not in q.options:
+        choice = ""
+    if choice and choice != q.correct_answer:
+        return False
+    if ans:
+        key = q.options[q.correct_answer]
+        if not (same_number(ans, key) or (to_number(ans) is None and to_number(key) is None and _norm(ans) == _norm(key))):
+            return False
+    return bool(choice or ans)
 
 
 def _body(q) -> str:
@@ -48,23 +93,20 @@ def verify(q, providers=None) -> tuple[bool, str]:
     except ValueError as e:
         return False, f"schema: {str(e)[:100]}"
     if q.section == "math":
+        if q.answer_type == "mcq" and duplicate_numeric_options(q.options):
+            return False, "math options are numerically equal"
         r = llm.generate_json(_body(q) + 'Solve. JSON: {"answer": "final value", "choice": "letter or null"}',
-                              system=SYSTEM, providers=providers)
-        if q.answer_type == "mcq":
-            choice = str(r.get("choice") or "").strip().upper()
-            ok = choice == q.correct_answer if choice else same_number(r.get("answer"), q.options[q.correct_answer])
-        else:
-            ok = same_number(r.get("answer"), q.correct_answer)
-        return (True, "") if ok else (False, "solver disagrees with key")
+                              system=SYSTEM, providers=judge_providers(q, providers), exclude=exclusions(q))
+        return (True, "") if math_ok(q, r) else (False, "solver disagrees with key")
     # one call: the per-option judge covers every option, so its single acceptable option must equal the key
-    providers = judge_providers(q, providers)  # judge != generator when possible
+    providers = judge_providers(q, providers)  # soft order; exclusions() is the hard rule
     conv = q.skill in CONVENTIONS
     j = llm.generate_json(
         _body(q) + "Evaluate EACH option independently: is it an acceptable, correct completion/answer on its own? "
         + ("For every option that is NOT acceptable, name the single rule it violates (subject-verb agreement, tense "
            "consistency, parallelism, punctuation, pronoun case, modifier placement, ...). " if conv else "")
         + 'JSON: {"options": {"A": {"acceptable": true, "reason": "...", "rule": "rule violated or null"}, "B": {...}, "C": {...}, "D": {...}}}',
-        system=SYSTEM, providers=providers)
+        system=SYSTEM, providers=providers, exclude=exclusions(q))
     ev = j.get("options") if isinstance(j.get("options"), dict) else {}
     ev = {str(k).strip().upper(): v for k, v in ev.items() if isinstance(v, dict)}
     if sorted(ev) != ["A", "B", "C", "D"]:

@@ -8,7 +8,9 @@ import logging
 import os
 import re
 import shutil
+import signal
 import subprocess
+import tempfile
 import threading
 import time
 from typing import Callable, Optional, Type
@@ -140,13 +142,63 @@ def default_order() -> list[str]:
     return (["claude"] if claude_ready() else []) + DEFAULT_ORDER
 
 
+_ENV_KEEP = {"PATH", "PATHEXT", "SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "COMSPEC", "APPDATA", "LOCALAPPDATA", "PROGRAMDATA",
+             "PROGRAMFILES", "PROGRAMFILES(X86)", "HOME", "USERPROFILE", "HOMEDRIVE", "HOMEPATH", "USERNAME", "USERDOMAIN",
+             "TEMP", "TMP", "LANG", "LC_ALL", "XDG_CONFIG_HOME", "TERM"}
+
+
+def _claude_env() -> dict:
+    """Minimal child environment: no *_API_KEY / project secrets, but what the CLI needs to find its own login."""
+    return {k: v for k, v in os.environ.items()
+            if (k.upper() in _ENV_KEEP or k.upper().startswith("CLAUDE_CODE_OAUTH")) and not k.upper().endswith("_API_KEY")}
+
+
+@functools.lru_cache(maxsize=None)
+def _claude_flags(cmd: str) -> tuple:
+    """Isolation flags this CLI build advertises in --help (never runs a prompt)."""
+    want = ("--strict-mcp-config", "--setting-sources")
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            h = subprocess.run([cmd, "--help"], capture_output=True, text=True, timeout=30, env=_claude_env(), cwd=tmp).stdout
+    except Exception:  # noqa: BLE001
+        return ()
+    return tuple(f for f in want if f in h)
+
+
+def _kill_tree(p) -> None:
+    try:
+        if os.name == "nt":
+            subprocess.run(["taskkill", "/PID", str(p.pid), "/T", "/F"], capture_output=True, timeout=15)
+        else:
+            os.killpg(p.pid, signal.SIGKILL)
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        p.kill()
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def _call_claude(prompt, system, images, json_mode):
-    cmd = [claude_cmd() or "claude", "-p", "--model", model_for("claude"), "--tools", "", "--no-session-persistence",
-           "--disable-slash-commands", "--output-format", "text"] + (["--system-prompt", system] if system else [])
-    r = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding="utf-8", timeout=_timeout("claude"))
-    if r.returncode or not r.stdout.strip():
-        raise LLMError(f"claude CLI exit {r.returncode}: {(r.stderr or r.stdout).strip()[:150]}")
-    return r.stdout
+    exe = claude_cmd() or "claude"
+    flags = _claude_flags(exe)
+    cmd = [exe, "-p", "--model", model_for("claude"), "--tools", "", "--no-session-persistence",
+           "--disable-slash-commands", "--output-format", "text"]
+    cmd += (["--strict-mcp-config"] if "--strict-mcp-config" in flags else []) + (["--setting-sources", ""] if "--setting-sources" in flags else [])
+    cmd += ["--system-prompt", system] if system else []
+    t = _timeout("claude")
+    with tempfile.TemporaryDirectory() as tmp:  # neutral cwd: no project CLAUDE.md / settings are picked up
+        p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8",
+                             env=_claude_env(), cwd=tmp, start_new_session=os.name != "nt")
+        try:
+            out, err = p.communicate(prompt, timeout=t)
+        except subprocess.TimeoutExpired:
+            _kill_tree(p)
+            p.communicate()
+            raise TimeoutError(f"claude CLI timed out after {t:.0f}s") from None
+    if p.returncode or not out.strip():
+        raise LLMError(f"claude CLI exit {p.returncode}: {(err or out).strip()[:150]}")
+    return out
 
 
 # Tests replace entries here; no network is touched by the module itself.
@@ -276,7 +328,7 @@ def _call_with_retry(name, prompt, system, images, json_mode, fast_fail=False) -
             raise
 
 
-def _run(prompt, system, images, providers, json_mode, accept: Callable[[str], object]):
+def _run(prompt, system, images, providers, json_mode, accept: Callable[[str], object], exclude=()):
     errors, keyed = [], []
     for name in providers or default_order():
         if name not in PROVIDERS:
@@ -285,6 +337,13 @@ def _run(prompt, system, images, providers, json_mode, accept: Callable[[str], o
             errors.append(f"{name}: no key")
         else:
             keyed.append(name)
+    ex = {e for e in exclude or () if e}
+    if ex and any(n in ex for n in keyed):  # HARD exclusion (judge != generator); same provider only if nothing else is configured
+        others = [n for n in keyed if n not in ex]
+        if others:
+            keyed = others
+        else:
+            log.warning("no provider other than %s is configured: judge == generator", ",".join(sorted(ex)))
     tried, deadline = set(), time.monotonic() + 600
     while True:
         now = time.monotonic()
@@ -324,15 +383,15 @@ def parse_json(text: str):
     return json.loads(re.sub(r",\s*([\]}])", r"\1", m.group(0)))
 
 
-def generate_text(prompt, system=None, providers=None, images=None) -> str:
-    return _run(prompt, system, images, providers, False, lambda t: t.strip() or _fail("empty response"))[0]
+def generate_text(prompt, system=None, providers=None, images=None, exclude=()) -> str:
+    return _run(prompt, system, images, providers, False, lambda t: t.strip() or _fail("empty response"), exclude)[0]
 
 
 def _fail(msg):
     raise ValueError(msg)
 
 
-def generate_json(prompt, system=None, schema: Optional[Type[BaseModel]] = None, providers=None, images=None) -> dict:
+def generate_json(prompt, system=None, schema: Optional[Type[BaseModel]] = None, providers=None, images=None, exclude=()) -> dict:
     """Returns a dict (validated and re-dumped when `schema` is given); falls back across providers on failure."""
     def accept(text):
         data = parse_json(text)
@@ -343,4 +402,4 @@ def generate_json(prompt, system=None, schema: Optional[Type[BaseModel]] = None,
                 raise ValueError(f"schema validation failed: {e.error_count()} errors") from e
         return data
 
-    return _run(prompt, system, images, providers, True, accept)[0]
+    return _run(prompt, system, images, providers, True, accept, exclude)[0]

@@ -14,10 +14,11 @@ from ..schema import SATQuestion
 from ..visuals import parse_spec, render_svg
 from . import generator, originality, planner, session, verify
 
+_LEVEL = {"easy": 0, "medium": 1, "hard": 2}
 TIERS = (  # progressively looser slot predicates (visual / grid-in shape must always match)
     lambda q, s: (q.module, q.difficulty) == (s.module, s.difficulty),
     lambda q, s: q.difficulty == s.difficulty,
-    lambda q, s: True,
+    lambda q, s: abs(_LEVEL[q.difficulty] - _LEVEL[s.difficulty]) <= 1,  # loose: never hard<->easy
 )
 
 
@@ -90,8 +91,8 @@ def import_questions(path, sid, providers=None, output_dir=session.OUTPUT_DIR, b
             open_.remove(slot)
             q.id, q.module = f"{sid}-{slot.index}", slot.module
             checker.add(q)
-            store[str(slot.index)] = q.model_dump()
-            placed.append({"item": n, "slot": slot.index, "loose": loose})
+            store[str(slot.index)] = q.model_dump()  # a loose match keeps its authored difficulty (not relabelled)
+            placed.append({"item": n, "slot": slot.index, "loose": loose, "difficulty": q.difficulty, "slot_difficulty": slot.difficulty})
         session.write_store(out, store)
     return {"session_id": sid, "input": len(items), "accepted": len(placed), "placed": placed, "rejected": rejected,
             "open_left": len(open_), "output": str(out)}

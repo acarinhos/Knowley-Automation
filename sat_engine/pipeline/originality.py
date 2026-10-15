@@ -1,8 +1,9 @@
 """5-gram shingle overlap vs reference pages and earlier session questions. Never logs reference text.
 
-Boilerplate (official stems, scaffolds, answer formulae) is auto-detected and ignored: word 5-grams that occur on
->= BOILERPLATE_PAGES distinct reference pages or inside the stem templates below. Overlap and Jaccard are computed on
-content shingles only.
+Boilerplate (official stems, scaffolds) is ignored: grams inside the stem templates below, and grams found on
+>= BOILERPLATE_PAGES distinct (near-duplicate-collapsed) reference pages, EXCEPT when the candidate carries them inside a
+verbatim run of >= LONG_RUN_GRAMS consecutive grams (8 words) that also sits on one single reference page. Repeated
+formulae inside the session only count accepted questions and never excuse overlap with the reference pages.
 """
 from __future__ import annotations
 
@@ -13,6 +14,8 @@ N = 5
 RUN_LIMIT = 3  # consecutive copied content shingles (= 7 words) -> reject
 JACCARD_LIMIT = 0.2
 BOILERPLATE_PAGES = 3
+LONG_RUN_GRAMS = 4  # 4 consecutive 5-grams = 8 words
+DEDUPE_JACCARD = 0.8
 _cache: list[set] | None = None
 _BOILERPLATE = re.compile(r"Which choice[^?]*\?", re.I)
 TEMPLATES = (
@@ -57,63 +60,99 @@ def reference_sets() -> list[set]:
     return _cache
 
 
+def _dedupe(refs: list[set]) -> list[set]:
+    """Drop pages that are near copies (Jaccard >= DEDUPE_JACCARD) of an earlier kept page."""
+    kept: list[set] = []
+    for s in refs:
+        if not any(len(s & k) / len(s | k) >= DEDUPE_JACCARD for k in kept if s & k):
+            kept.append(s)
+    return kept
+
+
+def template_grams() -> frozenset:
+    return frozenset(g for t in TEMPLATES for g in shingles(t))
+
+
+def frequent_grams(refs: list[set], min_pages: int = BOILERPLATE_PAGES) -> frozenset:
+    freq = Counter(g for s in _dedupe(refs) for g in s)
+    return frozenset(g for g, c in freq.items() if c >= min_pages)
+
+
 def build_stoplist(refs: list[set], min_pages: int = BOILERPLATE_PAGES) -> frozenset:
-    """Template grams + grams found on >= min_pages distinct pages."""
-    freq = Counter(g for s in refs for g in s)
-    stop = {g for t in TEMPLATES for g in shingles(t)} | {g for g, c in freq.items() if c >= min_pages}
-    return frozenset(stop)
+    """Template grams + grams found on >= min_pages distinct pages (check() lifts the latter inside long verbatim runs)."""
+    return template_grams() | frequent_grams(refs, min_pages)
 
 
 class OriginalityChecker:
     def __init__(self, refs: list[set] | None = None, run_limit=RUN_LIMIT, jaccard_limit=JACCARD_LIMIT, stop=None):
-        refs = list(reference_sets() if refs is None else refs)  # copy: session questions are appended
-        self.stop = build_stoplist(refs) if stop is None else frozenset(stop)
-        self.sets = [s - self.stop for s in refs]  # content shingles only
-        self._ref = set().union(*refs) if refs else set()
-        self._seen: dict = defaultdict(set)  # non-reference gram -> distinct candidates (checked or accepted) containing it
+        refs = list(reference_sets() if refs is None else refs)
+        self.tmpl = template_grams() if stop is None else frozenset(stop)  # always ignored
+        self.freq = frequent_grams(refs) - self.tmpl if stop is None else frozenset()  # ignored unless inside a long run
+        self.stop = self.tmpl | self.freq
+        self.refs = refs
+        self._ridx: dict = defaultdict(set)  # gram -> reference page ids
+        for i, s in enumerate(refs):
+            for g in s:
+                self._ridx[g].add(i)
+        self.sess: list[set] = []  # accepted session questions
+        self._seen: dict = defaultdict(set)  # non-reference gram -> accepted questions containing it
+        self._sall: set = set()
         self.run_limit, self.jaccard_limit = run_limit, jaccard_limit
 
-    def _is_stop(self, g) -> bool:
-        return g in self.stop or len(self._seen.get(g, ())) >= BOILERPLATE_PAGES - 1  # formula already used by 2 other candidates
+    def _long(self, sh) -> set:
+        """Grams of sh lying in a run of LONG_RUN_GRAMS consecutive grams that all sit on one reference page."""
+        out, k = set(), LONG_RUN_GRAMS
+        for i in range(len(sh) - k + 1):
+            ids = set(self._ridx.get(sh[i], ()))
+            for g in sh[i + 1:i + k]:
+                ids &= self._ridx.get(g, set())
+                if not ids:
+                    break
+            if ids:
+                out.update(sh[i:i + k])
+        return out
 
-    def _note(self, q, mine) -> None:
-        k = hash(question_text(q))
-        for g in mine:
-            if g not in self._ref:
-                self._seen[g].add(k)
-
-    def _grams(self, q):
+    def _parts(self, q):
         sh = shingles(question_text(q))
-        return sh, {g for g in sh if not self._is_stop(g)}
+        drop = self.tmpl | (self.freq - self._long(sh)) if self.freq else self.tmpl
+        mine = {g for g in sh if g not in drop}
+        # session comparison also ignores formulae already used by 2 accepted questions; reference comparison never does
+        msess = {g for g in mine if len(self._seen.get(g, ())) < BOILERPLATE_PAGES - 1}
+        return sh, drop, mine, msess
+
+    def _measure(self, q):
+        sh, drop, mine, msess = self._parts(q)
+        refall = self._ridx
+        jac = max((len(mine & s) / len(mine | (s - drop)) for s in self.refs if mine & s), default=0.0)
+        cover = len(mine & refall.keys()) / len(mine) if mine else 0.0
+        if msess:
+            jac = max(jac, max((len(msess & s) / len(msess | s) for s in self.sess if msess & s), default=0.0))
+            cover = max(cover, len(msess & self._sall) / len(msess))
+        run = best = 0
+        for g in sh:  # a boilerplate gram is in neither mine nor msess, so it ends a run
+            run = run + 1 if (g in mine and g in refall) or (g in msess and g in self._sall) else 0
+            best = max(best, run)
+        return sh, drop, mine, jac, cover, best
 
     def check(self, q) -> tuple[bool, float]:
-        """Returns (ok, score); score in [0,1], 1 = nothing shared with any reference."""
-        sh, mine = self._grams(q)
+        """Returns (ok, score); score in [0,1], 1 = nothing shared with any reference or accepted question."""
+        _, _, mine, jac, cover, best = self._measure(q)
         if not mine:
             return True, 1.0
-        jac = max((len(mine & s) / len(mine | s) for s in self.sets if mine & s), default=0.0)
-        allref = set().union(*self.sets) if self.sets else set()
-        run = best = 0
-        for g in sh:  # a boilerplate gram is never in allref, so it also ends a run
-            run = run + 1 if g in allref and g in mine else 0
-            best = max(best, run)
-        cover = len(mine & allref) / len(mine)
-        self._note(q, mine)  # rejected candidates count too: a phrase tried 3 times is a formula, not copying
         return (best < self.run_limit and jac <= self.jaccard_limit), round(1 - max(jac, cover), 4)
 
     def explain(self, q) -> str:
         """Counts only (no text): why check() rejects."""
-        sh, mine = self._grams(q)
-        allref = set().union(*self.sets) if self.sets else set()
-        run = best = 0
-        for g in sh:
-            run = run + 1 if g in allref and g in mine else 0
-            best = max(best, run)
-        jac = max((len(mine & s) / len(mine | s) for s in self.sets if mine & s), default=0.0)
-        return (f"grams={len(sh)} boilerplate={sum(self._is_stop(g) for g in sh)} content={len(mine)} "
-                f"shared={len(mine & allref)} run={best} jac={jac:.2f}")
+        sh, drop, mine, jac, cover, best = self._measure(q)
+        return (f"grams={len(sh)} boilerplate={sum(g in drop for g in sh)} content={len(mine)} "
+                f"shared={round(cover * len(mine))} run={best} jac={jac:.2f}")
 
     def add(self, q) -> None:
-        g = self._grams(q)[1]
-        self.sets.append(g)
-        self._note(q, g)
+        """Register an ACCEPTED question (only these feed the session comparison and the formula rule)."""
+        sh = shingles(question_text(q))
+        self.sess.append(set(sh) - self.tmpl)
+        self._sall |= self.sess[-1]
+        k = hash(question_text(q))
+        for g in set(sh):
+            if g not in self._ridx:
+                self._seen[g].add(k)

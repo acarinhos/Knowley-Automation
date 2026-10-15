@@ -1,4 +1,5 @@
 import itertools
+import re
 from types import SimpleNamespace
 
 import pytest
@@ -14,12 +15,13 @@ _n = itertools.count()
 
 def fake_llm(solver_choice="B", defensible=("B",), figure_values=None):
     """Mocked generate_json: routes by prompt type; every generated stem is unique."""
-    def f(prompt, system=None, schema=None, providers=None, images=None):
+    def f(prompt, system=None, schema=None, providers=None, images=None, exclude=None):
         if "Evaluate EACH" in prompt:
             return {"options": {k: {"acceptable": k in defensible, "reason": "r", "rule": None if k in defensible else "subject-verb agreement"}
                                 for k in "ABCD"}}
         if "Solve." in prompt:
-            return {"answer": "10", "choice": solver_choice}
+            m = re.search(rf"^{solver_choice}\. (.*)$", prompt, re.M)  # answer consistent with the returned letter
+            return {"answer": m[1] if m else "10", "choice": solver_choice}
         n = next(_n)
         d = {"passage": None, "stem": f"zq{n}a zq{n}b zq{n}c zq{n}d zq{n}e zq{n}f?",
              "options": {"A": f"p{n}", "B": f"q{n}", "C": f"r{n}", "D": f"s{n}"}, "correct_answer": "B", "explanation": "x"}

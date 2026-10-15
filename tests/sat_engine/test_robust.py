@@ -28,17 +28,37 @@ def test_boilerplate_grams_across_pages_are_ignored_but_content_is_strict():
     assert "run=" in ex and "orchid" not in ex
 
 
-def test_formula_repeated_in_session_stops_counting_as_copy():
+def test_formula_counts_only_accepted_questions_and_only_in_session_comparison():
     chk = OriginalityChecker(refs=[])
     f = "after reading both authors the second writer would likely agree"
+    for i in range(4):  # rejected/never-accepted candidates must not turn the phrase into a "formula"
+        assert chk.check(Q(f + f" thing{i} one{i} two{i} three{i}"))[0]
     first = Q(f + " thing0 one0 two0 three0")
-    assert chk.check(first)[0]
     chk.add(first)
-    assert not chk.check(Q(f + " thing1 one1 two1 three1"))[0]  # 2nd use is still a copy (and is remembered)
-    assert chk.check(Q(f + " novel tail words appear here"))[0]  # 3rd use: a formula, not copying
+    assert not chk.check(Q(f + " thing1 one1 two1 three1"))[0]  # 1 accepted use: still a copy
+    chk.add(Q(f + " thing1 one1 two1 three1"))
+    assert chk.check(Q(f + " novel tail words appear here"))[0]  # used by 2 accepted questions: a formula
     own = "unique volcanic basalt column cooling fractures hexagonal pattern"
     chk.add(Q(own))
     assert not chk.check(Q(own))[0]
+    # the formula rule never excuses overlap with the reference pages
+    ref = "ancient river deltas shaped early farming settlements across distant valleys"
+    chk2 = OriginalityChecker(refs=[set(shingles(ref))])
+    for i in range(3):
+        chk2.add(Q(ref + f" extra{i} words{i}"))
+    assert not chk2.check(Q(ref))[0]
+
+
+def test_same_passage_on_three_reference_pages_is_still_rejected():
+    passage = " ".join(f"w{i}x" for i in range(25))  # 25 distinct words, verbatim on 3 pages (test + key + other pdf)
+    refs = [set(shingles(passage + f" tail{i} more{i} filler{i} words{i}")) for i in range(3)]
+    chk = OriginalityChecker(refs=refs)
+    assert shingles(passage)[0] in chk.freq  # static rule alone would have stoplisted it
+    ok, score = chk.check(Q(passage))
+    assert not ok and score < 1
+    # near-identical pages are deduplicated before counting
+    twin = [set(shingles(passage))] * 3
+    assert not build_stoplist(twin) - build_stoplist([])
 
 
 def test_template_grams_are_in_stoplist():
@@ -114,29 +134,77 @@ def test_nvidia_limits_and_env_override(monkeypatch):
     assert llm._timeout("nvidia") == 42
 
 
-def test_claude_provider_runs_cli_and_leads_order(monkeypatch):
-    calls = []
+class _Proc:
+    log = []
 
-    def fake_run(cmd, **kw):
-        calls.append((cmd, kw))
-        return subprocess.CompletedProcess(cmd, 0, stdout='{"a": 1}', stderr="")
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    def __init__(self, cmd, **kw):
+        self.cmd, self.kw, self.pid, self.returncode, self.stdin_text = cmd, kw, 4242, 0, None
+        self.hang = kw.pop("hang", False)
+        _Proc.log.append(self)
+
+    def communicate(self, input=None, timeout=None):
+        if self.hang and timeout:
+            self.hang = False
+            raise subprocess.TimeoutExpired(self.cmd, timeout)
+        self.stdin_text = input
+        return '{"a": 1}', ""
+
+    def kill(self):
+        _Proc.log.append("kill")
+
+
+def test_claude_provider_runs_cli_minimal_env_and_kills_tree(monkeypatch, tmp_path):
+    _Proc.log = []
+    monkeypatch.setattr(subprocess, "Popen", _Proc)
+    killed = []
+    monkeypatch.setattr(subprocess, "run", lambda c, **k: killed.append(c) or subprocess.CompletedProcess(c, 0, stdout="", stderr=""))
+    monkeypatch.setattr(llm, "_claude_flags", lambda exe: ("--strict-mcp-config", "--setting-sources"))
     monkeypatch.setenv("SAT_CLAUDE_CMD", "claude-x")
     monkeypatch.setenv("SAT_CLAUDE_MODEL", "opus")
+    monkeypatch.setenv("GEMINI_API_KEY", "secret")
+    monkeypatch.setenv("PATH", "somepath")
     assert llm._call_claude("hi", "sys", None, True) == '{"a": 1}'
-    cmd, kw = calls[0]
+    p = _Proc.log[0]
+    cmd, kw = p.cmd, p.kw
     assert cmd[:2] == ["claude-x", "-p"] and cmd[cmd.index("--model") + 1] == "opus" and cmd[cmd.index("--tools") + 1] == ""
-    assert kw["input"] == "hi" and kw["timeout"] == 180
-    monkeypatch.setattr(subprocess, "run", lambda c, **k: subprocess.CompletedProcess(c, 1, stdout="", stderr="Not logged in"))
-    with pytest.raises(llm.LLMError, match="Not logged in"):
+    assert "--strict-mcp-config" in cmd and cmd[cmd.index("--setting-sources") + 1] == ""
+    assert p.stdin_text == "hi" and "GEMINI_API_KEY" not in kw["env"] and kw["env"]["PATH"] == "somepath"
+    assert str(kw["cwd"]) != str(tmp_path) and "sat_engine" not in str(kw["cwd"])
+    # timeout -> whole process tree is killed (taskkill /T /F on Windows) and a retryable timeout error is raised
+    _Proc.log = []
+    monkeypatch.setattr(subprocess, "Popen", lambda c, **k: _Proc(c, hang=True, **k))
+    with pytest.raises(TimeoutError, match="timed out"):
+        llm._call_claude("hi", None, None, False)
+    assert "kill" in _Proc.log and (not killed or killed[-1][:2] == ["taskkill", "/PID"])
+    monkeypatch.setattr(subprocess, "Popen", lambda c, **k: setattr(_p := _Proc(c, **k), "returncode", 1) or _p)
+    with pytest.raises(llm.LLMError, match="exit 1"):
         llm._call_claude("hi", None, None, False)
     monkeypatch.setattr(llm, "claude_ready", lambda: False)
     assert "claude" not in llm.default_order()
     monkeypatch.setattr(llm, "claude_ready", lambda: True)
     assert llm.default_order()[0] == "claude"
-    # judge != generator
     assert verify.judge_providers(SimpleNamespace(meta=SimpleNamespace(provider="claude")))[0] != "claude"
     assert verify.judge_providers(SimpleNamespace(meta=SimpleNamespace(provider="groq")))[0] == "claude"
+    ext = SimpleNamespace(meta=SimpleNamespace(provider="external"))
+    assert verify.judge_providers(ext)[0] != "claude" and verify.judge_providers(ext)[-1] == "claude" and verify.exclusions(ext) == []
+
+
+def test_judge_is_hard_excluded_from_generator_provider(monkeypatch, caplog):
+    seen = []
+    monkeypatch.setattr(llm, "PROVIDERS", {n: (lambda n: lambda *a: seen.append(n) or '{"ok": 1}')(n) for n in ("gemini", "groq")})
+    llm.reset_health()
+    for _ in range(4):
+        assert llm.generate_json("p", providers=["gemini", "groq"], exclude=["gemini"]) == {"ok": 1}
+    assert set(seen) == {"groq"}
+    # groq cooling: the judge fails rather than falling back to the generator's provider
+    llm._cooldown["groq"] = llm.time.monotonic() + 3000
+    with pytest.raises(llm.LLMError):
+        llm.generate_json("p", providers=["gemini", "groq"], exclude=["gemini"])
+    llm.reset_health()
+    seen.clear()
+    with caplog.at_level("WARNING", logger="sat_engine.llm"):  # nothing else configured: same provider, logged
+        llm.generate_json("p", providers=["gemini"], exclude=["gemini"])
+    assert seen == ["gemini"] and "judge == generator" in caplog.text
 
 
 # ---- session reasons, import, open slots
@@ -165,7 +233,7 @@ def test_import_places_rejects_and_open_list(monkeypatch, tmp_path):
     r = importer.import_questions(f, sid, output_dir=tmp_path, blueprints=[], checker=OriginalityChecker(refs=[]))
     reasons = {x["item"]: x["reason"] for x in r["rejected"]}
     assert reasons[2] == "solver disagrees with key" and "schema" in reasons[4] and "originality" in reasons[5]
-    assert r["accepted"] == len(r["placed"]) >= 4
+    assert r["accepted"] == len(r["placed"]) >= 3
     stored = json.loads((tmp_path / f"{sid}.json").read_text(encoding="utf-8"))
     assert len(stored) == r["accepted"] and all(SATQuestion.model_validate(v) and v["id"] == f"{sid}-{k}" for k, v in stored.items())
     after = session.open_slots(sid, tmp_path, blueprints=[])

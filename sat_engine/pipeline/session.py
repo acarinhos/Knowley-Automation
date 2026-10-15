@@ -6,8 +6,10 @@ import logging
 import os
 import random
 import re
+import shutil
 import threading
 import time
+import uuid
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
@@ -31,35 +33,100 @@ def _why(e: Exception) -> str:
     return f"{type(e).__name__}: {str(e)[:700]}"
 
 
+STALE_LOCK_S = 120
+
+
+def _pid_alive(pid: int) -> bool:
+    if os.name == "nt":  # os.kill(pid, 0) would TERMINATE the process on Windows
+        import ctypes
+        k = ctypes.windll.kernel32
+        h = k.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not h:
+            return k.GetLastError() == 5  # access denied: exists
+        code = ctypes.c_ulong()
+        ok = k.GetExitCodeProcess(h, ctypes.byref(code))
+        k.CloseHandle(h)
+        return bool(ok) and code.value == 259  # STILL_ACTIVE
+    try:
+        os.kill(pid, 0)
+        return True
+    except PermissionError:
+        return True
+    except OSError:
+        return False
+
+
+def _lock_owner(lk: Path) -> tuple[str, dict]:
+    try:
+        raw = lk.read_text(encoding="utf-8")
+    except OSError:
+        return "", {}
+    try:
+        d = json.loads(raw)
+        return raw, d if isinstance(d, dict) else {}
+    except ValueError:
+        return raw, {}  # empty/legacy lock without pid: only the age rule applies
+
+
+def _lock_is_stale(lk: Path, d: dict) -> bool:
+    try:
+        age = time.time() - lk.stat().st_mtime
+    except OSError:
+        return False
+    pid = d.get("pid")
+    return age > STALE_LOCK_S or (isinstance(pid, int) and not _pid_alive(pid))
+
+
 @contextmanager
-def file_lock(path, timeout=30):
-    """Cross-process lock (session and importer both rewrite the same output file)."""
+def file_lock(path, timeout=150):
+    """Cross-process lock (session, importer and audit all rewrite the same output file). The lock file holds
+    {pid, token}; only the owner removes it, and a foreign lock is broken only if its pid is dead or it is > 120 s old."""
     lk = Path(str(path) + ".lock")
+    token = uuid.uuid4().hex
     t0 = time.monotonic()
     while True:
         try:
-            os.close(os.open(lk, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+            fd = os.open(lk, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump({"pid": os.getpid(), "token": token}, f)
             break
         except FileExistsError:
-            if time.monotonic() - t0 > timeout:  # stale lock from a killed process
+            raw, d = _lock_owner(lk)
+            if _lock_is_stale(lk, d) and _lock_owner(lk)[0] == raw:  # still the same stale owner
                 lk.unlink(missing_ok=True)
+            elif time.monotonic() - t0 > timeout:
+                raise TimeoutError(f"lock {lk.name} is held by a live process")
             else:
                 time.sleep(0.05)
+        except PermissionError:  # Windows: lock being deleted by its owner
+            time.sleep(0.05)
     try:
         yield
     finally:
-        lk.unlink(missing_ok=True)
+        if _lock_owner(lk)[1].get("token") == token:
+            lk.unlink(missing_ok=True)
+
+
+def _retry_win(fn, tries=20):
+    for i in range(tries):
+        try:
+            return fn()
+        except PermissionError:  # Windows: another process holds the file for a moment
+            if i == tries - 1:
+                raise
+            time.sleep(0.05 * (i + 1))
 
 
 def read_store(out: Path) -> dict:
-    return json.loads(Path(out).read_text(encoding="utf-8")) if Path(out).is_file() else {}
+    out = Path(out)
+    return _retry_win(lambda: json.loads(out.read_text(encoding="utf-8")) if out.is_file() else {})
 
 
 def write_store(out: Path, data: dict) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = out.with_suffix(".tmp")
     tmp.write_text(json.dumps(data), encoding="utf-8")
-    os.replace(tmp, out)
+    _retry_win(lambda: os.replace(tmp, out))
 
 
 def parse_sid(sid: str) -> tuple[int, tuple]:
@@ -98,8 +165,8 @@ def run_session(sections=("rw", "math"), seed=None, limit=None, providers=None, 
                 q = SATQuestion.model_validate(d)
                 accepted[int(i)] = q
                 checker.add(q)
-                if int(i) < len(plan):
-                    progress.done[plan[int(i)].section] = progress.done.get(plan[int(i)].section, 0) + 1
+                if int(i) in target_slots:
+                    progress.bump(plan[int(i)].section)
 
     def work(s):
         q, why, note = None, "", ""
@@ -149,6 +216,7 @@ def run_session(sections=("rw", "math"), seed=None, limit=None, providers=None, 
     progress.targets = {sec: len(sl) for sec, sl in slots_by_sec.items()}
     progress.done = {sec: sum(1 for s in sl if s.index in accepted) for sec, sl in slots_by_sec.items()}
     progress.start_done = sum(progress.done.values())
+    target_slots = {s.index for sl in slots_by_sec.values() for s in sl}
     todo = [s for sl in slots_by_sec.values() for s in sl if s.index not in accepted]
     with progress, ThreadPoolExecutor(max_workers=max(1, workers)) as ex:
         for f in [ex.submit(work, s) for s in todo]:
@@ -167,3 +235,44 @@ def run_session(sections=("rw", "math"), seed=None, limit=None, providers=None, 
         log.info("rejections by reason: %s", report["rejections"])
     report["output"] = str(out)
     return report
+
+
+def audit_session(sid: str, output_dir: Path = OUTPUT_DIR, drop_failed: bool = False, checker=None) -> dict:
+    """Offline (no LLM) re-check of every accepted question with the current originality and numeric-option rules.
+    Writes <output_dir>/<sid>.audit.json; with drop_failed, failing slots are removed from the store under the file lock
+    (a copy of the previous store stays in <file>.bak) so they become open slots. Returns counts only."""
+    out = Path(output_dir) / f"{sid}.json"
+
+    def run() -> dict:
+        store = read_store(out)
+        chk = checker or originality.OriginalityChecker()
+        fails: dict[str, list[str]] = {}
+        for i in sorted(store, key=int):
+            try:
+                q = SATQuestion.model_validate(store[i])
+            except ValueError:
+                fails.setdefault("schema", []).append(i)
+                continue
+            bad = False
+            if q.section == "math" and q.answer_type == "mcq" and verify.duplicate_numeric_options(q.options):
+                fails.setdefault("numeric_options", []).append(i)
+                bad = True
+            if not chk.check(q)[0]:
+                fails.setdefault("originality", []).append(i)
+                bad = True
+            if not bad:
+                chk.add(q)  # only passing questions count as earlier session text
+        failed = sorted({i for v in fails.values() for i in v}, key=int)
+        rep = {"session_id": sid, "total": len(store), "failed": len(failed), "passed": len(store) - len(failed),
+               "by_check": {k: len(v) for k, v in fails.items()}, "failed_slots": failed, "dropped": 0}
+        if drop_failed and failed:
+            shutil.copy2(out, str(out) + ".bak")
+            write_store(out, {i: d for i, d in store.items() if i not in set(failed)})
+            rep["dropped"] = len(failed)
+        (Path(output_dir) / f"{sid}.audit.json").write_text(json.dumps(rep, indent=1), encoding="utf-8")
+        return rep
+
+    if drop_failed:
+        with file_lock(out):
+            return run()
+    return run()
