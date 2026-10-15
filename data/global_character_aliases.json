@@ -1,0 +1,935 @@
+{
+  "schema_version": "1.0.0",
+  "characters": {
+    "gl_sinema_temel_sinema_charlie_chaplin": {
+      "original": "Charlie Chaplin",
+      "alias": "Alicher Planich"
+    },
+    "gl_sinema_temel_sinema_tom_cruise": {
+      "original": "Tom Cruise",
+      "alias": "Mot Sieruc"
+    },
+    "gl_sinema_temel_sinema_steven_spielberg": {
+      "original": "Steven Spielberg",
+      "alias": "Venest Gelbersip"
+    },
+    "gl_sinema_oyuncular_marilyn_monroe": {
+      "original": "Marilyn Monroe",
+      "alias": "Ryalnim Onomer"
+    },
+    "gl_sinema_oyuncular_leonardo_dicaprio": {
+      "original": "Leonardo DiCaprio",
+      "alias": "Oderonal DiPorica"
+    },
+    "gl_sinema_oyuncular_brad_pitt": {
+      "original": "Brad Pitt",
+      "alias": "Bard Tipt"
+    },
+    "gl_sinema_sinema_tarihi_alfred_hitchcock": {
+      "original": "Alfred Hitchcock",
+      "alias": "Dalerf Cichkocht"
+    },
+    "gl_sinema_sinema_tarihi_christopher_nolan": {
+      "original": "Christopher Nolan",
+      "alias": "Phocrestirh Onnal"
+    },
+    "gl_sinema_sinema_tarihi_quentin_tarantino": {
+      "original": "Quentin Tarantino",
+      "alias": "Niquent Trationan"
+    },
+    "gl_sinema_televizyon_programlari_oprah_winfrey": {
+      "original": "Oprah Winfrey",
+      "alias": "Pharo Ferywin"
+    },
+    "gl_sinema_televizyon_programlari_gordon_ramsay": {
+      "original": "Gordon Ramsay",
+      "alias": "Ongord Mysara"
+    },
+    "gl_sinema_televizyon_programlari_jimmy_fallon": {
+      "original": "Jimmy Fallon",
+      "alias": "Myjim Fonall"
+    },
+    "gl_teknoloji_temel_teknoloji_elon_musk": {
+      "original": "Elon Musk",
+      "alias": "Onel Smuk"
+    },
+    "gl_teknoloji_temel_teknoloji_steve_jobs": {
+      "original": "Steve Jobs",
+      "alias": "Vetes Sjob"
+    },
+    "gl_teknoloji_temel_teknoloji_bill_gates": {
+      "original": "Bill Gates",
+      "alias": "Libl Stega"
+    },
+    "gl_teknoloji_donanim_yapilari_cihazlar_tony_stark_iron_man": {
+      "original": "Tony Stark (Iron Man)",
+      "alias": "Nyto Karst (Nori Nam)"
+    },
+    "gl_teknoloji_donanim_yapilari_cihazlar_thomas_edison": {
+      "original": "Thomas Edison",
+      "alias": "Stahmo Sondie"
+    },
+    "gl_teknoloji_donanim_yapilari_cihazlar_nikola_tesla": {
+      "original": "Nikola Tesla",
+      "alias": "Kolani Estal"
+    },
+    "gl_teknoloji_yazilim_algoritmalar_alan_turing": {
+      "original": "Alan Turing",
+      "alias": "Lana Grunti"
+    },
+    "gl_teknoloji_yazilim_algoritmalar_mark_zuckerberg": {
+      "original": "Mark Zuckerberg",
+      "alias": "Kram Burgerzeck"
+    },
+    "gl_teknoloji_yazilim_algoritmalar_neo_the_matrix": {
+      "original": "Neo (The Matrix)",
+      "alias": "One (The Trimax)"
+    },
+    "gl_teknoloji_yapay_zeka_sam_altman": {
+      "original": "Sam Altman",
+      "alias": "Mas Malant"
+    },
+    "gl_teknoloji_yapay_zeka_jarvis": {
+      "original": "JARVIS",
+      "alias": "SIVRAJ"
+    },
+    "gl_teknoloji_yapay_zeka_terminator_t_800": {
+      "original": "Terminator (T-800)",
+      "alias": "Mintartore (T-008)"
+    },
+    "gl_teknoloji_internet_ag_sistemleri_jeff_bezos": {
+      "original": "Jeff Bezos",
+      "alias": "Ffej Sobez"
+    },
+    "gl_teknoloji_internet_ag_sistemleri_tim_berners_lee": {
+      "original": "Tim Berners-Lee",
+      "alias": "Mit Snerber-Ele"
+    },
+    "gl_teknoloji_internet_ag_sistemleri_pewdiepie": {
+      "original": "PewDiePie",
+      "alias": "WepIedEpi"
+    },
+    "gl_oyun_temel_oyun_mario": {
+      "original": "Mario",
+      "alias": "Aromi"
+    },
+    "gl_oyun_temel_oyun_pac_man": {
+      "original": "Pac-Man",
+      "alias": "Cap-Nam"
+    },
+    "gl_oyun_temel_oyun_pikachu": {
+      "original": "Pikachu",
+      "alias": "Kuphica"
+    },
+    "gl_oyun_fps_nisanci_oyunlari_master_chief": {
+      "original": "Master Chief",
+      "alias": "Steram Fiche"
+    },
+    "gl_oyun_fps_nisanci_oyunlari_ghost": {
+      "original": "Ghost",
+      "alias": "Stogh"
+    },
+    "gl_oyun_fps_nisanci_oyunlari_gabe_newell": {
+      "original": "Gabe Newell",
+      "alias": "Bega Wellen"
+    },
+    "gl_oyun_hayatta_kalma_battle_royale_steve": {
+      "original": "Steve",
+      "alias": "Vetes"
+    },
+    "gl_oyun_hayatta_kalma_battle_royale_katniss_everdeen": {
+      "original": "Katniss Everdeen",
+      "alias": "Skistan Vereende"
+    },
+    "gl_oyun_hayatta_kalma_battle_royale_john_wick": {
+      "original": "John Wick",
+      "alias": "Honj Kwic"
+    },
+    "gl_oyun_acik_dunya_macera_lara_croft": {
+      "original": "Lara Croft",
+      "alias": "Aral Forct"
+    },
+    "gl_oyun_acik_dunya_macera_geralt_of_rivia": {
+      "original": "Geralt of Rivia",
+      "alias": "Glater of Vairi"
+    },
+    "gl_oyun_acik_dunya_macera_kratos": {
+      "original": "Kratos",
+      "alias": "Sorakt"
+    },
+    "gl_oyun_moba_spor_simulasyonlari_jinx": {
+      "original": "Jinx",
+      "alias": "Xinj"
+    },
+    "gl_oyun_moba_spor_simulasyonlari_pudge": {
+      "original": "Pudge",
+      "alias": "Degup"
+    },
+    "gl_oyun_moba_spor_simulasyonlari_sonic": {
+      "original": "Sonic",
+      "alias": "Sicon"
+    },
+    "gl_saglik_temel_saglik_hippokrates": {
+      "original": "Hippokrates",
+      "alias": "Pesikhartop"
+    },
+    "gl_saglik_temel_saglik_ibn_i_sina": {
+      "original": "İbn-i Sina",
+      "alias": "İbn-i Asin"
+    },
+    "gl_saglik_temel_saglik_dr_gregory_house": {
+      "original": "Dr. Gregory House",
+      "alias": "Dr. Regorgy Sehou"
+    },
+    "gl_saglik_ilk_yardim_florence_nightingale": {
+      "original": "Florence Nightingale",
+      "alias": "Enlerfoc Ghientilang"
+    },
+    "gl_saglik_ilk_yardim_henry_dunant": {
+      "original": "Henry Dunant",
+      "alias": "Heryn Antund"
+    },
+    "gl_saglik_ilk_yardim_superman": {
+      "original": "Superman",
+      "alias": "Manusper"
+    },
+    "gl_saglik_beslenme_diyet_jamie_oliver": {
+      "original": "Jamie Oliver",
+      "alias": "Emiaj Velori"
+    },
+    "gl_saglik_beslenme_diyet_temel_reis": {
+      "original": "Temel Reis",
+      "alias": "Metle Sier"
+    },
+    "gl_saglik_beslenme_diyet_remy_ratatouille": {
+      "original": "Remy (Ratatouille)",
+      "alias": "Myer (Turietolaal)"
+    },
+    "gl_saglik_hastaliklar_korunma_louis_pasteur": {
+      "original": "Louis Pasteur",
+      "alias": "Siolu Suretap"
+    },
+    "gl_saglik_hastaliklar_korunma_alexander_fleming": {
+      "original": "Alexander Fleming",
+      "alias": "Lerexanda Mingelf"
+    },
+    "gl_saglik_hastaliklar_korunma_edward_jenner": {
+      "original": "Edward Jenner",
+      "alias": "Dedwar Enjern"
+    },
+    "gl_saglik_tip_tarihi_joseph_lister": {
+      "original": "Joseph Lister",
+      "alias": "Phosej Tersil"
+    },
+    "gl_saglik_tip_tarihi_galen": {
+      "original": "Galen",
+      "alias": "Elang"
+    },
+    "gl_saglik_tip_tarihi_william_osler": {
+      "original": "William Osler",
+      "alias": "Wimiall Lerso"
+    },
+    "gl_psikoloji_temel_psikoloji_sigmund_freud": {
+      "original": "Sigmund Freud",
+      "alias": "Gundism Duref"
+    },
+    "gl_psikoloji_temel_psikoloji_ivan_pavlov": {
+      "original": "Ivan Pavlov",
+      "alias": "Vani Volvap"
+    },
+    "gl_psikoloji_temel_psikoloji_carl_jung": {
+      "original": "Carl Jung",
+      "alias": "Clar Nguj"
+    },
+    "gl_psikoloji_insan_iliskileri_dale_carnegie": {
+      "original": "Dale Carnegie",
+      "alias": "Aled Generiac"
+    },
+    "gl_psikoloji_insan_iliskileri_sherlock_holmes": {
+      "original": "Sherlock Holmes",
+      "alias": "Kerlosch Shelom"
+    },
+    "gl_psikoloji_insan_iliskileri_patrick_jane": {
+      "original": "Patrick Jane",
+      "alias": "Craktip Enaj"
+    },
+    "gl_psikoloji_kisilik_tipleri_the_joker": {
+      "original": "The Joker",
+      "alias": "The Kroje"
+    },
+    "gl_psikoloji_kisilik_tipleri_carl_rogers": {
+      "original": "Carl Rogers",
+      "alias": "Clar Gersor"
+    },
+    "gl_psikoloji_kisilik_tipleri_hannibal_lecter": {
+      "original": "Hannibal Lecter",
+      "alias": "Bilananh Celert"
+    },
+    "gl_psikoloji_bilissel_yanilgilar_ekoller_daniel_kahneman": {
+      "original": "Daniel Kahneman",
+      "alias": "Endali Eknamanh"
+    },
+    "gl_psikoloji_bilissel_yanilgilar_ekoller_b_f_skinner": {
+      "original": "B.F. Skinner",
+      "alias": "B.F. Kersinn"
+    },
+    "gl_psikoloji_bilissel_yanilgilar_ekoller_jean_piaget": {
+      "original": "Jean Piaget",
+      "alias": "Naje Pategi"
+    },
+    "gl_resim_temel_resim_bob_ross": {
+      "original": "Bob Ross",
+      "alias": "Obb Sors"
+    },
+    "gl_resim_temel_resim_vincent_van_gogh": {
+      "original": "Vincent van Gogh",
+      "alias": "Tvincen van Ghog"
+    },
+    "gl_resim_temel_resim_pablo_picasso": {
+      "original": "Pablo Picasso",
+      "alias": "Ploba Sposica"
+    },
+    "gl_resim_unlu_tablolar_ressamlar_leonardo_da_vinci": {
+      "original": "Leonardo da Vinci",
+      "alias": "Oderonal da Inciv"
+    },
+    "gl_resim_unlu_tablolar_ressamlar_salvador_dali": {
+      "original": "Salvador Dalí",
+      "alias": "Dovalars Dial"
+    },
+    "gl_resim_unlu_tablolar_ressamlar_frida_kahlo": {
+      "original": "Frida Kahlo",
+      "alias": "Diraf Holak"
+    },
+    "gl_resim_ronesans_klasik_donem_michelangelo": {
+      "original": "Michelangelo",
+      "alias": "Heellacoming"
+    },
+    "gl_resim_ronesans_klasik_donem_raffaello_sanzio": {
+      "original": "Raffaello Sanzio",
+      "alias": "Afalerfol Zionas"
+    },
+    "gl_resim_ronesans_klasik_donem_caravaggio": {
+      "original": "Caravaggio",
+      "alias": "Govagiacar"
+    },
+    "gl_resim_modern_sanat_akimlari_andy_warhol": {
+      "original": "Andy Warhol",
+      "alias": "Yand Howlar"
+    },
+    "gl_resim_modern_sanat_akimlari_banksy": {
+      "original": "Banksy",
+      "alias": "Sykban"
+    },
+    "gl_resim_modern_sanat_akimlari_claude_monet": {
+      "original": "Claude Monet",
+      "alias": "Dalecu Temon"
+    },
+    "gl_astronomi_temel_astronomi_galileo_galilei": {
+      "original": "Galileo Galilei",
+      "alias": "Elogial Ilegial"
+    },
+    "gl_astronomi_temel_astronomi_nicolaus_copernicus": {
+      "original": "Nicolaus Copernicus",
+      "alias": "Sulicona Sincerpuoc"
+    },
+    "gl_astronomi_temel_astronomi_carl_sagan": {
+      "original": "Carl Sagan",
+      "alias": "Clar Asang"
+    },
+    "gl_astronomi_gunes_sistemi_neil_armstrong": {
+      "original": "Neil Armstrong",
+      "alias": "Lien Santrogrm"
+    },
+    "gl_astronomi_gunes_sistemi_johannes_kepler": {
+      "original": "Johannes Kepler",
+      "alias": "Hensonaj Prekle"
+    },
+    "gl_astronomi_gunes_sistemi_buzz_aldrin": {
+      "original": "Buzz Aldrin",
+      "alias": "Zzub Rindal"
+    },
+    "gl_astronomi_yildizlar_galaksiler_edwin_hubble": {
+      "original": "Edwin Hubble",
+      "alias": "Wiend Blehub"
+    },
+    "gl_astronomi_yildizlar_galaksiler_neil_degrasse_tyson": {
+      "original": "Neil deGrasse Tyson",
+      "alias": "Lien deSagers Sonty"
+    },
+    "gl_astronomi_yildizlar_galaksiler_arthur_eddington": {
+      "original": "Arthur Eddington",
+      "alias": "Harurt Dongendit"
+    },
+    "gl_astronomi_uzay_kesifleri_kozmoloji_stephen_hawking": {
+      "original": "Stephen Hawking",
+      "alias": "Pethens Whangik"
+    },
+    "gl_astronomi_uzay_kesifleri_kozmoloji_yuri_gagarin": {
+      "original": "Yuri Gagarin",
+      "alias": "Uriy Inaggar"
+    },
+    "gl_astronomi_uzay_kesifleri_kozmoloji_felix_baumgartner": {
+      "original": "Felix Baumgartner",
+      "alias": "Exilf Maturbergan"
+    },
+    "gl_biyoloji_temel_biyoloji_charles_darwin": {
+      "original": "Charles Darwin",
+      "alias": "Secharl Windar"
+    },
+    "gl_biyoloji_temel_biyoloji_carl_linnaeus": {
+      "original": "Carl Linnaeus",
+      "alias": "Clar Elusinan"
+    },
+    "gl_biyoloji_temel_biyoloji_david_attenborough": {
+      "original": "David Attenborough",
+      "alias": "Vidad Togorubathen"
+    },
+    "gl_biyoloji_insan_fizyolojisi_wolverine_logan": {
+      "original": "Wolverine (Logan)",
+      "alias": "Vernielow (Glona)"
+    },
+    "gl_biyoloji_insan_fizyolojisi_william_harvey": {
+      "original": "William Harvey",
+      "alias": "Wimiall Yevhar"
+    },
+    "gl_biyoloji_insan_fizyolojisi_usain_bolt": {
+      "original": "Usain Bolt",
+      "alias": "Sinau Tbol"
+    },
+    "gl_biyoloji_hucre_genetik_gregor_mendel": {
+      "original": "Gregor Mendel",
+      "alias": "Regorg Endelm"
+    },
+    "gl_biyoloji_hucre_genetik_rosalind_franklin": {
+      "original": "Rosalind Franklin",
+      "alias": "Dansilor Kalninfr"
+    },
+    "gl_biyoloji_hucre_genetik_james_watson": {
+      "original": "James Watson",
+      "alias": "Sejam Sontaw"
+    },
+    "gl_biyoloji_botanik_zooloji_ekoloji_jane_goodall": {
+      "original": "Jane Goodall",
+      "alias": "Enaj Dalolog"
+    },
+    "gl_biyoloji_botanik_zooloji_ekoloji_steve_irwin": {
+      "original": "Steve Irwin",
+      "alias": "Vetes Wirni"
+    },
+    "gl_biyoloji_botanik_zooloji_ekoloji_greta_thunberg": {
+      "original": "Greta Thunberg",
+      "alias": "Gater Buntregh"
+    },
+    "gl_felsefe_temel_felsefe_sokrates": {
+      "original": "Sokrates",
+      "alias": "Katersos"
+    },
+    "gl_felsefe_temel_felsefe_platon": {
+      "original": "Platon",
+      "alias": "Polant"
+    },
+    "gl_felsefe_temel_felsefe_rene_descartes": {
+      "original": "René Descartes",
+      "alias": "Ener Cadresest"
+    },
+    "gl_felsefe_antik_felsefe_diyojen": {
+      "original": "Diyojen",
+      "alias": "Yojinde"
+    },
+    "gl_felsefe_antik_felsefe_aristoteles": {
+      "original": "Aristoteles",
+      "alias": "Torelesista"
+    },
+    "gl_felsefe_antik_felsefe_marcus_aurelius": {
+      "original": "Marcus Aurelius",
+      "alias": "Cusmar Usuleria"
+    },
+    "gl_felsefe_epistemoloji_bilgi_john_locke": {
+      "original": "John Locke",
+      "alias": "Honj Kleco"
+    },
+    "gl_felsefe_epistemoloji_bilgi_immanuel_kant": {
+      "original": "Immanuel Kant",
+      "alias": "Enalimum Nakt"
+    },
+    "gl_felsefe_epistemoloji_bilgi_david_hume": {
+      "original": "David Hume",
+      "alias": "Vidad Mehu"
+    },
+    "gl_felsefe_etik_ahlak_felsefesi_friedrich_nietzsche": {
+      "original": "Friedrich Nietzsche",
+      "alias": "Ridicherf Senzetich"
+    },
+    "gl_felsefe_etik_ahlak_felsefesi_baruch_spinoza": {
+      "original": "Baruch Spinoza",
+      "alias": "Chabur Posizan"
+    },
+    "gl_felsefe_etik_ahlak_felsefesi_john_stuart_mill": {
+      "original": "John Stuart Mill",
+      "alias": "Honj Tratus Llim"
+    },
+    "gl_felsefe_mantik_varlik_felsefesi_albert_camus": {
+      "original": "Albert Camus",
+      "alias": "Balter Sucam"
+    },
+    "gl_felsefe_mantik_varlik_felsefesi_jean_paul_sartre": {
+      "original": "Jean-Paul Sartre",
+      "alias": "Naje-Pula Traser"
+    },
+    "gl_felsefe_mantik_varlik_felsefesi_karl_marx": {
+      "original": "Karl Marx",
+      "alias": "Klar Xmar"
+    },
+    "gl_fizik_temel_fizik_archimedes": {
+      "original": "Archimedes",
+      "alias": "Mischerade"
+    },
+    "gl_fizik_temel_fizik_isaac_newton": {
+      "original": "Isaac Newton",
+      "alias": "Casia Tonnew"
+    },
+    "gl_fizik_temel_fizik_blaise_pascal": {
+      "original": "Blaise Pascal",
+      "alias": "Siebal Scalap"
+    },
+    "gl_fizik_mekanik_daniel_bernoulli": {
+      "original": "Daniel Bernoulli",
+      "alias": "Endali Ronellibu"
+    },
+    "gl_fizik_mekanik_james_watt": {
+      "original": "James Watt",
+      "alias": "Sejam Twat"
+    },
+    "gl_fizik_mekanik_henry_ford": {
+      "original": "Henry Ford",
+      "alias": "Heryn Drof"
+    },
+    "gl_fizik_termodinamik_enerji_james_prescott_joule": {
+      "original": "James Prescott Joule",
+      "alias": "Sejam Sportect Lojeu"
+    },
+    "gl_fizik_termodinamik_enerji_lord_kelvin": {
+      "original": "Lord Kelvin",
+      "alias": "Lord Niklev"
+    },
+    "gl_fizik_termodinamik_enerji_rudolf_diesel": {
+      "original": "Rudolf Diesel",
+      "alias": "Foldur Seldie"
+    },
+    "gl_fizik_optik_ibnu_l_heysem": {
+      "original": "İbnü'l-Heysem",
+      "alias": "Buni'l-Eshemy"
+    },
+    "gl_fizik_optik_thomas_young": {
+      "original": "Thomas Young",
+      "alias": "Stahmo Onguy"
+    },
+    "gl_fizik_optik_hans_lippershey": {
+      "original": "Hans Lippershey",
+      "alias": "Shan Physipeler"
+    },
+    "gl_fizik_elektromanyetizma_kuantum_albert_einstein": {
+      "original": "Albert Einstein",
+      "alias": "Balter Intienes"
+    },
+    "gl_fizik_elektromanyetizma_kuantum_erwin_schrodinger": {
+      "original": "Erwin Schrödinger",
+      "alias": "Werni Hordirgensc"
+    },
+    "gl_fizik_elektromanyetizma_kuantum_robert_oppenheimer": {
+      "original": "Robert Oppenheimer",
+      "alias": "Bertor Phempenorie"
+    },
+    "gl_kimya_temel_kimya_marie_curie": {
+      "original": "Marie Curie",
+      "alias": "Ameri Ericu"
+    },
+    "gl_kimya_temel_kimya_antoine_lavoisier": {
+      "original": "Antoine Lavoisier",
+      "alias": "Einanto Vialerosi"
+    },
+    "gl_kimya_temel_kimya_robert_boyle": {
+      "original": "Robert Boyle",
+      "alias": "Bertor Eloby"
+    },
+    "gl_kimya_periyodik_tablo_elementler_dmitri_mendeleev": {
+      "original": "Dmitri Mendeleev",
+      "alias": "Mitird Velemende"
+    },
+    "gl_kimya_periyodik_tablo_elementler_alfred_nobel": {
+      "original": "Alfred Nobel",
+      "alias": "Dalerf Belon"
+    },
+    "gl_kimya_periyodik_tablo_elementler_ernest_rutherford": {
+      "original": "Ernest Rutherford",
+      "alias": "Steren Hrurfodert"
+    },
+    "gl_kimya_fizikokimya_michael_faraday": {
+      "original": "Michael Faraday",
+      "alias": "Alimech Fyarada"
+    },
+    "gl_kimya_fizikokimya_svante_arrhenius": {
+      "original": "Svante Arrhenius",
+      "alias": "Vatens Inharsure"
+    },
+    "gl_kimya_fizikokimya_amedeo_avogadro": {
+      "original": "Amedeo Avogadro",
+      "alias": "Eemoda Vogorada"
+    },
+    "gl_kimya_organik_inorganik_kimya_walter_white_heisenberg": {
+      "original": "Walter White (Heisenberg)",
+      "alias": "Trelaw Hitew (Sibenegher)"
+    },
+    "gl_kimya_organik_inorganik_kimya_friedrich_wohler": {
+      "original": "Friedrich Wöhler",
+      "alias": "Ridicherf Herwol"
+    },
+    "gl_kimya_organik_inorganik_kimya_alexander_shulgin": {
+      "original": "Alexander Shulgin",
+      "alias": "Lerexanda Gulsinh"
+    },
+    "gl_spor_temel_spor_pele": {
+      "original": "Pelé",
+      "alias": "Epel"
+    },
+    "gl_spor_temel_spor_michael_phelps": {
+      "original": "Michael Phelps",
+      "alias": "Alimech Sphelp"
+    },
+    "gl_spor_temel_spor_roger_federer": {
+      "original": "Roger Federer",
+      "alias": "Gerro Erederf"
+    },
+    "gl_spor_temel_spor_usain_bolt": {
+      "original": "Usain Bolt",
+      "alias": "Anius Tbol"
+    },
+    "gl_spor_temel_spor_muhammad_ali": {
+      "original": "Muhammad Ali",
+      "alias": "Dammahmu Lia"
+    },
+    "gl_spor_temel_spor_lionel_messi": {
+      "original": "Lionel Messi",
+      "alias": "Onelli Simes"
+    },
+    "gl_spor_temel_spor_cristiano_ronaldo": {
+      "original": "Cristiano Ronaldo",
+      "alias": "Sictorian Daronol"
+    },
+    "gl_spor_temel_spor_ayrton_senna": {
+      "original": "Ayrton Senna",
+      "alias": "Tronay Ensan"
+    },
+    "gl_spor_temel_spor_nadia_comaneci": {
+      "original": "Nadia Comăneci",
+      "alias": "Adani Ecicoman"
+    },
+    "gl_spor_temel_spor_tiger_woods": {
+      "original": "Tiger Woods",
+      "alias": "Gerit Dosow"
+    },
+    "gl_edebiyat_temel_edebiyat_william_shakespeare": {
+      "original": "William Shakespeare",
+      "alias": "Wimiall Espekerahas"
+    },
+    "gl_edebiyat_temel_edebiyat_lev_tolstoy": {
+      "original": "Lev Tolstoy",
+      "alias": "Vel Stytolo"
+    },
+    "gl_edebiyat_temel_edebiyat_fyodor_dostoyevski": {
+      "original": "Fyodor Dostoyevski",
+      "alias": "Fodory Vedosoystik"
+    },
+    "gl_edebiyat_temel_edebiyat_victor_hugo": {
+      "original": "Victor Hugo",
+      "alias": "Trociv Ghou"
+    },
+    "gl_edebiyat_temel_edebiyat_johann_wolfgang_von_goethe": {
+      "original": "Johann Wolfgang von Goethe",
+      "alias": "Honnaj Glganfow von Hetego"
+    },
+    "gl_edebiyat_temel_edebiyat_dante_alighieri": {
+      "original": "Dante Alighieri",
+      "alias": "Endat Hiligeria"
+    },
+    "gl_edebiyat_temel_edebiyat_miguel_de_cervantes": {
+      "original": "Miguel de Cervantes",
+      "alias": "Mulegi de Taversenc"
+    },
+    "gl_edebiyat_temel_edebiyat_homeros": {
+      "original": "Homeros",
+      "alias": "Sheromo"
+    },
+    "gl_edebiyat_temel_edebiyat_franz_kafka": {
+      "original": "Franz Kafka",
+      "alias": "Znarf Akkaf"
+    },
+    "gl_edebiyat_temel_edebiyat_gabriel_garcia_marquez": {
+      "original": "Gabriel García Márquez",
+      "alias": "Balgeri Giarac Quzmera"
+    },
+    "gl_muzik_klasik_muzik_efsaneleri_ludwig_van_beethoven": {
+      "original": "Ludwig van Beethoven",
+      "alias": "Gwilud van Bethovene"
+    },
+    "gl_muzik_klasik_muzik_efsaneleri_wolfgang_amadeus_mozart": {
+      "original": "Wolfgang Amadeus Mozart",
+      "alias": "Glganfow Demasau Trozam"
+    },
+    "gl_muzik_klasik_muzik_efsaneleri_johann_sebastian_bach": {
+      "original": "Johann Sebastian Bach",
+      "alias": "Honnaj Bastanise Chab"
+    },
+    "gl_muzik_klasik_muzik_efsaneleri_frederic_chopin": {
+      "original": "Frédéric Chopin",
+      "alias": "Derficer Ponich"
+    },
+    "gl_muzik_klasik_muzik_efsaneleri_pyotr_ilyich_tchaikovsky": {
+      "original": "Pyotr Ilyich Tchaikovsky",
+      "alias": "Trypo Chilyi Viskythoack"
+    },
+    "gl_muzik_pop_rock_caz_efsaneleri_michael_jackson": {
+      "original": "Michael Jackson",
+      "alias": "Alimech Skonjac"
+    },
+    "gl_muzik_pop_rock_caz_efsaneleri_freddie_mercury": {
+      "original": "Freddie Mercury",
+      "alias": "Derfied Curymer"
+    },
+    "gl_muzik_pop_rock_caz_efsaneleri_elvis_presley": {
+      "original": "Elvis Presley",
+      "alias": "Visel Lespery"
+    },
+    "gl_muzik_pop_rock_caz_efsaneleri_john_lennon": {
+      "original": "John Lennon",
+      "alias": "Honj Nolnen"
+    },
+    "gl_muzik_pop_rock_caz_efsaneleri_miles_davis": {
+      "original": "Miles Davis",
+      "alias": "Lesim Visad"
+    },
+    "gl_tarih_temel_tarih_herodotos": {
+      "original": "Herodotos",
+      "alias": "Thoersodo"
+    },
+    "gl_tarih_temel_tarih_thukydides": {
+      "original": "Thukydides",
+      "alias": "Dukydethis"
+    },
+    "gl_tarih_medeniyetin_dogusu_hammurabi": {
+      "original": "Hammurabi",
+      "alias": "Buriahmam"
+    },
+    "gl_tarih_medeniyetin_dogusu_imhotep": {
+      "original": "İmhotep",
+      "alias": "Pethomi"
+    },
+    "gl_tarih_yerlesmeler_heinrich_schliemann": {
+      "original": "Heinrich Schliemann",
+      "alias": "Hicherni Chinnlasem"
+    },
+    "gl_tarih_imparatorluk_ve_devletler_buyuk_iskender": {
+      "original": "Büyük İskender",
+      "alias": "Büyük Senderik"
+    },
+    "gl_tarih_savaslar_ve_antlasmalar_julius_caesar": {
+      "original": "Julius Caesar",
+      "alias": "Usulij Seraca"
+    },
+    "gl_cografya_temel_cografya_eratosthenes": {
+      "original": "Eratosthenes",
+      "alias": "Storeneestah"
+    },
+    "gl_cografya_temel_cografya_gerardus_mercator": {
+      "original": "Gerardus Mercator",
+      "alias": "Agersurd Ertormac"
+    },
+    "gl_cografya_fiziki_cografya_alfred_wegener": {
+      "original": "Alfred Wegener",
+      "alias": "Dalerf Gwerene"
+    },
+    "gl_cografya_fiziki_cografya_alexander_von_humboldt": {
+      "original": "Alexander von Humboldt",
+      "alias": "Lerexanda von Thulmobd"
+    },
+    "gl_cografya_iklim_wladimir_koppen": {
+      "original": "Wladimir Köppen",
+      "alias": "Rdwimial Peknop"
+    },
+    "gl_cografya_yer_sekilleri_william_morris_davis": {
+      "original": "William Morris Davis",
+      "alias": "Wimiall Rismor Visad"
+    },
+    "gl_cografya_dogal_afetler_charles_richter": {
+      "original": "Charles Richter",
+      "alias": "Secharl Cherirt"
+    },
+    "gl_cografya_sosyoekonomik_thomas_malthus": {
+      "original": "Thomas Malthus",
+      "alias": "Stahmo Thuslam"
+    },
+    "gl_ekonomi_temel_ekonomi_adam_smith": {
+      "original": "Adam Smith",
+      "alias": "Mada Thism"
+    },
+    "gl_ekonomi_temel_ekonomi_john_maynard_keynes": {
+      "original": "John Maynard Keynes",
+      "alias": "Honj Ryandam Enesky"
+    },
+    "gl_ekonomi_borsa_warren_buffett": {
+      "original": "Warren Buffett",
+      "alias": "Renwar Tetbuff"
+    },
+    "gl_ekonomi_borsa_george_soros": {
+      "original": "George Soros",
+      "alias": "Egegor Osors"
+    },
+    "gl_ekonomi_piyasalar_milton_friedman": {
+      "original": "Milton Friedman",
+      "alias": "Lomint Manderif"
+    },
+    "gl_ekonomi_piyasalar_alan_greenspan": {
+      "original": "Alan Greenspan",
+      "alias": "Lana Pernaseng"
+    },
+    "gl_ekonomi_girisimcilik_peter_thiel": {
+      "original": "Peter Thiel",
+      "alias": "Epert Lithe"
+    },
+    "gl_ekonomi_girisimcilik_marc_andreessen": {
+      "original": "Marc Andreessen",
+      "alias": "Cram Esendaners"
+    },
+    "gl_ekonomi_kripto_dunyasi_satoshi_nakamoto": {
+      "original": "Satoshi Nakamoto",
+      "alias": "Histoas Akatonom"
+    },
+    "gl_ekonomi_kripto_dunyasi_vitalik_buterin": {
+      "original": "Vitalik Buterin",
+      "alias": "Klativi Bientur"
+    },
+    "gl_ekonomi_sirketler_john_d_rockefeller": {
+      "original": "John D. Rockefeller",
+      "alias": "Honj D. Ecorkerfell"
+    },
+    "gl_ekonomi_sirketler_andrew_carnegie": {
+      "original": "Andrew Carnegie",
+      "alias": "Werand Generiac"
+    },
+    "gl_mitoloji_temel_mitoloji_zeus": {
+      "original": "Zeus",
+      "alias": "Suze"
+    },
+    "gl_mitoloji_temel_mitoloji_odin": {
+      "original": "Odin",
+      "alias": "Doni"
+    },
+    "gl_mitoloji_mitoloji_yapilari_poseidon": {
+      "original": "Poseidon",
+      "alias": "Siondepo"
+    },
+    "gl_mitoloji_mitoloji_yapilari_anubis": {
+      "original": "Anubis",
+      "alias": "Basinu"
+    },
+    "gl_mitoloji_yerel_mitoloji_thor": {
+      "original": "Thor",
+      "alias": "Hort"
+    },
+    "gl_mitoloji_efsaneler_kral_arthur": {
+      "original": "Kral Arthur",
+      "alias": "Kral Harurt"
+    },
+    "gl_mitoloji_halk_hikayeleri_robin_hood": {
+      "original": "Robin Hood",
+      "alias": "Binor Hodo"
+    },
+    "gl_genel_kultur_temel_genel_kultur_marco_polo": {
+      "original": "Marco Polo",
+      "alias": "Comar Opol"
+    },
+    "gl_genel_kultur_temel_genel_kultur_ferdinand_magellan": {
+      "original": "Ferdinand Magellan",
+      "alias": "Drandenfi Glanamel"
+    },
+    "gl_genel_kultur_kulturel_ikonlar_gustave_eiffel": {
+      "original": "Gustave Eiffel",
+      "alias": "Vategus Feleif"
+    },
+    "gl_genel_kultur_danslar_mihail_barisnikov": {
+      "original": "Mihail Barışnikov",
+      "alias": "Halimi Sirobavnik"
+    },
+    "gl_genel_kultur_festivaller_kral_momo": {
+      "original": "Kral Momo",
+      "alias": "Kral Moom"
+    },
+    "gl_genel_kultur_bayramlar_noel_baba_st_nicholas": {
+      "original": "Noel Baba (St. Nicholas)",
+      "alias": "Onle Baba (St. Shocanli)"
+    },
+    "gl_siyaset_temel_siyaset_montesquieu": {
+      "original": "Montesquieu",
+      "alias": "Quituneseom"
+    },
+    "gl_siyaset_temel_siyaset_jean_jacques_rousseau": {
+      "original": "Jean-Jacques Rousseau",
+      "alias": "Naje-Esqujac Asorusue"
+    },
+    "gl_siyaset_uluslararasi_iliskiler_henry_kissinger": {
+      "original": "Henry Kissinger",
+      "alias": "Heryn Grieksins"
+    },
+    "gl_siyaset_siyasal_tarih_otto_von_bismarck": {
+      "original": "Otto von Bismarck",
+      "alias": "Toot von Scimbark"
+    },
+    "gl_siyaset_kurumlar_ve_yonetimler_max_weber": {
+      "original": "Max Weber",
+      "alias": "Xam Berew"
+    },
+    "gl_siyaset_liderler_ve_secimler_abraham_lincoln": {
+      "original": "Abraham Lincoln",
+      "alias": "Hambara Nollinc"
+    },
+    "gl_gastronomi_temel_gastronomi_auguste_escoffier": {
+      "original": "Auguste Escoffier",
+      "alias": "Gauteus Fiersefoc"
+    },
+    "gl_gastronomi_temel_gastronomi_jean_anthelme_brillat_savarin": {
+      "original": "Jean Anthelme Brillat-Savarin",
+      "alias": "Naje Menethal Baltirl-Varians"
+    },
+    "gl_gastronomi_geleneksel_yemekler_paul_bocuse": {
+      "original": "Paul Bocuse",
+      "alias": "Pula Obecus"
+    },
+    "gl_gastronomi_sokak_lezzetleri_anthony_bourdain": {
+      "original": "Anthony Bourdain",
+      "alias": "Nhanyto Obandiru"
+    },
+    "gl_gastronomi_tatli_kulturleri_gaston_lenotre": {
+      "original": "Gaston Lenôtre",
+      "alias": "Stoang Onteler"
+    },
+    "gl_gastronomi_ogun_kulturleri_john_montagu_sandwich_kontu": {
+      "original": "John Montagu (Sandwich Kontu)",
+      "alias": "Honj Matuong (Chindwas Okunt)"
+    }
+  },
+  "skill_terms": {
+    "Jarvis": "Sivraj",
+    "Turing": "Grunti",
+    "Sonic": "Sicon",
+    "Hawking": "Whangik",
+    "Pascal": "Scalap",
+    "Joule": "Lojeu",
+    "Kelvin": "Niklev",
+    "Nobel": "Belon",
+    "Boyle": "Eloby",
+    "Faraday": "Fyarada",
+    "Avogadro": "Vogorada",
+    "Listerine": "Nelisteri"
+  }
+}

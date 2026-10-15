@@ -349,7 +349,9 @@ def main() -> int:
     if not isinstance(locale_texts, dict):
         raise ValueError("Localized title/role mapping must be a JSON object.")
 
-    aliases = json.loads(ALIASES.read_text(encoding="utf-8")) if ALIASES.exists() else {}
+    if not ALIASES.exists():
+        raise FileNotFoundError(f"{ALIASES} is required; refusing to build a catalogue with original (unaliased) names.")
+    aliases = json.loads(ALIASES.read_text(encoding="utf-8"))
     skill_terms = aliases.get("skill_terms", {})
 
     output: list[dict[str, Any]] = []
@@ -371,8 +373,10 @@ def main() -> int:
         )
         # Ids stay derived from the original name; only visible text uses the alias.
         entry = aliases.get("characters", {}).get(raw_id)
-        display_name = entry["alias"] if entry else clean(row.get("name"))
-        names = alias_map(entry["original"], entry["alias"]) if entry else {}
+        if entry is None:
+            raise ValueError(f"No alias for {raw_id}; add it to {ALIASES.name}.")
+        display_name = entry["alias"]
+        names = alias_map(entry["original"], entry["alias"])
         skills: list[dict[str, Any]] = []
         for slot, source_text in enumerate(row.get("skills") or [], start=1):
             source_text = rename_text(clean(source_text), {**skill_terms, **names})

@@ -24,6 +24,9 @@ from core.character_catalog import firestore_character_document, load_global_cha
 from database.db_manager import init_firebase
 
 ROOT = Path(__file__).resolve().parents[1]
+ALIASES = ROOT / "data" / "global_character_aliases.json"
+# Generic words that merely equal/contain an original name token (e.g. Turkish "Böyle", song title "Billie Jean").
+FALSE_POSITIVES = {"temel", "iron", "jean", "monet", "boyle", "sandwich"}
 SKILL_TEXT_FIELDS = ("name", "source_description", "source_sheet_text")
 
 
@@ -53,6 +56,22 @@ def planned_update(current: dict[str, Any], expected: dict[str, Any]) -> dict[st
     return update
 
 
+def original_name_hits(doc: dict[str, Any], originals: list[str]) -> list[str]:
+    """Original name tokens (>=4 letters) still visible in name/title/role/translations/skill text."""
+    from scripts.generate_global_character_aliases import KEEP, TOKEN, fold  # noqa: PLC0415
+
+    parts = [doc.get("name", ""), doc.get("title", ""), doc.get("role", "")]
+    parts += [v for tr in (doc.get("translations") or {}).values() for v in tr.values() if isinstance(v, str)]
+    for skill in doc.get("skills") or []:
+        parts += [skill.get(f, "") for f in SKILL_TEXT_FIELDS] + [json.dumps(skill.get("effects") or [], ensure_ascii=False)]
+    text = fold(" ".join(str(p) for p in parts))
+    tokens = {fold(t) for name in originals for t in TOKEN.findall(name)}
+    return sorted(
+        t for t in tokens
+        if len(t) >= 4 and t not in KEEP and t not in FALSE_POSITIVES and re.search(rf"(?<![a-z]){t}(?![a-z])", text)
+    )
+
+
 def backup(db: Any) -> Path:
     folder = ROOT / "local_backups"
     folder.mkdir(exist_ok=True)
@@ -73,7 +92,8 @@ def main() -> int:
     if project_id != args.project_id:
         raise SystemExit(f"Refusing: initialized project is {project_id!r}, expected {args.project_id!r}.")
 
-    missing, updates = [], []
+    aliases = json.loads(ALIASES.read_text(encoding="utf-8"))["characters"]
+    missing, updates, leaking_before, leaking_after = [], [], 0, 0
     for character in load_global_character_catalog():
         expected = firestore_character_document(character)
         ref = db.collection("characters").document(character.id)
@@ -85,6 +105,9 @@ def main() -> int:
         if current.get("region_code") != "GL" or current.get("character_type") != "global":
             raise SystemExit(f"{character.id} is not a global character document.")
         update = planned_update(current, expected)
+        originals = [aliases[character.id]["original"]]
+        leaking_before += bool(original_name_hits(current, originals))
+        leaking_after += bool(original_name_hits({**current, **update}, originals))
         if update:
             updates.append((ref, update, current))
 
@@ -93,6 +116,7 @@ def main() -> int:
         for key in update:
             fields[key] = fields.get(key, 0) + 1
     print(f"Project: {project_id}; missing docs to add: {len(missing)}; docs to update: {len(updates)}; fields: {fields}")
+    print(f"Docs showing an original name: now {leaking_before}; after this sync {leaking_after}.")
     for ref, update, current in updates[:5]:
         print(f"  {ref.id}: name {current.get('name')!r} -> {update.get('name')!r}")
     if not args.apply:
@@ -100,11 +124,13 @@ def main() -> int:
         return 0
 
     print(f"Backup written: {backup(db)}")
-    for ref, expected in missing:
-        payload = dict(expected, is_active=False, created_at=firestore.SERVER_TIMESTAMP)
-        ref.create(payload)  # create() fails if the document already exists
-    for ref, update, _cur in updates:
-        ref.update(update)
+    operations = [(ref, "create", dict(expected, is_active=False, created_at=firestore.SERVER_TIMESTAMP)) for ref, expected in missing]
+    operations += [(ref, "update", update) for ref, update, _cur in updates]
+    for start in range(0, len(operations), 500):
+        batch = db.batch()
+        for ref, kind, payload in operations[start:start + 500]:
+            getattr(batch, kind)(ref, payload)  # create() fails if the document already exists
+        batch.commit()
 
     bad = 0
     for ref, update, current in updates:

@@ -653,7 +653,7 @@ ZORUNLU KENDİ KENDİNİ DOĞRULAMA (SELF-VERIFICATION KURALI):
 "{SELF_VERIFICATION_RULE}"
 
 [KARAKTER YETENEKLERİ İÇİN SORU YARDIMCI ALANLARI]:
-- `weakest_distractor_index` ve `strongest_distractor_index` 0 tabanlı seçenek indeksidir: A=0, B=1, C=2, D=3. İkisi de doğru cevaptan farklı yanlış seçenekleri göstermelidir.
+- `weakest_distractor_index` ve `strongest_distractor_index` 0 tabanlı seçenek indeksidir: A=0, B=1, C=2, D=3. İkisi de doğru cevaptan farklı yanlış seçenekleri göstermelidir ve `weakest_distractor_index` ile `strongest_distractor_index` birbirinden FARKLI olmalıdır (üçü de farklı indeks).
 - `hint` cevabı doğrudan söylemeyen kısa, yararlı bir ipucu; `keyword` soru kökündeki gerçek kilit ifade; `distractor_trap_note` en güçlü yanlış seçeneğin neden yanlış olduğunu açıklar. Bunları HER hedef dilin çevirisinde doğal biçimde yaz.
 - `binary_fallback` her hedef dilde doğru/yanlış biçimine çevrilebilen tek bir önerme ve bu önermenin doğruluğunu gösteren `is_true` içerir.
 - `logical_order`, yalnızca seçeneklerin gerçekten sıralanabileceği sorularda A-D'nin 0 tabanlı indekslerinden oluşan tam bir permütasyondur; uygun değilse null.

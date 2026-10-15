@@ -8,14 +8,21 @@ from pathlib import Path
 from core.character_catalog import CHARACTER_LOCALES, load_global_character_catalog
 from scripts.build_global_character_catalog import rename_text, slug_id
 from scripts.export_global_character_runtime_map import RULES
+from scripts.sync_global_character_aliases_firestore import FALSE_POSITIVES, original_name_hits, planned_update
 from scripts.generate_global_character_aliases import KEEP, TOKEN, fold
 
 DATA = Path(__file__).resolve().parents[1] / "data"
-SOURCE = json.loads((DATA / "global_character_source.json").read_text(encoding="utf-8"))
-ALIASES = json.loads((DATA / "global_character_aliases.json").read_text(encoding="utf-8"))
-CHARACTERS = load_global_character_catalog()
-# Generic words that merely contain/equal an original name token (Turkish "Böyle", "max_selections", song title...).
-FALSE_POSITIVES = {"temel", "iron", "jean", "monet", "boyle", "sandwich"}
+SOURCE: list = []
+ALIASES: dict = {}
+CHARACTERS: list = []
+
+
+def setUpModule():
+    global SOURCE, ALIASES, CHARACTERS
+    SOURCE = json.loads((DATA / "global_character_source.json").read_text(encoding="utf-8"))
+    ALIASES = json.loads((DATA / "global_character_aliases.json").read_text(encoding="utf-8"))
+    CHARACTERS = load_global_character_catalog()
+
 
 
 def visible_texts(character):
@@ -70,6 +77,48 @@ class AliasTests(unittest.TestCase):
 
     def test_rename_text_maps_whole_words_only(self):
         self.assertEqual(rename_text("Pascal Kalkanı, Pascalian", {"Pascal": "Scalap"}), "Scalap Kalkanı, Pascalian")
+
+
+class SyncPlanTests(unittest.TestCase):
+    def expected(self):
+        return {
+            "name": "Alias", "title": "T", "role": "R",
+            "translations": {"en": {"name": "Alias", "title": "T", "role": "R"}},
+            "skills": [{"skill_id": "s1", "name": "Sivraj Taraması", "source_description": "d", "source_sheet_text": "Sivraj Taraması: d",
+                        "effects": [{"type": "manual_review", "params": {"source_text": "Sivraj Taraması: d"}}]}],
+        }
+
+    def current(self):
+        return {
+            "name": "Jarvis", "title": "T", "role": "R", "is_active": False, "created_at": "x", "rarity": "unassigned",
+            "translations": {"en": {"name": "Jarvis", "title": "T", "role": "R", "extra": 1}},
+            "skills": [{"skill_id": "s1", "name": "Jarvis Taraması", "source_description": "d", "source_sheet_text": "Jarvis Taraması: d",
+                        "daily_limits": {"lvl1": 3}, "effects": [{"type": "manual_review", "params": {"source_text": "Jarvis Taraması: d", "k": 1}}]}],
+        }
+
+    def test_updates_only_allowed_fields(self):
+        update = planned_update(self.current(), self.expected())
+        self.assertEqual(set(update), {"name", "translations", "skills"})
+        self.assertEqual(update["translations"]["en"], {"name": "Alias", "title": "T", "role": "R", "extra": 1})
+        skill = update["skills"][0]
+        self.assertEqual(skill["name"], "Sivraj Taraması")
+        self.assertEqual(skill["daily_limits"], {"lvl1": 3})
+        self.assertEqual(skill["effects"][0]["params"], {"source_text": "Sivraj Taraması: d", "k": 1})
+
+    def test_no_update_when_current_and_idempotent(self):
+        current = self.current()
+        current.update(planned_update(current, self.expected()))
+        self.assertEqual(planned_update(current, self.expected()), {})
+
+    def test_skill_shape_mismatch_refused(self):
+        expected = self.expected()
+        expected["skills"][0]["skill_id"] = "other"
+        with self.assertRaises(SystemExit):
+            planned_update(self.current(), expected)
+
+    def test_original_name_hits(self):
+        self.assertEqual(original_name_hits(self.current(), ["Jarvis"]), ["jarvis"])
+        self.assertEqual(original_name_hits({"name": "Sivraj"}, ["Jarvis"]), [])
 
 
 class CatalogTests(unittest.TestCase):
