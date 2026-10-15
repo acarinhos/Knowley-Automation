@@ -18,3 +18,5 @@ venv/
 .venv/
 .vscode/
 .pytest_cache/
+
+sat_engine/reference/
