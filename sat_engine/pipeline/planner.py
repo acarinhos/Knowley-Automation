@@ -17,6 +17,8 @@ DOMAIN_WEIGHTS = {
 DIFF_WEIGHTS = {1: (45, 40, 15), 2: (15, 40, 45)}  # easy, medium, hard
 DIFFS = ("easy", "medium", "hard")
 VISUAL_FRACTION = 0.25
+GRID_FRACTION = 0.25  # share of math items (non-visual) that are student-produced responses
+NO_GRID_SKILLS = {"Evaluating statistical claims: observational studies and experiments", "Equivalent expressions"}
 VISUAL_SKILLS = {"Linear functions", "Linear equations in two variables", "Systems of two linear equations in two variables",
                  "Nonlinear functions", "Two-variable data: models and scatterplots",
                  "One-variable data: distributions and measures of center and spread"}
@@ -96,6 +98,11 @@ def build_plan(seed: int = 0, blueprints: list[dict] | None = None, sections=("r
                 s.needs_visual = True
         for s in sec_slots:
             s.blueprint = _pick_blueprint(pool, rng, s.section, s.domain, s.skill, s.difficulty, s.needs_visual)
+        if section == "math":
+            cand = [s for s in sec_slots if not s.needs_visual and s.skill not in NO_GRID_SKILLS]
+            rng.shuffle(cand)
+            for s in cand[: round(GRID_FRACTION * len(sec_slots))]:
+                s.blueprint["answer_type"] = "grid_in"
         slots += sec_slots
     for i, s in enumerate(slots):
         s.index = i

@@ -111,3 +111,51 @@ def test_session_stops_when_unverifiable(monkeypatch, tmp_path):
     r = session.run_session(sections=("rw",), seed=1, limit=3, output_dir=tmp_path, blueprints=[],
                             store=FakeStore(), checker=OriginalityChecker(refs=[]))
     assert not r["ok"] and r["sections"]["rw"]["accepted"] == 0 and len(r["failures"]) == 1
+
+
+def test_meta_records_provider_and_model(monkeypatch):
+    monkeypatch.setattr(llm, "generate_json", fake_llm())
+    monkeypatch.setattr(llm, "last_used", lambda: {"provider": "groq", "model": "m1"})
+    q = generator.generate(slot("rw"))
+    assert (q.meta.provider, q.meta.model) == ("groq", "m1")
+
+
+def test_figure_as_json_string_is_accepted(monkeypatch):
+    import json as _j
+    base = fake_llm()
+    monkeypatch.setattr(llm, "generate_json", lambda *a, **k: {**base(*a, **k), "figure": _j.dumps(FIG)})
+    assert generator.generate(slot("math", visual=True)).visual["spec"] == FIG
+    with pytest.raises(ValueError, match="not valid JSON"):
+        generator.coerce_spec("{bad")
+    assert generator.coerce_spec({"spec": FIG}) == FIG
+
+
+def test_prompts_follow_digital_sat_style():
+    rw = generator.build_prompt(slot("rw"))
+    assert "NEVER refer to line numbers" in rw and "most logical and precise word or phrase" in rw
+    m = generator.build_prompt(slot("math", visual=True))
+    assert '"kind":"function_graph"' in m and "JSON OBJECT" in m and "Exactly" in m
+    s = slot("math")
+    s.blueprint = {"answer_type": "grid_in"}
+    assert "student-produced" in generator.build_prompt(s)
+
+
+def test_plan_has_grid_ins_for_math_only():
+    p = planner.build_plan(7, blueprints=[])
+    grid = [s for s in p if s.blueprint.get("answer_type") == "grid_in"]
+    assert grid and all(s.section == "math" and not s.needs_visual for s in grid)
+    assert 0.15 < len(grid) / sum(s.section == "math" for s in p) < 0.3
+
+
+def test_session_reports_rejection_reasons(monkeypatch, tmp_path):
+    monkeypatch.setattr(llm, "generate_json", fake_llm(solver_choice="D"))
+    r = session.run_session(sections=("rw",), seed=1, limit=1, output_dir=tmp_path, blueprints=[],
+                            store=FakeStore(), checker=OriginalityChecker(refs=[]))
+    assert r["rejections"] == {"solver disagrees with key": session.MAX_TRIES}
+
+
+def test_official_stem_boilerplate_is_not_flagged():
+    stem = "Which choice completes the text so that it conforms to the conventions of Standard English?"
+    chk = OriginalityChecker(refs=[set(shingles(stem))])
+    q = SimpleNamespace(passage="Zebras graze at dusk", options={"A": "runs", "B": "run"}, stem=stem)
+    assert chk.check(q)[0]

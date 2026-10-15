@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import logging
 import random
+from collections import Counter
 from pathlib import Path
 
 from ..schema import SATQuestion
@@ -27,7 +28,7 @@ def run_session(sections=("rw", "math"), seed=None, limit=None, providers=None, 
     accepted: dict[int, SATQuestion] = {int(i): SATQuestion.model_validate(d) for i, d in done.items()}
     for q in accepted.values():
         checker.add(q)
-    report = {"session_id": sid, "seed": seed, "sections": {}, "failures": [], "ok": True}
+    report = {"session_id": sid, "seed": seed, "sections": {}, "failures": [], "rejections": Counter(), "ok": True}
     for sec in sections:
         slots = [s for s in plan if s.section == sec][:limit]
         failed = False
@@ -44,11 +45,12 @@ def run_session(sections=("rw", "math"), seed=None, limit=None, providers=None, 
                         why = "" if ok else "originality: too similar to existing text"
                         cand.meta.originality_score = score
                 except Exception as e:  # noqa: BLE001 - LLM/spec/schema errors all mean "retry"
-                    ok, why = False, f"{type(e).__name__}: {str(e)[:150]}"
+                    ok, why = False, f"{type(e).__name__}: {str(e)[:300]}"
                 if ok:
                     q = cand
                     break
-                log.warning("slot %s attempt %s rejected: %s", s.index, attempt + 1, why)
+                report["rejections"][why[:80]] += 1
+                log.info("slot %s attempt %s rejected: %s", s.index, attempt + 1, why)
             if q is None:
                 report["failures"].append({"slot": s.index, "section": sec, "skill": s.skill, "reason": why})
                 failed = True
@@ -65,5 +67,8 @@ def run_session(sections=("rw", "math"), seed=None, limit=None, providers=None, 
     if store is None:
         from .. import store
     report["store"] = store.save_questions(qs, dry_run=dry_run, session_id=sid)
+    report["rejections"] = dict(report["rejections"].most_common())
+    if report["rejections"]:
+        log.info("rejections by reason: %s", report["rejections"])
     report["output"] = str(out)
     return report

@@ -52,3 +52,18 @@ def test_all_fail_and_text_images():
     seen = {}
     llm.PROVIDERS["gemini"] = lambda p, s, im, j: seen.update(im=im) or " hi "
     assert llm.generate_text("p", providers=["gemini"], images=[b"x"]) == "hi" and seen["im"] == [b"x"]
+
+
+def test_last_used_and_gemini_client_cached(monkeypatch):
+    llm.PROVIDERS["groq"] = lambda *a: '{"a": 1}'
+    monkeypatch.setenv("GROQ_MODEL", "mx")
+    llm.generate_json("p", providers=["groq"])
+    assert llm.last_used() == {"provider": "groq", "model": "mx"}
+    import sys, types
+    made = []
+    fake = types.SimpleNamespace(Client=lambda api_key: made.append(api_key) or object())
+    monkeypatch.setitem(sys.modules, "google", types.SimpleNamespace(genai=fake))
+    monkeypatch.setitem(sys.modules, "google.genai", fake)
+    llm._gemini_client.cache_clear()
+    assert llm._gemini_client("k") is llm._gemini_client("k") and made == ["k"]
+    llm._gemini_client.cache_clear()

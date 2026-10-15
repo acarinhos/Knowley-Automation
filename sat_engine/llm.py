@@ -1,8 +1,11 @@
 """Small provider layer: Gemini, Groq, Cohere, NVIDIA with fallback, retry and JSON repair."""
 from __future__ import annotations
 
+import functools
 import json
+import logging
 import re
+import threading
 import time
 from typing import Callable, Optional, Type
 
@@ -13,11 +16,12 @@ from .config import get_env
 DEFAULT_ORDER = ["gemini", "groq", "cohere", "nvidia"]
 KEY_ENV = {"gemini": "GEMINI_API_KEY", "groq": "GROQ_API_KEY", "cohere": "COHERE_API_KEY", "nvidia": "NVIDIA_API_KEY"}
 DEFAULT_MODELS = {
-    "gemini": "gemini-2.5-flash",
-    "groq": "llama-3.3-70b-versatile",
-    "cohere": "command-a-03-2025",
-    "nvidia": "meta/llama-3.3-70b-instruct",
+    "gemini": "gemini-3-flash-preview",
+    "groq": "openai/gpt-oss-120b",
+    "cohere": "command-a-plus-05-2026",
+    "nvidia": "nvidia/nemotron-3-super-120b-a12b",
 }
+_last = threading.local()  # provider/model that answered the most recent successful call in this thread
 MAX_RETRIES = 3
 BACKOFF_BASE = 2.0
 
@@ -39,14 +43,28 @@ def _key(provider: str) -> str:
     return k
 
 
-def _call_gemini(prompt, system, images, json_mode):
+@functools.lru_cache(maxsize=None)
+def _gemini_client(api_key: str):
+    # Cached per key: an inline Client is garbage-collected and closes its HTTP session mid-request.
+    logging.getLogger("google_genai").setLevel(logging.ERROR)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     from google import genai
+    return genai.Client(api_key=api_key)
+
+
+def last_used() -> dict:
+    """{'provider': ..., 'model': ...} of the last successful generate_* call in this thread."""
+    return dict(getattr(_last, "info", {}))
+
+
+def _call_gemini(prompt, system, images, json_mode):
     from google.genai import types
 
     parts = [types.Part.from_bytes(data=b, mime_type="image/png") for b in (images or [])] + [prompt]
     cfg = types.GenerateContentConfig(
-        system_instruction=system, response_mime_type="application/json" if json_mode else None)
-    return genai.Client(api_key=_key("gemini")).models.generate_content(
+        system_instruction=system, response_mime_type="application/json" if json_mode else None,
+        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True))
+    return _gemini_client(_key("gemini")).models.generate_content(
         model=model_for("gemini"), contents=parts, config=cfg).text
 
 
@@ -69,7 +87,7 @@ def _call_cohere(prompt, system, images, json_mode):
     kw = {"response_format": {"type": "json_object"}} if json_mode else {}
     r = cohere.ClientV2(api_key=_key("cohere")).chat(
         model=model_for("cohere"), messages=_msgs(prompt, system), **kw)
-    return r.message.content[0].text
+    return "".join(getattr(c, "text", None) or "" for c in r.message.content if getattr(c, "type", "text") == "text")
 
 
 def _call_nvidia(prompt, system, images, json_mode):
@@ -116,7 +134,9 @@ def _run(prompt, system, images, providers, json_mode, accept: Callable[[str], o
             errors.append(f"{name}: no key")
             continue
         try:
-            return accept(_call_with_retry(name, prompt, system, images, json_mode)), name
+            res = accept(_call_with_retry(name, prompt, system, images, json_mode))
+            _last.info = {"provider": name, "model": model_for(name)}
+            return res, name
         except Exception as e:  # noqa: BLE001
             errors.append(f"{name}: {type(e).__name__}: {str(e)[:200]}")
     raise LLMError("all providers failed: " + "; ".join(errors))

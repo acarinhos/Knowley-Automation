@@ -7,6 +7,7 @@ N = 5
 RUN_LIMIT = 3  # consecutive copied shingles (= 7 words) -> reject
 JACCARD_LIMIT = 0.2
 _cache: list[set] | None = None
+_BOILERPLATE = re.compile(r"Which choice[^?]*\?", re.I)
 
 
 def shingles(text: str) -> list[tuple]:
@@ -15,7 +16,8 @@ def shingles(text: str) -> list[tuple]:
 
 
 def question_text(q) -> str:
-    return " ".join(filter(None, [q.passage, q.stem, *(q.options or {}).values()]))
+    stem = _BOILERPLATE.sub("", q.stem or "")  # official stems ("Which choice ...?") are formulaic, not content
+    return " ".join(filter(None, [q.passage, stem, *(q.options or {}).values()]))
 
 
 def reference_sets() -> list[set]:
