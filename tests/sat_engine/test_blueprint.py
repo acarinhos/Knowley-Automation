@@ -80,3 +80,40 @@ def test_chunks_resume_and_low_text(monkeypatch, tmp_path):
     assert len(calls) == 2
     assert ex.extract_blueprints("sample4", **kw) == [] and len(calls) == 2  # resumed: nothing redone
     assert ex.summary("sample4", tmp_path / "s.json")["low_text"] == 1
+
+
+# ---- synthetic completion ----
+from sat_engine.blueprint import synth  # noqa: E402
+
+
+def test_synth_gaps_and_dedupe(tmp_path):
+    from sat_engine.schema import TAXONOMY
+    cells = sum(len(s) for d in TAXONOMY.values() for s in d.values())
+    t = synth.gaps([], 2)
+    assert sum(1 for x in t if not x.visual_kinds and not x.grid_in) == cells * 3
+    assert sum(x.n for x in t if not x.visual_kinds and not x.grid_in) == cells * 7
+    b = Blueprint.model_validate(item(id="a", source_tag="sample4", page=1))
+    left = [x for x in synth.gaps([b], 2) if x.section == "rw" and x.skill == "Words in Context"]
+    assert {x.difficulty: x.n for x in left} == {"easy": 1, "medium": 2, "hard": 3}
+    assert synth.is_dup("Pick the word that best fits the context of a sentence", [synth._norm(b.stem_pattern)])
+    assert not synth.is_dup("Identify the claim a graph supports", [synth._norm(b.stem_pattern)])
+
+
+def test_synth_run_mocked(tmp_path):
+    out, n = tmp_path / "b.json", [0]
+
+    def llm(prompt, system=None):
+        n[0] += 1
+        mk = lambda s: {"stem_pattern": s, "reasoning_steps": ["a", "b", "c"], "distractor_types": ["x"],
+                        "answer_type": "mcq", "needs_visual": True, "visual_kind": "geometry"}
+        k = n[0]
+        return {"blueprints": [mk(f"unique pattern number {k} alpha{i} " + "word" * i * 5) for i in range(5)]
+                + [mk("x" * 300), mk(f"unique pattern number {k} alpha0")]}
+
+    new, rej = synth.synthesize(1, llm=llm, workers=2, out=out, rounds=1)
+    bps = ex.load_blueprints(out)
+    assert new == len(bps) > 0 and all(b.source_tag == "synthetic" and b.page == 0 and b.id.startswith("synth-") for b in bps)
+    assert rej["stem_too_long"] > 0 and rej["duplicate"] + rej["wrong_visual"] >= 0
+    assert all(b.section == "math" or not b.needs_visual for b in bps)
+    # resumable: a second run only asks for what is still missing
+    assert sum(t.n for t in synth.gaps(bps, 1)) < sum(t.n for t in synth.gaps([], 1))

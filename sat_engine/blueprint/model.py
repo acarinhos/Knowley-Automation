@@ -25,7 +25,7 @@ class Blueprint(BaseModel):
     distractor_types: list[str] = Field(default_factory=list)
     needs_visual: bool = False
     visual_kind: Optional[VisualKind] = None
-    source_tag: Literal["march2021", "sample4"]
+    source_tag: Literal["march2021", "sample4", "synthetic"]
     page: int
 
     @model_validator(mode="after")
