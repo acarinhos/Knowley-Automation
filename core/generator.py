@@ -425,6 +425,26 @@ def validate_trivia_compliance(q: GeneratedQuestion) -> None:
                     f"yasaklı bürokratik terim tespit edildi: '{orig_kw}' (Metin: {raw_text[:60]}...)"
                 )
 
+def validate_skill_support_fields(q: GeneratedQuestion, source_language: str) -> None:
+    """Yetenekler (ipucu, anahtar kelime, tuzak notu, ikili format, eleme) için gereken alanlar eksikse yeniden üretimi tetikler."""
+    content = q.translations.get(source_language)
+    if content is None:
+        return
+    missing = [
+        name for name in ("hint", "keyword", "distractor_trap_note")
+        if not str(getattr(content, name, "") or "").strip()
+    ]
+    fallback = content.binary_fallback
+    if fallback is None or not str(fallback.statement or "").strip():
+        missing.append("binary_fallback")
+    weakest, strongest = q.weakest_distractor_index, q.strongest_distractor_index
+    correct = "ABCD".index(q.correct_answer)
+    if weakest is None or strongest is None or len({weakest, strongest, correct}) != 3:
+        missing.append("weakest/strongest_distractor_index")
+    if missing:
+        raise ValueError(f"Yetenek destek alanları eksik veya geçersiz: {', '.join(missing)}")
+
+
 def build_prompt(
     primary_category: str,
     target_subcategory: Optional[str] = None,
@@ -929,6 +949,7 @@ def generate_question_with_fallback(
                 raise ValueError("Görsel soru için question_image_search_query üretilmedi.")
             # Anti-Bürokrasi ve Trivia uyumluluk doğrulaması (Python Guard)
             validate_trivia_compliance(candidate_q)
+            validate_skill_support_fields(candidate_q, source_language)
             source_content = candidate_q.translations[source_language].model_dump()
             translated_content, translation_provider = translate_localized_content(
                 source_content,
