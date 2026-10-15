@@ -5,7 +5,10 @@ import collections
 import functools
 import json
 import logging
+import os
 import re
+import shutil
+import subprocess
 import threading
 import time
 from typing import Callable, Optional, Type
@@ -21,6 +24,7 @@ DEFAULT_MODELS = {
     "groq": "openai/gpt-oss-120b",
     "cohere": "command-a-plus-05-2026",
     "nvidia": "nvidia/nemotron-3-super-120b-a12b",
+    "claude": "sonnet",
 }
 _last = threading.local()  # provider/model that answered the most recent successful call in this thread
 MAX_RETRIES = 3
@@ -34,6 +38,8 @@ class LLMError(Exception):
 
 
 def model_for(provider: str) -> str:
+    if provider == "claude":
+        return get_env("SAT_CLAUDE_MODEL", DEFAULT_MODELS["claude"])
     return get_env(f"{provider.upper()}_MODEL", DEFAULT_MODELS[provider])
 
 
@@ -96,7 +102,7 @@ def _call_nvidia(prompt, system, images, json_mode):
 
     base = (get_env("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1") or "").rstrip("/")
     r = requests.post(
-        f"{base}/chat/completions", timeout=TIMEOUT,
+        f"{base}/chat/completions", timeout=_timeout("nvidia"),
         headers={"Authorization": f"Bearer {_key('nvidia')}"},
         json={"model": model_for("nvidia"), "messages": _msgs(prompt, system)})
     if r.status_code >= 400:
@@ -105,9 +111,47 @@ def _call_nvidia(prompt, system, images, json_mode):
     return r.json()["choices"][0]["message"]["content"]
 
 
+def claude_cmd() -> str | None:
+    """Headless Claude Code CLI: SAT_CLAUDE_CMD, PATH, else the newest desktop-app install under APPDATA/Claude/claude-code."""
+    c = get_env("SAT_CLAUDE_CMD") or shutil.which("claude")
+    if c:
+        return c
+    root = os.path.join(os.environ.get("APPDATA", ""), "Claude", "claude-code")
+    found = []
+    for d, _, fs in os.walk(root):
+        found += [os.path.join(d, f) for f in fs if f in ("claude.exe", "claude")]
+    return max(found, key=os.path.getmtime) if found else None
+
+
+@functools.lru_cache(maxsize=None)
+def claude_ready() -> bool:
+    """CLI present AND logged in (an unauthenticated CLI would only burn retries)."""
+    c = claude_cmd()
+    if not c:
+        return False
+    try:
+        r = subprocess.run([c, "auth", "status"], capture_output=True, text=True, timeout=30)
+        return bool(json.loads(r.stdout).get("loggedIn"))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def default_order() -> list[str]:
+    return (["claude"] if claude_ready() else []) + DEFAULT_ORDER
+
+
+def _call_claude(prompt, system, images, json_mode):
+    cmd = [claude_cmd() or "claude", "-p", "--model", model_for("claude"), "--tools", "", "--no-session-persistence",
+           "--disable-slash-commands", "--output-format", "text"] + (["--system-prompt", system] if system else [])
+    r = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding="utf-8", timeout=_timeout("claude"))
+    if r.returncode or not r.stdout.strip():
+        raise LLMError(f"claude CLI exit {r.returncode}: {(r.stderr or r.stdout).strip()[:150]}")
+    return r.stdout
+
+
 # Tests replace entries here; no network is touched by the module itself.
 PROVIDERS: dict[str, Callable] = {
-    "gemini": _call_gemini, "groq": _call_groq, "cohere": _call_cohere, "nvidia": _call_nvidia}
+    "gemini": _call_gemini, "groq": _call_groq, "cohere": _call_cohere, "nvidia": _call_nvidia, "claude": _call_claude}
 
 
 def _status(e: Exception) -> Optional[int]:
@@ -123,7 +167,14 @@ def _env_num(name, default):
 
 
 TIMEOUT = _env_num("SAT_REQUEST_TIMEOUT", 90)  # per-request cap so a hung call frees its worker
-CONCURRENCY = {"nvidia": 8}  # providers that do not rate-limit get more parallel calls; override: <PROVIDER>_CONCURRENCY
+PROVIDER_TIMEOUT = {"nvidia": 150, "claude": 180}  # slower providers; override: <PROVIDER>_TIMEOUT
+CONCURRENCY = {"nvidia": 4, "claude": 3}  # override: <PROVIDER>_CONCURRENCY
+
+
+def _timeout(name) -> float:
+    return _env_num(f"{name.upper()}_TIMEOUT", PROVIDER_TIMEOUT.get(name, TIMEOUT))
+
+
 SHORT_COOLDOWN = 120  # cooldowns longer than this (daily quota) are skipped, never waited for
 WINDOW, WINDOW_S = 20, 300  # health = last 20 events within 5 minutes
 _SEMS: dict[str, threading.BoundedSemaphore] = {}
@@ -227,10 +278,10 @@ def _call_with_retry(name, prompt, system, images, json_mode, fast_fail=False) -
 
 def _run(prompt, system, images, providers, json_mode, accept: Callable[[str], object]):
     errors, keyed = [], []
-    for name in providers or DEFAULT_ORDER:
+    for name in providers or default_order():
         if name not in PROVIDERS:
             raise ValueError(f"unknown provider {name!r}")
-        if not get_env(KEY_ENV[name]) and PROVIDERS[name].__module__ == __name__:
+        if name in KEY_ENV and not get_env(KEY_ENV[name]) and PROVIDERS[name].__module__ == __name__:
             errors.append(f"{name}: no key")
         else:
             keyed.append(name)

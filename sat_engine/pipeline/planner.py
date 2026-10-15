@@ -24,6 +24,32 @@ VISUAL_SKILLS = {"Linear functions", "Linear equations in two variables", "Syste
                  "One-variable data: distributions and measures of center and spread"}
 
 
+TOPICS = (
+    # science
+    "coral reef bleaching", "CRISPR gene editing", "exoplanet detection", "volcanic island formation", "bee colony behavior",
+    "battery chemistry", "gut microbiome research", "glacier retreat", "neutrino detectors", "plant root signaling",
+    "bird migration tracking", "deep-sea hydrothermal vents",
+    # history
+    "the Silk Road trade networks", "the printing press in Europe", "Mali Empire scholarship", "the Erie Canal", "Meiji-era industrialization",
+    "ancient Roman aqueducts", "the Harlem Renaissance", "Polynesian wayfinding",
+    # arts and literature
+    "a Baroque composer's workshop", "a muralist restoring a wall painting", "a poet translating verse", "jazz improvisation",
+    "a novelist's village in the 1920s", "Kabuki costume design", "a documentary filmmaker in the field", "pottery glazing traditions",
+    # social science
+    "bilingual language acquisition", "urban commuting habits", "survey design in sociology", "children's play and development",
+    "memory and sleep studies", "migration and remittances", "public library usage", "archaeological dating methods",
+    # economics
+    "a small bakery's pricing", "microloan cooperatives", "supply chains for coffee", "housing rent trends", "a farmers' market",
+    "ticket pricing for a concert hall", "seasonal tourism economies", "recycling program costs",
+    # technology
+    "solar panel efficiency", "drone delivery pilots", "voice-recognition software", "a school robotics team", "3D-printed prosthetics",
+    "satellite internet", "e-reader battery life", "traffic-signal optimization",
+    # nature and everyday
+    "mangrove restoration", "a mountain trail survey", "urban rooftop gardens", "desert tortoise habitats", "river otter recovery",
+    "a community orchard", "a lighthouse keeper's journal", "monsoon rainfall patterns",
+)  # 60 varied topics; assigned one per slot so questions in a session do not collapse onto the same settings
+
+
 @dataclass
 class Slot:
     index: int
@@ -34,6 +60,8 @@ class Slot:
     difficulty: str
     needs_visual: bool = False
     blueprint: dict = field(default_factory=dict)
+    topic: str = ""
+    numbers: tuple = ()
 
 
 def load_blueprints(path: Path = BLUEPRINTS_PATH) -> list[dict]:
@@ -104,6 +132,14 @@ def build_plan(seed: int = 0, blueprints: list[dict] | None = None, sections=("r
             for s in cand[: round(GRID_FRACTION * len(sec_slots))]:
                 s.blueprint["answer_type"] = "grid_in"
         slots += sec_slots
+    tr = random.Random(f"topics-{seed}")  # separate stream: adding topics must not change the skill/difficulty plan
+    for sec in sections:
+        order = []
+        for s in (x for x in slots if x.section == sec):
+            if not order:
+                order = tr.sample(TOPICS, len(TOPICS))
+            s.topic = order.pop()
+            s.numbers = tuple(tr.sample(range(2, 98), 3))
     for i, s in enumerate(slots):
         s.index = i
     return slots

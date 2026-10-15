@@ -14,7 +14,7 @@ CONVENTIONS = ("Boundaries", "Form, Structure, and Sense")
 
 
 def judge_providers(q, providers=None):
-    base = list(providers or llm.DEFAULT_ORDER)
+    base = list(providers or llm.default_order())
     gen = q.meta.provider
     others = [p for p in base if p != gen]
     return others + [p for p in base if p == gen] if others else base

@@ -3,12 +3,17 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import random
+import re
 import threading
 import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from pathlib import Path
+
+from pydantic import ValidationError
 
 from ..progress import Progress
 from ..schema import SATQuestion
@@ -19,14 +24,65 @@ OUTPUT_DIR = Path(__file__).resolve().parents[1] / "output"
 MAX_TRIES = 3
 
 
+def _why(e: Exception) -> str:
+    """Short rejection reason; for schema errors name the offending field and message."""
+    if isinstance(e, ValidationError):
+        return f"schema {e.title}: " + "; ".join(f"{'.'.join(map(str, x['loc'])) or 'model'}: {x['msg'][:60]}" for x in e.errors()[:2])
+    return f"{type(e).__name__}: {str(e)[:700]}"
+
+
+@contextmanager
+def file_lock(path, timeout=30):
+    """Cross-process lock (session and importer both rewrite the same output file)."""
+    lk = Path(str(path) + ".lock")
+    t0 = time.monotonic()
+    while True:
+        try:
+            os.close(os.open(lk, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+            break
+        except FileExistsError:
+            if time.monotonic() - t0 > timeout:  # stale lock from a killed process
+                lk.unlink(missing_ok=True)
+            else:
+                time.sleep(0.05)
+    try:
+        yield
+    finally:
+        lk.unlink(missing_ok=True)
+
+
+def read_store(out: Path) -> dict:
+    return json.loads(Path(out).read_text(encoding="utf-8")) if Path(out).is_file() else {}
+
+
+def write_store(out: Path, data: dict) -> None:
+    out.parent.mkdir(parents=True, exist_ok=True)
+    tmp = out.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data), encoding="utf-8")
+    os.replace(tmp, out)
+
+
+def parse_sid(sid: str) -> tuple[int, tuple]:
+    m = re.fullmatch(r"seed(\d+)-(rw|math)(?:-(rw|math))?", sid)
+    if not m:
+        raise ValueError(f"bad session id {sid!r} (expected seed<N>-rw[-math])")
+    return int(m[1]), tuple(g for g in m.groups()[1:] if g)
+
+
+def open_slots(sid: str, output_dir: Path = OUTPUT_DIR, blueprints=None) -> list[dict]:
+    seed, secs = parse_sid(sid)
+    done = read_store(Path(output_dir) / f"{sid}.json")
+    return [{"index": s.index, "section": s.section, "module": s.module, "domain": s.domain, "skill": s.skill,
+             "difficulty": s.difficulty, "needs_visual": s.needs_visual, "answer_type": s.blueprint.get("answer_type", "mcq")}
+            for s in planner.build_plan(seed, blueprints, secs) if str(s.index) not in done]
+
+
 def run_session(sections=("rw", "math"), seed=None, limit=None, providers=None, dry_run=True,
                 output_dir: Path = OUTPUT_DIR, blueprints=None, store=None, checker=None, workers=10, progress=None) -> dict:
     seed = random.SystemRandom().randrange(10**6) if seed is None else int(seed)
     sid = f"seed{seed}-{'-'.join(sections)}"
     out = Path(output_dir) / f"{sid}.json"
-    done: dict[str, dict] = {}
-    if out.is_file():  # resume: slot index -> accepted question dict
-        done = json.loads(out.read_text(encoding="utf-8"))
+    done = read_store(out)  # resume: slot index -> accepted question dict
     plan = planner.build_plan(seed, blueprints, sections)
     checker = checker or originality.OriginalityChecker()
     accepted: dict[int, SATQuestion] = {int(i): SATQuestion.model_validate(d) for i, d in done.items()}
@@ -35,10 +91,24 @@ def run_session(sections=("rw", "math"), seed=None, limit=None, providers=None, 
     report = {"session_id": sid, "seed": seed, "sections": {}, "failures": [], "rejections": Counter(), "ok": True}
     lock = threading.Lock()  # guards checker, accepted, report counters and the output file
 
+    def sync():
+        """Adopt questions written to the output file by other processes (the importer). Caller holds `lock`."""
+        for i, d in read_store(out).items():
+            if int(i) not in accepted:
+                q = SATQuestion.model_validate(d)
+                accepted[int(i)] = q
+                checker.add(q)
+                if int(i) < len(plan):
+                    progress.done[plan[int(i)].section] = progress.done.get(plan[int(i)].section, 0) + 1
+
     def work(s):
-        q, why = None, ""
+        q, why, note = None, "", ""
+        with lock:
+            sync()
+            if s.index in accepted:
+                return
         for attempt in range(MAX_TRIES):
-            t0 = time.monotonic()
+            t0, note = time.monotonic(), ""
             try:
                 cand = generator.generate(s, providers, qid=f"{sid}-{s.index}", feedback=why or None)
                 ok, why = verify.verify(cand, providers)
@@ -46,26 +116,31 @@ def run_session(sections=("rw", "math"), seed=None, limit=None, providers=None, 
                     with lock:  # check + register atomically so concurrent near-duplicates cannot both pass
                         ok, score = checker.check(cand)
                         why = "" if ok else "originality: too similar to existing text"
+                        note = "" if ok else f"{why} [{checker.explain(cand)}]"
                         cand.meta.originality_score = score
                         if ok:
                             checker.add(cand)
             except Exception as e:  # noqa: BLE001 - LLM/spec/schema errors all mean "retry"
-                ok, why = False, f"{type(e).__name__}: {str(e)[:300]}"
+                ok, why = False, _why(e)
+                note = ""
             if ok:
                 q = cand
                 break
             with lock:
                 report["rejections"][why[:80]] += 1
-            progress.event(s, "REJ", secs=time.monotonic() - t0, note=why)
+            progress.event(s, "REJ", secs=time.monotonic() - t0, note=note or why)
             log.info("slot %s attempt %s rejected: %s", s.index, attempt + 1, why)
         with lock:
             if q is None:  # keep going: other slots must not be aborted; never pad with unverified items
                 report["failures"].append({"slot": s.index, "section": s.section, "skill": s.skill, "reason": why})
                 progress.event(s, "FAIL", note=why)
                 return
-            accepted[s.index] = q
-            out.parent.mkdir(parents=True, exist_ok=True)
-            out.write_text(json.dumps({str(i): x.model_dump() for i, x in accepted.items()}), encoding="utf-8")
+            with file_lock(out):
+                sync()
+                if s.index in accepted:  # filled externally while we were generating
+                    return
+                accepted[s.index] = q
+                write_store(out, {str(i): x.model_dump() for i, x in accepted.items()})
             log.info("%s accepted slot %s (%d total)", s.section, s.index, len(accepted))
             progress.event(s, "OK", q.meta.provider or "", time.monotonic() - t0)
 

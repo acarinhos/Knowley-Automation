@@ -67,7 +67,7 @@ class Progress:
             s = self.snapshot()
             eta = fmt(s["eta_s"]) if s["eta_s"] is not None else "?"
             self._say(f"[{s['accepted']:>3}/{s['total']}] {slot.section} m{slot.module} {slot.difficulty} {slot.skill}  {status:<4} "
-                      f"{provider} {secs:.0f}s{' ' + note[:60] if note else ''} | {self._counts()} | rej {self.rejected} | "
+                      f"{provider} {secs:.0f}s{' ' + note[:110] if note else ''} | {self._counts()} | rej {self.rejected} | "
                       f"fail {self.failed} | elapsed {fmt(s['elapsed_s'])} | ETA ~{eta}")
             self._write()
 

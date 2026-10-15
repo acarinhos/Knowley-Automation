@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import math
 import uuid
 
 from pydantic import ValidationError
@@ -9,6 +10,7 @@ from pydantic import ValidationError
 from .. import llm
 from ..schema import SATQuestion
 from ..visuals import facts, parse_spec, render_svg
+from .planner import TOPICS
 
 SYSTEM = ("You are a veteran College Board Digital SAT item writer. You write ORIGINAL practice questions in the exact "
           "style of the official Digital SAT. Use fresh topics and fresh numbers; never reproduce or paraphrase real exam "
@@ -80,10 +82,61 @@ def coerce_spec(spec):
             spec = json.loads(spec)
         except json.JSONDecodeError as e:
             raise ValueError(f"figure is not valid JSON: {e}") from e
+    if isinstance(spec, list) and len(spec) == 1:
+        return coerce_spec(spec[0])
     if isinstance(spec, dict) and "kind" not in spec and isinstance(spec.get("spec"), (dict, str)):
         return coerce_spec(spec["spec"])
     if not isinstance(spec, dict):
         raise ValueError("figure must be a JSON object (a dict, not a string/list) with a 'kind' field")
+    return spec
+
+
+CURVE_ALIASES = {"absolute_value": "absolute", "abs": "absolute", "absolute value": "absolute", "line": "linear",
+                 "quadratic": "quadratic_vertex", "exp": "exponential"}
+
+
+def _num(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def _widen(spec: dict, key: str, vals) -> None:
+    """Grow spec[key] = [lo, hi] (default [-10, 10]) so every value in vals is inside, with a margin of 1."""
+    vals = [v for v in vals if _num(v)]
+    r = spec.get(key, [-10, 10])
+    if not vals or not (isinstance(r, list) and len(r) == 2 and all(map(_num, r))):
+        return
+    lo, hi = r
+    spec[key] = [lo if min(vals) >= lo else math.floor(min(vals)) - 1, hi if max(vals) <= hi else math.ceil(max(vals)) + 1]
+
+
+def normalize_spec(spec: dict) -> dict:
+    """Repair harmless LLM slips: curve-type aliases, ranges that miss marked points / intersections / intercepts."""
+    spec = json.loads(json.dumps(spec))  # private copy
+    k = spec.get("kind")
+    for c in spec.get("curves") or []:
+        if isinstance(c, dict) and c.get("type") in CURVE_ALIASES:
+            c["type"] = CURVE_ALIASES[c["type"]]
+    if k == "function_graph":
+        pts = [p for p in spec.get("points") or [] if isinstance(p, dict)]
+        xs, ys = [p.get("x") for p in pts], [p.get("y") for p in pts]
+        for c in spec.get("curves") or []:
+            if isinstance(c, dict) and spec.get("show_intercepts") and c.get("type") == "linear" and _num(c.get("m")) and _num(c.get("b")):
+                ys.append(c["b"])
+                xs += [-c["b"] / c["m"]] if c["m"] else []
+            if isinstance(c, dict) and spec.get("show_intercepts") and c.get("type") == "quadratic_vertex" and all(map(_num, (c.get("a"), c.get("h"), c.get("k")))):
+                ys.append(c["a"] * c["h"] ** 2 + c["k"])
+        _widen(spec, "x_range", xs), _widen(spec, "y_range", ys)
+    elif k == "coordinate_lines":
+        ln = [x for x in spec.get("lines") or [] if isinstance(x, dict)]
+        if len(ln) >= 2 and all(_num(ln[i].get(f)) for i in (0, 1) for f in ("m", "b")) and ln[0]["m"] != ln[1]["m"]:
+            x = (ln[1]["b"] - ln[0]["b"]) / (ln[0]["m"] - ln[1]["m"])
+            _widen(spec, "x_range", [x]), _widen(spec, "y_range", [ln[0]["m"] * x + ln[0]["b"]])
+    elif k == "scatter_with_line":
+        pts = [p for p in spec.get("points") or [] if isinstance(p, list) and len(p) == 2]
+        if spec.get("x_range"):
+            _widen(spec, "x_range", [p[0] for p in pts])
+        if spec.get("y_range"):
+            _widen(spec, "y_range", [p[1] for p in pts])
     return spec
 
 
@@ -100,14 +153,25 @@ def _numbers(o):
             yield from _numbers(v)
 
 
-def check_facts(claimed: dict, spec: dict) -> None:
-    """Every figure value the question relies on must exist among the computed facts."""
-    known = list(_numbers(facts(spec)))
-    if not isinstance(claimed, dict) or not claimed:
-        raise ValueError("visual question must list figure_values it relies on")
+def check_facts(claimed, spec: dict) -> None:
+    """Every figure value the question relies on must exist among the computed facts.
+
+    figure_values may be omitted (the answer then does not depend on values read off the figure)."""
+    if not claimed:
+        return
+    fx = facts(spec)
+    known = list(_numbers(fx))
+    if not isinstance(claimed, dict):
+        raise ValueError("figure_values must be an object of numbers (or omitted)")
     for k, v in claimed.items():
-        if not any(abs(float(v) - n) <= 1e-3 * max(1, abs(n)) for n in known):
-            raise ValueError(f"figure value {k}={v} not supported by figure facts")
+        try:
+            ok = any(abs(float(v) - n) <= 1e-3 * max(1, abs(n)) for n in known)
+        except (TypeError, ValueError):
+            ok = False
+        if not ok:
+            raise ValueError(f"figure value {k}={v} not supported by figure facts. The figure's computed facts are: "
+                             f"{json.dumps(fx, separators=(',', ':'))[:500]}. Use only numbers from these facts, or omit figure_values "
+                             "if the answer does not depend on values read off the figure")
 
 
 def build_prompt(slot) -> str:
@@ -123,7 +187,7 @@ def build_prompt(slot) -> str:
     extra = ""
     if slot.needs_visual:
         shape["figure"] = "a JSON OBJECT (not a string) figure spec"
-        shape["figure_values"] = "object of numbers from the figure that the question relies on"
+        shape["figure_values"] = ("object of numbers read off the figure that the answer relies on (omit or {} if the answer does not depend on read-off values)")
         kinds = [bp["visual_kind"]] if bp.get("visual_kind") in FIGURE_EXAMPLES else list(FIGURE_EXAMPLES)
         extra = ("\nThe stem must refer to the figure (e.g. 'The graph shown...'). Valid figure kinds with a compact example each; "
                  "pick the one that fits and copy its exact field names: "
@@ -135,20 +199,30 @@ def build_prompt(slot) -> str:
         rules += ("\nConventions: exactly one option is grammatical; each of the three others must violate one named rule "
                   "(subject-verb agreement, tense consistency, parallelism, punctuation, pronoun case, modifier placement). "
                   "Check every distractor really is ungrammatical in context (e.g. do not offer two acceptable verb forms).")
+    if slot.needs_visual:
+        extra += ("\nFigure rules: scatter_with_line needs at least 3 (ideally 6-10) points; function curve types are exactly "
+                  "linear, quadratic_vertex, quadratic_standard, exponential, absolute; every marked point must lie inside x_range/y_range.")
+    setting = ""
+    if slot.topic:
+        setting = (f"\nSetting/topic for this item (use it, stay original): {slot.topic}."
+                   + (f" Number seeds to build on (vary freely): {', '.join(map(str, slot.numbers))}." if slot.section == "math" and slot.numbers else ""))
     return (f"Section: {slot.section}; domain: {slot.domain}; skill: {slot.skill}; difficulty: {slot.difficulty}; module {slot.module}.\n"
             f"Abstract pattern (do not copy any source wording): stem pattern={bp.get('stem_pattern')}; "
             f"passage genre={bp.get('passage_genre')}; reasoning steps={bp.get('reasoning_steps')}; "
             f"distractor types={bp.get('distractor_types')}; answer type={'mcq' if mcq else 'grid_in'}.\n"
-            f"{rules}{extra}\n"
+            f"{rules}{extra}{setting}\n"
             f"Write a brand-new question on a new topic with new numbers. JSON shape: {json.dumps(shape)}")
 
 
 def generate(slot, providers=None, qid: str | None = None, feedback: str | None = None) -> SATQuestion:
     prompt = build_prompt(slot) + (f"\nPrevious attempt rejected: {feedback}. Fix this." if feedback else "")
+    if feedback and "too similar" in feedback:  # steer away from the rejected topic instead of re-rolling the same one
+        prompt += ("\nChoose a completely different topic, scenario and sentence structure; suggested topic: "
+                   f"{TOPICS[(slot.index * 7 + len(feedback)) % len(TOPICS)]}.")
     d = llm.generate_json(prompt, system=SYSTEM, providers=providers)
     visual = None
     if slot.needs_visual:
-        spec = coerce_spec(d.get("figure"))
+        spec = normalize_spec(coerce_spec(d.get("figure")))
         try:
             parse_spec(spec)
         except ValidationError as e:  # compact message: the default one is a wall of union names
