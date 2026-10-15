@@ -95,3 +95,42 @@ class BackfillPureTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SubAgentRoundTripTests(unittest.TestCase):
+    def gappy(self):
+        return doc(weakest_distractor_index=None, strongest_distractor_index=None, option_difficulty_order=None,
+                   translations={"en": {**FULL, "hint": "", "keyword": ""}})
+
+    def test_export_record_lists_missing_fields(self):
+        from scripts.backfill_v110_skill_fields import export_record
+
+        rec = export_record("d1", self.gappy())
+        self.assertEqual(rec["doc_id"], "d1")
+        self.assertEqual(rec["missing"], ["weakest_distractor_index", "strongest_distractor_index", "option_difficulty_order", "hint", "keyword"])
+        self.assertEqual(rec["fixed"], {})
+
+    def test_chunks_and_results_round_trip(self):
+        import json
+        import tempfile
+        from pathlib import Path
+
+        from scripts.backfill_v110_skill_fields import read_results, write_chunks
+
+        with tempfile.TemporaryDirectory() as tmp:
+            n = write_chunks([{"doc_id": str(i)} for i in range(5)], Path(tmp), 2)
+            self.assertEqual(n, 3)
+            self.assertTrue((Path(tmp) / "README_prompt.md").exists())
+            (Path(tmp) / "result_001.json").write_text(json.dumps({"a": {"hint": "h"}, "b": "bad"}), encoding="utf-8")
+            self.assertEqual(read_results(Path(tmp)), {"a": {"hint": "h"}})
+
+    def test_apply_result_validates_like_the_llm_path(self):
+        from scripts.backfill_v110_skill_fields import apply_result
+
+        good = {"hint": "h", "keyword": "k", "weakest_distractor_index": 1, "strongest_distractor_index": 2, "option_difficulty_order": [0, 1, 2, 3]}
+        updates = apply_result(self.gappy(), good)
+        self.assertEqual(updates[("translations", "en", "hint")], "h")
+        self.assertEqual(updates[("strongest_distractor_index",)], 2)
+        for bad in ({**good, "strongest_distractor_index": 0}, {**good, "weakest_distractor_index": 2}, {**good, "hint": ""}):
+            with self.assertRaises(ValueError):
+                apply_result(self.gappy(), bad)

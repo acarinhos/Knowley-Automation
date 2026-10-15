@@ -169,10 +169,10 @@ GEN_SCHEMA = {
 }
 
 
-def process_doc(data: Mapping[str, Any], llm_manager: Any) -> Dict[tuple, Any]:
-    """One LLM call: generate the missing fields for translations.en and the root fields.
+def apply_result(data: Mapping[str, Any], out: Mapping[str, Any]) -> Dict[tuple, Any]:
+    """Validate generated values `out` (LLM or sub-agent output) and return merge-only field updates.
 
-    Raises ValueError (reason in the message) when the document cannot be processed or the output is invalid.
+    Raises ValueError (reason in the message) when the document or the values are unusable.
     """
     gaps = missing_fields(data)
     source = dict((data.get("translations") or {}).get(TARGET_LOCALE) or {})
@@ -181,8 +181,6 @@ def process_doc(data: Mapping[str, Any], llm_manager: Any) -> Dict[tuple, Any]:
     root = {f: data.get(f) for f in ROOT_FIELDS}
     if not valid_order(root["option_difficulty_order"]):
         root["option_difficulty_order"] = None
-    out = llm_manager.generate_trivia("You are a precise trivia editor. Return valid JSON only.",
-                                      generation_prompt(data, TARGET_LOCALE, source), response_schema=GEN_SCHEMA)
     for field in gaps["locales"].get(TARGET_LOCALE, []):
         source[field] = out.get(field)
     for field in gaps["root"]:
@@ -191,6 +189,72 @@ def process_doc(data: Mapping[str, Any], llm_manager: Any) -> Dict[tuple, Any]:
     if not valid_order(root["option_difficulty_order"]):
         root["option_difficulty_order"] = None  # contract: null when no reliable order
     return build_updates(gaps, root, {TARGET_LOCALE: source})
+
+
+def process_doc(data: Mapping[str, Any], llm_manager: Any) -> Dict[tuple, Any]:
+    """One LLM call: generate the missing fields for translations.en and the root fields."""
+    source = (data.get("translations") or {}).get(TARGET_LOCALE)
+    if not usable_en(source):
+        raise ValueError("no usable en translation (question/options)")
+    out = llm_manager.generate_trivia("You are a precise trivia editor. Return valid JSON only.",
+                                      generation_prompt(data, TARGET_LOCALE, dict(source)), response_schema=GEN_SCHEMA)
+    return apply_result(data, out)
+
+
+def export_record(doc_id: str, data: Mapping[str, Any]) -> Dict[str, Any]:
+    en = data["translations"][TARGET_LOCALE]
+    gaps = missing_fields(data)
+    return {
+        "doc_id": doc_id, "question": en["question"], "options": {k: en["options"][k] for k in "ABCD"},
+        "correct_answer": data.get("correct_answer"), "explanation": en.get("explanation", ""),
+        "missing": gaps["root"] + gaps["locales"].get(TARGET_LOCALE, []),
+        "fixed": {k: data.get(k) for k in ROOT_FIELDS[:2] if data.get(k) is not None},
+    }
+
+
+PROMPT_README = """# Task for the sub-agent
+
+For EVERY record in `chunk_NNN.json` write the missing English fields and save the result as
+`result_NNN.json` (same NNN) in this directory: one JSON object `{ "<doc_id>": { ... } }`.
+Do not edit the chunk file. Do not add facts that are not in the question/options/explanation.
+
+Each record has: `doc_id`, `question`, `options` (A-D), `correct_answer`, `explanation`,
+`missing` (the fields to produce) and `fixed` (index values that already exist; keep them, never change them).
+Produce ONLY the fields listed in `missing`:
+
+- `hint`: short English hint that does NOT reveal the answer.
+- `keyword`: the key phrase taken from the question.
+- `distractor_trap_note`: why the strongest wrong option is wrong.
+- `binary_fallback`: `{"statement": "<one short verifiable statement>", "is_true": true|false}`.
+- `simplified_question`: same facts and answer, simpler wording.
+- `clarified_options`: `{"A": "...", "B": "...", "C": "...", "D": "..."}` clearer wording, same meaning.
+- `weakest_distractor_index` and `strongest_distractor_index`: 0-based (A=0, B=1, C=2, D=3). Both must be WRONG
+  options, different from each other and different from the index of `correct_answer`.
+- `option_difficulty_order`: permutation of [0,1,2,3], easiest to hardest to recognise.
+
+Output must be valid JSON only (no comments). Records you cannot do reliably may be omitted.
+"""
+
+
+def write_chunks(records: List[Mapping[str, Any]], directory: Path, chunk_size: int) -> int:
+    directory.mkdir(parents=True, exist_ok=True)
+    count = 0
+    for start in range(0, len(records), chunk_size):
+        count += 1
+        (directory / f"chunk_{count:03d}.json").write_text(
+            json.dumps(records[start:start + chunk_size], ensure_ascii=False, indent=1), encoding="utf-8")
+    (directory / "README_prompt.md").write_text(PROMPT_README, encoding="utf-8")
+    return count
+
+
+def read_results(directory: Path) -> Dict[str, Mapping[str, Any]]:
+    results: Dict[str, Mapping[str, Any]] = {}
+    for path in sorted(directory.glob("result_*.json")):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            raise ValueError(f"{path.name}: expected an object keyed by doc_id")
+        results.update({str(k): v for k, v in data.items() if isinstance(v, dict)})
+    return results
 
 
 def summarize(results: Mapping[str, str]) -> Dict[str, int]:
@@ -222,12 +286,65 @@ def _gemini_env() -> None:
     })
 
 
+def run_import(db: Any, directory: Path, apply: bool, done: set, LastUpdateOption: Any, get_field_path: Any) -> int:
+    results = read_results(directory)
+    states: Dict[str, str] = {}
+    backups: Dict[str, Any] = {}
+    plan: List[tuple] = []
+    for doc_id, out in sorted(results.items()):
+        if doc_id in done:
+            states[doc_id] = "skipped: already done (progress file)"
+            continue
+        snap = db.collection("questions").document(doc_id).get()
+        if not snap.exists:
+            states[doc_id] = "skipped: document not found"
+            continue
+        data = snap.to_dict() or {}
+        try:
+            updates = apply_result(data, out)
+        except ValueError as exc:
+            states[doc_id] = f"skipped: invalid ({str(exc)[:120]})"
+            continue
+        gaps = missing_fields(data)
+        if outcome(gaps, updates) != "complete":
+            states[doc_id] = f"skipped: {unresolved(gaps, updates)} gap(s) not covered by the result"
+            continue
+        if not updates:
+            states[doc_id] = "complete(no change)"
+            continue
+        plan.append((doc_id, snap, updates))
+        backups[doc_id] = data
+        states[doc_id] = "written" if apply else "valid (dry-run)"
+    if apply and plan:
+        BACKUP_DIR.mkdir(exist_ok=True)
+        backup = BACKUP_DIR / f"v110_skill_import_{datetime.now():%Y%m%d_%H%M%S}.json"
+        backup.write_text(json.dumps(backups, ensure_ascii=False, default=str), encoding="utf-8")
+        logger.info("Backup written: %s", backup)
+        done_now = set(done)
+        for doc_id, snap, updates in plan:
+            try:
+                payload = {get_field_path(list(path)): value for path, value in updates.items()}
+                snap.reference.update(payload, option=LastUpdateOption(snap.update_time))
+                done_now.add(doc_id)
+            except Exception as exc:
+                states[doc_id] = f"skipped: write failed ({type(exc).__name__}: {str(exc)[:100]})"
+        PROGRESS_FILE.write_text(json.dumps(sorted(done_now)), encoding="utf-8")
+    for doc_id, state in states.items():
+        if state.startswith("skipped"):
+            logger.warning("%s -> %s", doc_id, state)
+    logger.info("Import of %d results: %s%s", len(results), summarize(states), "" if apply else " (dry-run, nothing written)")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--project-id", help="Required with --apply (must equal knowley-1).")
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--workers", type=int, default=4, help="Parallel documents (default 4).")
+    parser.add_argument("--export-pending", metavar="DIR", help="Write pending docs as chunk_NNN.json (read-only on Firestore).")
+    parser.add_argument("--chunk-size", type=int, default=25)
+    parser.add_argument("--import-results", metavar="DIR", help="Validate (and with --apply write) result_NNN.json files.")
     parser.add_argument("--resume", action="store_true", help="Skip documents listed in the progress file.")
     args = parser.parse_args()
     if args.apply and args.project_id != "knowley-1":
@@ -246,7 +363,10 @@ def main() -> int:
     project_id = firebase_admin.get_app().project_id
     if args.apply and project_id != args.project_id:
         raise SystemExit(f"Refusing: initialized project is {project_id!r}, expected {args.project_id!r}.")
-    done = set(json.loads(PROGRESS_FILE.read_text(encoding="utf-8"))) if args.resume and PROGRESS_FILE.exists() else set()
+    use_progress = args.resume or args.export_pending or args.import_results
+    done = set(json.loads(PROGRESS_FILE.read_text(encoding="utf-8"))) if use_progress and PROGRESS_FILE.exists() else set()
+    if args.import_results:
+        return run_import(db, Path(args.import_results), args.apply, done, LastUpdateOption, get_field_path)
     snapshots = _version_documents(db)
     todo = [(sid, snap, missing_fields(snap.to_dict() or {})) for sid, snap in sorted(snapshots.items()) if sid not in done]
     no_en = [sid for sid, snap, _ in todo if not usable_en(((snap.to_dict() or {}).get("translations") or {}).get(TARGET_LOCALE))]
@@ -256,6 +376,12 @@ def main() -> int:
     if args.limit > 0:
         todo = todo[: args.limit]
     workers = max(1, args.workers)
+    if args.export_pending:
+        directory = Path(args.export_pending)
+        records = [export_record(sid, snap.to_dict() or {}) for sid, snap, _ in todo]
+        chunks = write_chunks(records, directory, max(1, args.chunk_size))
+        logger.info("Exported %d pending docs into %d chunk file(s) in %s", len(todo), chunks, directory)
+        return 0
     est = estimate([t[2] for t in todo], workers)
     logger.info("Project %s; 1.1.0 docs %d; to process %d; estimate %s (1 LLM call per doc, ~8s/call; Gemini RPD 450)",
                 project_id, len(snapshots), len(todo), est)
