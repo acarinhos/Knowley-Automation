@@ -15,8 +15,6 @@ _n = itertools.count()
 def fake_llm(solver_choice="B", defensible=("B",), figure_values=None):
     """Mocked generate_json: routes by prompt type; every generated stem is unique."""
     def f(prompt, system=None, schema=None, providers=None, images=None):
-        if "Pick the best answer" in prompt:
-            return {"choice": solver_choice}
         if "Evaluate EACH" in prompt:
             return {"options": {k: {"acceptable": k in defensible, "reason": "r", "rule": None if k in defensible else "subject-verb agreement"}
                                 for k in "ABCD"}}
@@ -71,7 +69,7 @@ def test_verifier_rejects_wrong_key(monkeypatch):
     monkeypatch.setattr(llm, "generate_json", fake_llm())
     q = generator.generate(slot("rw"))
     assert verify.verify(q) == (True, "")
-    monkeypatch.setattr(llm, "generate_json", fake_llm(solver_choice="C"))
+    monkeypatch.setattr(llm, "generate_json", fake_llm(defensible=("C",)))
     assert not verify.verify(q)[0]
     monkeypatch.setattr(llm, "generate_json", fake_llm(defensible=("B", "D")))
     assert "exactly one acceptable" in verify.verify(q)[1]
@@ -108,7 +106,7 @@ def test_session_dry_run_and_resume(monkeypatch, tmp_path):
 
 
 def test_session_stops_when_unverifiable(monkeypatch, tmp_path):
-    monkeypatch.setattr(llm, "generate_json", fake_llm(solver_choice="D"))
+    monkeypatch.setattr(llm, "generate_json", fake_llm(defensible=("D",)))
     r = session.run_session(sections=("rw",), seed=1, limit=3, output_dir=tmp_path, blueprints=[],
                             store=FakeStore(), checker=OriginalityChecker(refs=[]))
     assert not r["ok"] and r["sections"]["rw"]["accepted"] == 0 and len(r["failures"]) == 3
@@ -149,7 +147,7 @@ def test_plan_has_grid_ins_for_math_only():
 
 
 def test_session_reports_rejection_reasons(monkeypatch, tmp_path):
-    monkeypatch.setattr(llm, "generate_json", fake_llm(solver_choice="D"))
+    monkeypatch.setattr(llm, "generate_json", fake_llm(defensible=("D",)))
     r = session.run_session(sections=("rw",), seed=1, limit=1, output_dir=tmp_path, blueprints=[],
                             store=FakeStore(), checker=OriginalityChecker(refs=[]))
     assert r["rejections"] == {"solver disagrees with key": session.MAX_TRIES}
@@ -200,8 +198,8 @@ def test_null_strings_and_typography_normalized():
 def test_parallel_session_keeps_going_and_orders(monkeypatch, tmp_path):
     base = fake_llm()
     def flaky(prompt, **k):
-        if "Pick the best answer" in prompt and "zq" in prompt and flaky.bad(prompt):
-            return {"choice": "D"}
+        if "Evaluate EACH" in prompt and "zq" in prompt and flaky.bad(prompt):
+            return {"options": {x: {"acceptable": x == "D", "reason": "r", "rule": "x y z"} for x in "ABCD"}}
         return base(prompt, **k)
     flaky.bad = lambda p: "p1" in p  # one specific generated item always fails verification
     monkeypatch.setattr(llm, "generate_json", flaky)
@@ -231,3 +229,28 @@ def test_status_reads_int_code_when_status_is_string():
     class E(Exception):
         status, code = "RESOURCE_EXHAUSTED", 429
     assert llm._status(E()) == 429
+
+
+def test_rw_verify_is_single_call_but_math_keeps_solver(monkeypatch):
+    seen = []
+    base = fake_llm()
+    monkeypatch.setattr(llm, "generate_json", lambda p, **k: seen.append(p) or base(p, **k))
+    assert verify.verify(generator.generate(slot()))[0]
+    assert sum("Evaluate EACH" in p for p in seen) == 1 and not any("Pick the best" in p or "Solve." in p for p in seen)
+    seen.clear()
+    verify.verify(generator.generate(slot("math")))
+    assert any("Solve." in p for p in seen)
+
+
+def test_progress_json_and_lines(tmp_path, capsys):
+    from sat_engine.progress import Progress
+    p = Progress(tmp_path / "progress.json", {"rw": 2, "math": 1}, {"rw": 1}, echo=True, heartbeat=0)
+    with p:
+        p.event(slot(), "OK", "nvidia", 41)
+        p.event(slot(), "REJ", note="bad")
+        p.beat()
+    out = capsys.readouterr().out
+    assert "[  2/3] rw m1 easy Words in Context  OK" in out and "nvidia 41s" in out and "rw 2/2 math 0/1" in out and "rej 1" in out and "[heartbeat]" in out
+    import json
+    d = json.loads((tmp_path / "progress.json").read_text())
+    assert d["accepted"] == 2 and d["rejected"] == 1 and set(d["providers"]) >= {"nvidia", "gemini"}

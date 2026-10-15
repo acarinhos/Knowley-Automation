@@ -1,6 +1,7 @@
 """Small provider layer: Gemini, Groq, Cohere, NVIDIA with fallback, retry and JSON repair."""
 from __future__ import annotations
 
+import collections
 import functools
 import json
 import logging
@@ -49,7 +50,7 @@ def _gemini_client(api_key: str):
     logging.getLogger("google_genai").setLevel(logging.ERROR)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     from google import genai
-    return genai.Client(api_key=api_key)
+    return genai.Client(api_key=api_key, http_options={"timeout": int(TIMEOUT * 1000)})
 
 
 def last_used() -> dict:
@@ -76,7 +77,7 @@ def _call_groq(prompt, system, images, json_mode):
     from groq import Groq
 
     kw = {"response_format": {"type": "json_object"}} if json_mode else {}
-    r = Groq(api_key=_key("groq")).chat.completions.create(
+    r = Groq(api_key=_key("groq"), timeout=TIMEOUT, max_retries=0).chat.completions.create(
         model=model_for("groq"), messages=_msgs(prompt, system), **kw)
     return r.choices[0].message.content
 
@@ -85,7 +86,7 @@ def _call_cohere(prompt, system, images, json_mode):
     import cohere
 
     kw = {"response_format": {"type": "json_object"}} if json_mode else {}
-    r = cohere.ClientV2(api_key=_key("cohere")).chat(
+    r = cohere.ClientV2(api_key=_key("cohere"), timeout=TIMEOUT).chat(
         model=model_for("cohere"), messages=_msgs(prompt, system), **kw)
     return "".join(getattr(c, "text", None) or "" for c in r.message.content if getattr(c, "type", "text") == "text")
 
@@ -95,11 +96,12 @@ def _call_nvidia(prompt, system, images, json_mode):
 
     base = (get_env("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1") or "").rstrip("/")
     r = requests.post(
-        f"{base}/chat/completions", timeout=120,
+        f"{base}/chat/completions", timeout=TIMEOUT,
         headers={"Authorization": f"Bearer {_key('nvidia')}"},
         json={"model": model_for("nvidia"), "messages": _msgs(prompt, system)})
     if r.status_code >= 400:
-        raise LLMError(f"nvidia HTTP {r.status_code}", r.status_code)
+        ra = r.headers.get("retry-after")
+        raise LLMError(f"nvidia HTTP {r.status_code}" + (f" retry in {ra}s" if ra else ""), r.status_code)
     return r.json()["choices"][0]["message"]["content"]
 
 
@@ -113,49 +115,142 @@ def _status(e: Exception) -> Optional[int]:
     return next((v for v in (getattr(e, a, None) for a in ("status", "status_code", "code")) if isinstance(v, int)), None)
 
 
-_SEMS = {n: threading.BoundedSemaphore(3) for n in DEFAULT_ORDER}  # <= ~3 concurrent calls per provider
-_cooldown: dict[str, float] = {}  # provider -> monotonic time until which it is skipped (daily quota exhausted)
+def _env_num(name, default):
+    try:
+        return float(get_env(name, str(default)))
+    except (TypeError, ValueError):
+        return float(default)
+
+
+TIMEOUT = _env_num("SAT_REQUEST_TIMEOUT", 90)  # per-request cap so a hung call frees its worker
+CONCURRENCY = {"nvidia": 8}  # providers that do not rate-limit get more parallel calls; override: <PROVIDER>_CONCURRENCY
+SHORT_COOLDOWN = 120  # cooldowns longer than this (daily quota) are skipped, never waited for
+WINDOW, WINDOW_S = 20, 300  # health = last 20 events within 5 minutes
+_SEMS: dict[str, threading.BoundedSemaphore] = {}
+_limits: dict[str, int] = {}
+_cooldown: dict[str, float] = {}  # provider -> monotonic time until which it is skipped
+_events: dict[str, collections.deque] = {}  # provider -> deque[(t, kind, latency)] kind: ok|429|timeout|err
+_inflight: collections.Counter = collections.Counter()
+_total429: collections.Counter = collections.Counter()
+_hl = threading.Lock()
 log = logging.getLogger("sat_engine.llm")
 
 
+def reset_health():
+    with _hl:
+        _cooldown.clear(); _events.clear(); _inflight.clear(); _total429.clear()
+
+
+def _sem(name):
+    with _hl:
+        if name not in _SEMS:
+            _limits[name] = int(_env_num(f"{name.upper()}_CONCURRENCY", CONCURRENCY.get(name, 3)))
+            _SEMS[name] = threading.BoundedSemaphore(max(1, _limits[name]))
+        return _SEMS[name]
+
+
+def _record(name, kind, latency):
+    with _hl:
+        _events.setdefault(name, collections.deque(maxlen=WINDOW)).append((time.monotonic(), kind, latency))
+        if kind == "429":
+            _total429[name] += 1
+
+
+def _penalty(name) -> float:
+    """0 = healthy; grows with 429/timeout/error rate, slowness and saturation of the provider's slots."""
+    now = time.monotonic()
+    with _hl:
+        ev = [e for e in _events.get(name, ()) if now - e[0] <= WINDOW_S]
+        load = _inflight[name] / max(1, _limits.get(name, 3))
+    if not ev:
+        return load
+    n = len(ev)
+    r429 = sum(e[1] == "429" for e in ev) / n
+    bad = sum(e[1] in ("timeout", "err") for e in ev) / n
+    lat = [e[2] for e in ev if e[1] == "ok"]
+    slow = min(sum(lat) / len(lat) / 60, 2) if lat else 0
+    return r429 * 4 + bad * 2 + slow + load
+
+
+def stats() -> dict:
+    now = time.monotonic()
+    with _hl:
+        return {n: {"inflight": _inflight[n], "n429": _total429[n],
+                    "cooldown_s": max(0, round(_cooldown.get(n, 0) - now)),
+                    "calls": len(_events.get(n, ()))} for n in sorted(set(DEFAULT_ORDER) | set(_events))}
+
+
 def _retry_after(e) -> float:
-    """Seconds suggested by a 'retry in 10h56m12.6s' style message (0 if absent)."""
+    """Seconds from a Retry-After header or a 'retry in 10h56m12.6s' style message (0 if absent)."""
+    h = getattr(getattr(e, "response", None), "headers", None)
+    try:
+        if h and h.get("retry-after"):
+            return float(h["retry-after"])
+    except (TypeError, ValueError):
+        pass
     m = re.search(r"retry in ((?:\d+h)?(?:\d+m)?(?:[\d.]+s)?)", str(e))
     if not m or not m.group(1):
         return 0.0
     return sum(float(v) * {"h": 3600, "m": 60, "s": 1}[u] for v, u in re.findall(r"([\d.]+)([hms])", m.group(1)))
 
 
-def _call_with_retry(name, prompt, system, images, json_mode) -> str:
+def _call_with_retry(name, prompt, system, images, json_mode, fast_fail=False) -> str:
+    """fast_fail: another provider is healthy, so give up on the first 429/5xx/timeout instead of backing off."""
     for attempt in range(MAX_RETRIES + 1):
+        t0 = time.monotonic()
         try:
-            with _SEMS.setdefault(name, threading.BoundedSemaphore(3)):
-                return PROVIDERS[name](prompt, system, images, json_mode)
+            with _sem(name):
+                with _hl:
+                    _inflight[name] += 1
+                try:
+                    out = PROVIDERS[name](prompt, system, images, json_mode)
+                finally:
+                    with _hl:
+                        _inflight[name] -= 1
+            _record(name, "ok", time.monotonic() - t0)
+            _cooldown.pop(name, None)
+            return out
         except Exception as e:  # noqa: BLE001 - SDKs raise varied types
             s = _status(e)
             wait = _retry_after(e)
-            if s == 429 and wait > 60:  # quota exhausted for hours: retrying is pointless, skip provider meanwhile
-                _cooldown[name] = time.monotonic() + min(wait, 3600)
+            timeout = "timeout" in type(e).__name__.lower() or "timed out" in str(e).lower()
+            retryable = s == 429 or (s is not None and s >= 500) or timeout
+            _record(name, "429" if s == 429 else "timeout" if timeout else "err", time.monotonic() - t0)
+            if s == 429 and (wait > 60 or fast_fail or attempt >= MAX_RETRIES):
+                _cooldown[name] = time.monotonic() + min(wait or 20, 3600)
                 raise
-            if (s == 429 or (s is not None and s >= 500)) and attempt < MAX_RETRIES:
-                time.sleep(BACKOFF_BASE ** attempt)
+            if retryable and attempt < MAX_RETRIES and not fast_fail:
+                time.sleep(max(BACKOFF_BASE ** attempt, min(wait, 30)))
                 continue
             raise
 
 
 def _run(prompt, system, images, providers, json_mode, accept: Callable[[str], object]):
-    errors = []
+    errors, keyed = [], []
     for name in providers or DEFAULT_ORDER:
         if name not in PROVIDERS:
             raise ValueError(f"unknown provider {name!r}")
         if not get_env(KEY_ENV[name]) and PROVIDERS[name].__module__ == __name__:
             errors.append(f"{name}: no key")
-            continue
-        if _cooldown.get(name, 0) > time.monotonic():
-            errors.append(f"{name}: quota cooldown")
-            continue
+        else:
+            keyed.append(name)
+    tried, deadline = set(), time.monotonic() + 600
+    while True:
+        now = time.monotonic()
+        pending = [n for n in keyed if n not in tried]
+        avail = [n for n in pending if _cooldown.get(n, 0) <= now]
+        if not avail:
+            waits = [_cooldown[n] - now for n in pending if 0 < _cooldown[n] - now <= SHORT_COOLDOWN]
+            if waits and now < deadline:  # every provider is cooling briefly: wait for the first one instead of failing
+                time.sleep(min(min(waits), 15))
+                continue
+            errors += [f"{n}: quota cooldown" for n in pending]
+            break
+        avail.sort(key=lambda n: round(_penalty(n)))  # stable: ties keep the caller's order (judge != generator)
+        name = avail[0]
+        tried.add(name)
         try:
-            res = accept(_call_with_retry(name, prompt, system, images, json_mode))
+            res = accept(_call_with_retry(name, prompt, system, images, json_mode, fast_fail=len(avail) > 1))
             _last.info = {"provider": name, "model": model_for(name)}
             return res, name
         except Exception as e:  # noqa: BLE001

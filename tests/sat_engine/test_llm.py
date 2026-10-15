@@ -12,6 +12,7 @@ class Out(BaseModel):
 def fast(monkeypatch):
     monkeypatch.setattr(llm.time, "sleep", lambda s: None)
     monkeypatch.setattr(llm, "PROVIDERS", dict(llm.PROVIDERS))
+    llm.reset_health()
 
 
 class Err(Exception):
@@ -61,9 +62,40 @@ def test_last_used_and_gemini_client_cached(monkeypatch):
     assert llm.last_used() == {"provider": "groq", "model": "mx"}
     import sys, types
     made = []
-    fake = types.SimpleNamespace(Client=lambda api_key: made.append(api_key) or object())
+    fake = types.SimpleNamespace(Client=lambda api_key, **kw: made.append(api_key) or object())
     monkeypatch.setitem(sys.modules, "google", types.SimpleNamespace(genai=fake))
     monkeypatch.setitem(sys.modules, "google.genai", fake)
     llm._gemini_client.cache_clear()
     assert llm._gemini_client("k") is llm._gemini_client("k") and made == ["k"]
     llm._gemini_client.cache_clear()
+
+
+def test_routing_prefers_healthy_and_skips_rate_limited():
+    order = []
+    def mk(n, fail=None):
+        def f(*a):
+            order.append(n)
+            if fail:
+                raise Err(fail)
+            return '{"a": 1}'
+        return f
+    llm.PROVIDERS.update(gemini=mk("gemini", 429), groq=mk("groq"), cohere=mk("cohere"), nvidia=mk("nvidia"))
+    assert llm.generate_json("p") == {"a": 1}
+    assert order == ["gemini", "groq"]  # 429 with a healthy alternative: no backoff wait, gemini goes into cooldown
+    order.clear()
+    llm.generate_json("p")
+    assert order == ["groq"] and llm.stats()["gemini"]["n429"] == 1 and llm.stats()["gemini"]["cooldown_s"] > 0
+
+
+def test_slow_and_failing_providers_sort_last():
+    for _ in range(5):
+        llm._record("groq", "timeout", 90)
+        llm._record("gemini", "ok", 1)
+    assert llm._penalty("groq") > llm._penalty("cohere") and llm._penalty("gemini") < llm._penalty("groq")
+    seen = []
+    llm.PROVIDERS.update({n: (lambda n: lambda *a: seen.append(n) or '{"a": 1}')(n) for n in llm.DEFAULT_ORDER})
+    llm.generate_json("p")
+    assert seen == ["gemini"]
+    seen.clear()
+    llm.generate_json("p", providers=["groq", "cohere"])
+    assert seen == ["cohere"]

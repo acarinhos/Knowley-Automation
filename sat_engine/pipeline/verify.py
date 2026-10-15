@@ -56,10 +56,8 @@ def verify(q, providers=None) -> tuple[bool, str]:
         else:
             ok = same_number(r.get("answer"), q.correct_answer)
         return (True, "") if ok else (False, "solver disagrees with key")
+    # one call: the per-option judge covers every option, so its single acceptable option must equal the key
     providers = judge_providers(q, providers)  # judge != generator when possible
-    r = llm.generate_json(_body(q) + 'Pick the best answer. JSON: {"choice": "A-D"}', system=SYSTEM, providers=providers)
-    if str(r.get("choice", "")).strip().upper() != q.correct_answer:
-        return False, "solver disagrees with key"
     conv = q.skill in CONVENTIONS
     j = llm.generate_json(
         _body(q) + "Evaluate EACH option independently: is it an acceptable, correct completion/answer on its own? "
@@ -73,7 +71,7 @@ def verify(q, providers=None) -> tuple[bool, str]:
         return False, "judge did not evaluate every option"
     ok_opts = [k for k, v in ev.items() if str(v.get("acceptable")).strip().lower() in ("true", "yes")]
     if ok_opts != [q.correct_answer]:
-        return False, "not exactly one acceptable option"
+        return False, "solver disagrees with key" if len(ok_opts) == 1 else "not exactly one acceptable option"
     if conv:
         rules = {k: str(ev[k].get("rule") or "").strip() for k in ev if k != q.correct_answer}
         if any(len(r_) < 3 or r_.lower() in ("none", "null", "n/a") for r_ in rules.values()):
