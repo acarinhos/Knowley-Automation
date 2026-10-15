@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "data" / "global_character_source.json"
 LOCALIZED = ROOT / "data" / "global_character_locales.json"
 OUTPUT = ROOT / "data" / "global_character_catalog.json"
+ALIASES = ROOT / "data" / "global_character_aliases.json"
 CHARACTER_SCHEMA_VERSION = "1.0.0"
 CHARACTER_LOCALES = (
     "en", "de-DE", "ar", "bn-BD", "da-DK", "id", "fa-IR", "nl-NL", "fil",
@@ -35,6 +36,33 @@ def key(text: str) -> str:
     normalized = unicodedata.normalize("NFKD", clean(text).lower().replace("ı", "i"))
     ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
     return re.sub(r"[^a-z0-9]+", " ", ascii_text).strip()
+
+
+WORD = re.compile(r"[^\W\d_]+(?:'[^\W\d_]+)?")
+
+
+def rename_text(text: str, mapping: dict[str, str]) -> str:
+    """Replace whole words (case-insensitive, keeping title/upper case) using a word -> alias map."""
+    lowered = {k.casefold(): v for k, v in mapping.items()}
+
+    def swap(match: re.Match) -> str:
+        word = match.group()
+        alias = lowered.get(word.casefold())
+        if alias is None:
+            return word
+        return alias.upper() if word.isupper() and len(word) > 1 else alias
+
+    return WORD.sub(swap, text)
+
+
+def name_tokens(name: str) -> list[str]:
+    return re.findall(r"[^\W\d_]+", name)
+
+
+def alias_map(original: str, alias: str) -> dict[str, str]:
+    """Full name plus positional tokens (>=3 letters) so titles/roles quoting the name are covered."""
+    tokens = list(zip(name_tokens(original), name_tokens(alias)))
+    return {original: alias, **{o: a for o, a in tokens if len(o) >= 3 and o != a}}
 
 
 def effect(
@@ -321,6 +349,9 @@ def main() -> int:
     if not isinstance(locale_texts, dict):
         raise ValueError("Localized title/role mapping must be a JSON object.")
 
+    aliases = json.loads(ALIASES.read_text(encoding="utf-8")) if ALIASES.exists() else {}
+    skill_terms = aliases.get("skill_terms", {})
+
     output: list[dict[str, Any]] = []
     for row in source_rows:
         category = clean(row.get("category"))
@@ -338,9 +369,13 @@ def main() -> int:
         raw_id = "gl_" + "_".join(
             part for part in (slug_id(category), slug_id(subcategory), slug_id(clean(row.get("name")))) if part
         )
+        # Ids stay derived from the original name; only visible text uses the alias.
+        entry = aliases.get("characters", {}).get(raw_id)
+        display_name = entry["alias"] if entry else clean(row.get("name"))
+        names = alias_map(entry["original"], entry["alias"]) if entry else {}
         skills: list[dict[str, Any]] = []
         for slot, source_text in enumerate(row.get("skills") or [], start=1):
-            source_text = clean(source_text)
+            source_text = rename_text(clean(source_text), {**skill_terms, **names})
             if not source_text:
                 raise ValueError(f"{raw_id} is missing source skill slot {slot}.")
             label, _, description = source_text.partition(":")
@@ -368,18 +403,18 @@ def main() -> int:
 
         translations = {
             locale: {
-                "name": clean(row.get("name")),
-                "title": locale_texts[source_title][locale],
-                "role": locale_texts[source_role][locale],
+                "name": display_name,
+                "title": rename_text(locale_texts[source_title][locale], names),
+                "role": rename_text(locale_texts[source_role][locale], names),
             }
             for locale in CHARACTER_LOCALES
         }
         output.append({
             "schema_version": CHARACTER_SCHEMA_VERSION,
             "id": raw_id,
-            "name": clean(row.get("name")),
-            "title": locale_texts[source_title]["en"],
-            "role": locale_texts[source_role]["en"],
+            "name": display_name,
+            "title": rename_text(locale_texts[source_title]["en"], names),
+            "role": rename_text(locale_texts[source_role]["en"], names),
             "category_id": slug_id(category),
             "category_name": category,
             "sub_category_id": slug_id(subcategory),
