@@ -22,6 +22,8 @@ def main(argv=None) -> int:
     ap.add_argument("--list-open", action="store_true", help="print and write output/open_slots.json, then exit")
     ap.add_argument("--audit", action="store_true", help="offline re-check of the accepted questions in --session (no LLM)")
     ap.add_argument("--drop-failed", action="store_true", help="with --audit: remove failing questions (backup <file>.bak)")
+    ap.add_argument("--balance", action="store_true", help="rebalance the accepted questions in --session: key length bias, then key letters")
+    ap.add_argument("--dry-run", action="store_true", help="with --balance: no LLM calls, no writes")
     ap.add_argument("--output-dir", help="directory holding the session files (default: sat_engine/output)")
     a = ap.parse_args(argv)
     sid = a.session or (f"seed{a.seed}-{'-'.join(('rw', 'math') if a.section == 'both' else (a.section,))}" if a.seed is not None else None)
@@ -31,6 +33,14 @@ def main(argv=None) -> int:
             ap.error("--audit needs --session or --seed")
         r = audit_session(sid, Path(a.output_dir) if a.output_dir else OUTPUT_DIR, drop_failed=a.drop_failed)
         print(f"audit {sid}: {r['failed']}/{r['total']} failed {r['by_check']}; dropped {r['dropped']}")
+        return 0
+    if a.balance:
+        if not sid:
+            ap.error("--balance needs --session or --seed")
+        from .pipeline.balance import balance_session, format_report
+        logging.basicConfig(level=logging.WARNING, handlers=[logging.FileHandler(OUTPUT_DIR / "balance_debug.log", encoding="utf-8")])
+        print(format_report(balance_session(sid, Path(a.output_dir) if a.output_dir else OUTPUT_DIR, dry_run=a.dry_run,
+                                            progress=lambda m: print(m, flush=True))))
         return 0
     if a.list_open or a.import_path:
         if not sid:

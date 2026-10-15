@@ -221,6 +221,13 @@ def run_session(sections=("rw", "math"), seed=None, limit=None, providers=None, 
     with progress, ThreadPoolExecutor(max_workers=max(1, workers)) as ex:
         for f in [ex.submit(work, s) for s in todo]:
             f.result()
+    new = [i for i in accepted if str(i) not in done and i in target_slots]  # resumed items stay as they are
+    if new:
+        from .balance import balance_positions
+        with lock, file_lock(out):
+            sync()
+            balance_positions(accepted, movable=new, seed=seed)
+            write_store(out, {str(i): x.model_dump() for i, x in accepted.items()})
     report["failures"].sort(key=lambda f: f["slot"])
     for sec, slots in slots_by_sec.items():
         n = sum(1 for s in slots if s.index in accepted)

@@ -62,6 +62,7 @@ class Slot:
     blueprint: dict = field(default_factory=dict)
     topic: str = ""
     numbers: tuple = ()
+    target_key_letter: str = ""  # mcq only: letter the generator must give the correct option
 
 
 def load_blueprints(path: Path = BLUEPRINTS_PATH) -> list[dict]:
@@ -140,6 +141,13 @@ def build_plan(seed: int = 0, blueprints: list[dict] | None = None, sections=("r
                 order = tr.sample(TOPICS, len(TOPICS))
             s.topic = order.pop()
             s.numbers = tuple(tr.sample(range(2, 98), 3))
+    kr = random.Random(f"keys-{seed}")  # separate stream again; shuffled cycle = uniform and balanced per section
+    for sec in sections:
+        mcq = [s for s in slots if s.section == sec and s.blueprint.get("answer_type") != "grid_in"]
+        letters = list("ABCD" * (len(mcq) // 4 + 1))[: len(mcq)]
+        kr.shuffle(letters)
+        for s, a in zip(mcq, letters):
+            s.target_key_letter = a
     for i, s in enumerate(slots):
         s.index = i
     return slots

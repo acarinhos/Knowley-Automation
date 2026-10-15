@@ -57,6 +57,15 @@ def duplicate_numeric_options(options) -> bool:
     return len(vals) != len(set(vals))
 
 
+def key_dominates(options, key, ratio=1.25, min_gap=5) -> bool:
+    """True when the key is the strictly longest option by > `ratio` (and >= min_gap chars) of a non-numeric mcq."""
+    if not options or key not in options or all(to_number(v) is not None for v in options.values()):
+        return False
+    k = len(options[key].strip())
+    m = max(len(v.strip()) for a, v in options.items() if a != key)
+    return k > ratio * m and k - m >= min_gap
+
+
 def _norm(s) -> str:
     return _TEX.sub("", str(s)).lower()
 
@@ -92,6 +101,8 @@ def verify(q, providers=None) -> tuple[bool, str]:
         type(q).model_validate(q.model_dump())
     except ValueError as e:
         return False, f"schema: {str(e)[:100]}"
+    if q.answer_type == "mcq" and key_dominates(q.options, q.correct_answer):  # cheap soft check before any LLM call
+        return False, "key is the longest option by >25%: make every distractor as long, specific and detailed as the key"
     if q.section == "math":
         if q.answer_type == "mcq" and duplicate_numeric_options(q.options):
             return False, "math options are numerically equal"

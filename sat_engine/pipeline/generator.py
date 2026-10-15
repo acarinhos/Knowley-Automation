@@ -202,6 +202,12 @@ def build_prompt(slot) -> str:
     if slot.needs_visual:
         extra += ("\nFigure rules: scatter_with_line needs at least 3 (ideally 6-10) points; function curve types are exactly "
                   "linear, quadratic_vertex, quadratic_standard, exponential, absolute; every marked point must lie inside x_range/y_range.")
+    if mcq:
+        rules += ("\nOption balance: all four options must match in length, specificity, structure and grammatical form "
+                  "(each within +-15% of the correct option's length); the correct option must NOT be the longest or most detailed.")
+        if slot.target_key_letter:
+            rules += (f" Put the correct answer at letter {slot.target_key_letter}: correct_answer must be \"{slot.target_key_letter}\", "
+                      "and the explanation refers to the options by their actual letters.")
     setting = ""
     if slot.topic:
         setting = (f"\nSetting/topic for this item (use it, stay original): {slot.topic}."
