@@ -1,7 +1,9 @@
 """Fill missing skill-support fields on existing 1.1.0 Firestore questions.
 
-Fields: per locale hint, keyword, distractor_trap_note, binary_fallback, simplified_question,
+Fields: translations.en hint, keyword, distractor_trap_note, binary_fallback, simplified_question,
 clarified_options; root weakest/strongest_distractor_index and option_difficulty_order.
+Other locales are NOT touched or translated: one LLM call per question (documents without a usable
+`en` translation are skipped with a reason).
 
 Dry-run by default (read-only inventory + cost estimate). --apply needs --project-id knowley-1.
 Only MISSING fields are written (field-path updates with an update-time precondition), so
@@ -31,6 +33,7 @@ if str(ROOT_DIR) not in sys.path:
 from dotenv import load_dotenv
 
 LOCALE_TEXT_FIELDS = ("hint", "keyword", "distractor_trap_note", "simplified_question")
+TARGET_LOCALE = "en"
 ROOT_FIELDS = ("weakest_distractor_index", "strongest_distractor_index", "option_difficulty_order")
 BACKUP_DIR = ROOT_DIR / "local_backups"
 PROGRESS_FILE = BACKUP_DIR / "v110_skill_backfill_progress.json"
@@ -65,27 +68,22 @@ def missing_locale_fields(content: Mapping[str, Any]) -> List[str]:
     return [f for f in (*LOCALE_TEXT_FIELDS, "binary_fallback", "clarified_options") if not _field_ok(f, content.get(f))]
 
 
+def usable_en(content: Any) -> bool:
+    return isinstance(content, Mapping) and _text(content.get("question")) and _options_complete(content.get("options"))
+
+
 def missing_fields(data: Mapping[str, Any]) -> Dict[str, Any]:
     """{"root": [...], "locales": {locale: [fields]}} for locales that have a usable question."""
     root = [f for f in ROOT_FIELDS[:2] if data.get(f) is None]
     if not valid_order(data.get("option_difficulty_order")):
         root.append("option_difficulty_order")
     locales = {}
-    for loc, content in (data.get("translations") or {}).items():
-        if isinstance(content, Mapping) and _text(content.get("question")) and _options_complete(content.get("options")):
-            gaps = missing_locale_fields(content)
-            if gaps:
-                locales[loc] = gaps
+    content = (data.get("translations") or {}).get(TARGET_LOCALE)
+    if usable_en(content):
+        gaps = missing_locale_fields(content)
+        if gaps:
+            locales[TARGET_LOCALE] = gaps
     return {"root": root, "locales": locales}
-
-
-def pick_source_language(data: Mapping[str, Any]) -> Optional[str]:
-    translations = data.get("translations") or {}
-    for loc in ("en", "tr", *translations):
-        content = translations.get(loc)
-        if isinstance(content, Mapping) and _text(content.get("question")) and _options_complete(content.get("options")):
-            return loc
-    return None
 
 
 def check_support(correct_answer: Any, root: Mapping[str, Any], source: Mapping[str, Any], language: str) -> None:
@@ -171,64 +169,28 @@ GEN_SCHEMA = {
 }
 
 
-PLACEHOLDER = "ok"  # Azure/LLM translators require these base fields; their translations are discarded.
-
-
-def translation_stub(source: Mapping[str, Any], gaps: Mapping[str, Any], others: List[str]) -> Dict[str, Any]:
-    """Source content carrying ONLY the fields some target locale lacks (question/options are not re-translated)."""
-    needed = {f for loc in others for f in gaps["locales"][loc]}
-    stub: Dict[str, Any] = {
-        "question": PLACEHOLDER, "options": {k: PLACEHOLDER for k in "ABCD"},
-        "explanation": PLACEHOLDER, "filter_tag": PLACEHOLDER,
-    }
-    for field in needed:
-        stub[field] = source[field]
-    return stub
-
-
 def process_doc(data: Mapping[str, Any], llm_manager: Any) -> Dict[tuple, Any]:
-    """Generate the missing fields for one document; ValueError if the result is not valid."""
-    from core.translation_service import translate_localized_content
+    """One LLM call: generate the missing fields for translations.en and the root fields.
 
+    Raises ValueError (reason in the message) when the document cannot be processed or the output is invalid.
+    """
     gaps = missing_fields(data)
-    language = pick_source_language(data)
-    if language is None:
-        raise ValueError("no usable source translation")
-    source = dict(data["translations"][language])
+    source = dict((data.get("translations") or {}).get(TARGET_LOCALE) or {})
+    if not usable_en(source):
+        raise ValueError("no usable en translation (question/options)")
     root = {f: data.get(f) for f in ROOT_FIELDS}
     if not valid_order(root["option_difficulty_order"]):
         root["option_difficulty_order"] = None
-    if gaps["root"] or language in gaps["locales"]:
-        out = llm_manager.generate_trivia("You are a precise trivia editor. Return valid JSON only.",
-                                          generation_prompt(data, language, source), response_schema=GEN_SCHEMA)
-        for field in gaps["locales"].get(language, []):
-            source[field] = out.get(field)
-        for field in gaps["root"]:
-            root[field] = out.get(field)
-    check_support(data.get("correct_answer"), root, source, language)
+    out = llm_manager.generate_trivia("You are a precise trivia editor. Return valid JSON only.",
+                                      generation_prompt(data, TARGET_LOCALE, source), response_schema=GEN_SCHEMA)
+    for field in gaps["locales"].get(TARGET_LOCALE, []):
+        source[field] = out.get(field)
+    for field in gaps["root"]:
+        root[field] = out.get(field)
+    check_support(data.get("correct_answer"), root, source, TARGET_LOCALE)
     if not valid_order(root["option_difficulty_order"]):
         root["option_difficulty_order"] = None  # contract: null when no reliable order
-    generated: Dict[str, Dict[str, Any]] = {language: source}
-    others = [loc for loc in gaps["locales"] if loc != language]
-    if others:
-        # Azure first (respects AZURE_TRANSLATOR_CHARACTERS_PER_MINUTE), LLM chain for languages Azure fails.
-        translated, _provider = translate_localized_content(
-            translation_stub(source, gaps, others), language, others,
-            llm_manager=llm_manager, prefer_azure=True, llm_batch_size=8)
-        for loc in others:
-            content = dict(translated.get(loc) or {})
-            if isinstance(content.get("binary_fallback"), Mapping) and isinstance(source.get("binary_fallback"), Mapping):
-                # truth value comes from the validated source
-                content["binary_fallback"] = {**content["binary_fallback"], "is_true": source["binary_fallback"]["is_true"]}
-            generated[loc] = content
-    return build_updates(gaps, root, generated)
-
-
-def source_chars(data: Mapping[str, Any]) -> int:
-    """Rough size of the fields to translate per locale (about the size of question + options + explanation)."""
-    content = (data.get("translations") or {}).get(pick_source_language(data) or "", {})
-    options = content.get("options") or {}
-    return len(str(content.get("question", ""))) + len(str(content.get("explanation", ""))) + sum(len(str(v)) for v in options.values())
+    return build_updates(gaps, root, {TARGET_LOCALE: source})
 
 
 def summarize(results: Mapping[str, str]) -> Dict[str, int]:
@@ -240,15 +202,14 @@ def summarize(results: Mapping[str, str]) -> Dict[str, int]:
     return counts
 
 
-def estimate(plans: List[Mapping[str, Any]], datas: Optional[List[Mapping[str, Any]]] = None,
-             azure_chars_per_minute: int = 30_000, workers: int = 4, seconds_per_call: float = 8.0) -> Dict[str, Any]:
-    chars = sum(source_chars(d) * max(0, len(g["locales"]) - 1) for g, d in zip(plans, datas or [])) if datas else 0
+def estimate(plans: List[Mapping[str, Any]], workers: int = 4, seconds_per_call: float = 8.0,
+             gemini_rpd: int = 450) -> Dict[str, Any]:
     calls = sum(1 for g in plans if g["root"] or g["locales"])
     return {
-        "docs": len(plans), "generation_calls": calls,
-        "locale_fields": sum(len(f) for g in plans for f in g["locales"].values()),
-        "azure_chars": chars, "azure_minutes": round(chars / max(1, azure_chars_per_minute), 1),
-        "generation_minutes": round(calls * seconds_per_call / max(1, workers) / 60, 1),
+        "docs": len(plans), "llm_calls": calls,
+        "fields": sum(len(g["root"]) + sum(len(f) for f in g["locales"].values()) for g in plans),
+        "minutes_if_providers_healthy": round(calls * seconds_per_call / max(1, workers) / 60, 1),
+        "days_if_gemini_only": round(calls / max(1, gemini_rpd), 1),
     }
 
 
@@ -288,15 +249,16 @@ def main() -> int:
     done = set(json.loads(PROGRESS_FILE.read_text(encoding="utf-8"))) if args.resume and PROGRESS_FILE.exists() else set()
     snapshots = _version_documents(db)
     todo = [(sid, snap, missing_fields(snap.to_dict() or {})) for sid, snap in sorted(snapshots.items()) if sid not in done]
-    todo = [t for t in todo if t[2]["root"] or t[2]["locales"]]
+    no_en = [sid for sid, snap, _ in todo if not usable_en(((snap.to_dict() or {}).get("translations") or {}).get(TARGET_LOCALE))]
+    if no_en:
+        logger.warning("%d docs have no usable en translation and are skipped (e.g. %s)", len(no_en), ", ".join(no_en[:3]))
+    todo = [t for t in todo if t[0] not in set(no_en) and (t[2]["root"] or t[2]["locales"])]
     if args.limit > 0:
         todo = todo[: args.limit]
     workers = max(1, args.workers)
-    azure_cpm = int(os.getenv("AZURE_TRANSLATOR_CHARACTERS_PER_MINUTE", "30000") or 30000)
-    est = estimate([t[2] for t in todo], [t[1].to_dict() or {} for t in todo], azure_cpm, workers)
-    logger.info("Project %s; 1.1.0 docs %d; to process %d; estimate %s (Azure %d chars/min; generation assumes ~8s/call, "
-                "%d workers; Gemini alone is capped at RPD 450, Groq/Cohere fill the rest)",
-                project_id, len(snapshots), len(todo), est, azure_cpm, workers)
+    est = estimate([t[2] for t in todo], workers)
+    logger.info("Project %s; 1.1.0 docs %d; to process %d; estimate %s (1 LLM call per doc, ~8s/call; Gemini RPD 450)",
+                project_id, len(snapshots), len(todo), est)
     if not args.apply:
         logger.info("Dry run only. No Firestore data was changed.")
         return 0

@@ -1,7 +1,7 @@
 import unittest
 
 from scripts.backfill_v110_skill_fields import (
-    build_updates, check_support, estimate, missing_fields, pick_source_language, outcome, summarize, translation_stub, unresolved, valid_order,
+    build_updates, check_support, estimate, missing_fields, process_doc, usable_en, outcome, summarize, unresolved, valid_order,
 )
 
 FULL = {
@@ -22,11 +22,13 @@ class BackfillPureTests(unittest.TestCase):
     def test_complete_doc_has_no_gaps(self):
         self.assertEqual(missing_fields(doc()), {"root": [], "locales": {}})
 
-    def test_detects_root_and_locale_gaps(self):
-        tr = dict(FULL, hint="", binary_fallback={"statement": "x"})
-        gaps = missing_fields(doc(weakest_distractor_index=None, option_difficulty_order=None, translations={"en": FULL, "tr": tr}))
+    def test_only_en_is_checked(self):
+        tr = dict(FULL, hint="")
+        self.assertEqual(missing_fields(doc(translations={"en": FULL, "tr": tr})), {"root": [], "locales": {}})
+        en = dict(FULL, hint="", binary_fallback={"statement": "x"})
+        gaps = missing_fields(doc(weakest_distractor_index=None, option_difficulty_order=None, translations={"en": en, "tr": tr}))
         self.assertEqual(gaps["root"], ["weakest_distractor_index", "option_difficulty_order"])
-        self.assertEqual(gaps["locales"], {"tr": ["hint", "binary_fallback"]})
+        self.assertEqual(gaps["locales"], {"en": ["hint", "binary_fallback"]})
 
     def test_valid_order(self):
         self.assertTrue(valid_order([3, 1, 0, 2]))
@@ -45,21 +47,36 @@ class BackfillPureTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 check_support("A", {"weakest_distractor_index": weakest, "strongest_distractor_index": strongest}, FULL, "en")
 
-    def test_source_language_and_estimate(self):
-        self.assertEqual(pick_source_language(doc()), "en")
-        self.assertIsNone(pick_source_language({"translations": {"en": {"question": ""}}}))
-        gaps = missing_fields(doc(translations={"en": {**FULL, "hint": ""}, "tr": {**FULL, "hint": ""}}))
-        est = estimate([gaps], [doc()], 30_000, 4, 8.0)
-        self.assertEqual((est["docs"], est["generation_calls"], est["locale_fields"]), (1, 1, 2))
-        self.assertEqual(est["azure_chars"], 5 * 1)  # q + 4 one-letter options, one non-source locale
+    def test_estimate_counts_one_call_per_doc(self):
+        gaps = missing_fields(doc(translations={"en": {**FULL, "hint": ""}}))
+        est = estimate([gaps, {"root": [], "locales": {}}], 4, 8.0, 450)
+        self.assertEqual((est["docs"], est["llm_calls"], est["fields"]), (2, 1, 1))
 
-    def test_translation_stub_carries_only_needed_fields(self):
-        gaps = missing_fields(doc(translations={"en": FULL, "tr": {**FULL, "hint": ""}, "de": {**FULL, "keyword": ""}}))
-        stub = translation_stub(FULL, gaps, ["tr", "de"])
-        self.assertEqual(stub["hint"], "h")
-        self.assertEqual(stub["keyword"], "k")
-        self.assertNotIn("simplified_question", stub)
-        self.assertEqual(stub["question"], "ok")
+    def test_process_doc_single_call_writes_only_missing_en_fields(self):
+        class LLM:
+            calls = 0
+
+            def generate_trivia(self, system, prompt, response_schema=None):
+                LLM.calls += 1
+                return {"hint": "new hint", "weakest_distractor_index": 1, "strongest_distractor_index": 3, "option_difficulty_order": [1, 0, 2, 3]}
+
+        data = doc(strongest_distractor_index=None, option_difficulty_order=None,
+                   translations={"en": {**FULL, "hint": ""}, "tr": {**FULL, "hint": ""}})
+        updates = process_doc(data, LLM())
+        self.assertEqual(LLM.calls, 1)
+        self.assertEqual(updates, {("strongest_distractor_index",): 3, ("option_difficulty_order",): [1, 0, 2, 3],
+                                   ("translations", "en", "hint"): "new hint"})
+
+    def test_process_doc_rejects_invalid_indices_and_missing_en(self):
+        class LLM:
+            def generate_trivia(self, *a, **k):
+                return {"strongest_distractor_index": 0}  # equals the correct answer A
+
+        with self.assertRaises(ValueError):
+            process_doc(doc(strongest_distractor_index=None), LLM())
+        with self.assertRaises(ValueError):
+            process_doc(doc(translations={"tr": FULL}), LLM())
+        self.assertFalse(usable_en({"question": "q"}))
 
     def test_unresolved_counts_unfilled_gaps(self):
         gaps = {"root": ["strongest_distractor_index", "option_difficulty_order"], "locales": {"tr": ["hint", "keyword"]}}

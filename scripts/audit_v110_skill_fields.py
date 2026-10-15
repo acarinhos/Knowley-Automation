@@ -23,6 +23,11 @@ def present(value) -> bool:
 
 
 def main() -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--locales", default="", help="Comma-separated locales to count (default: all), e.g. en")
+    only = {x.strip() for x in parser.parse_args().locales.split(",") if x.strip()}
     load_dotenv(ROOT / ".env")
     from database.db_manager import init_firebase  # noqa: PLC0415
     from google.cloud.firestore_v1.base_query import FieldFilter  # noqa: PLC0415
@@ -42,6 +47,8 @@ def main() -> int:
             if not present(data.get(field)) and data.get(field) != 0:
                 root_missing[field] += 1
         for loc, tr in (data.get("translations") or {}).items():
+            if only and loc not in only:
+                continue
             for field in LOCALE_FIELDS:
                 locale_total[field] += 1
                 if not present((tr or {}).get(field)):
