@@ -22,3 +22,5 @@ venv/
 sat_engine/reference/
 
 sat_engine/output/
+
+sat_engine/blueprints/.state.json
