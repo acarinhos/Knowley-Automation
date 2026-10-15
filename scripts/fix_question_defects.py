@@ -92,12 +92,20 @@ def rewrite_record(doc_id: str, data: Mapping[str, Any]) -> Optional[Dict[str, A
     }
 
 
-def validate_rewrite(data: Mapping[str, Any], result: Mapping[str, Mapping[str, str]]) -> Dict[tuple, Any]:
-    """Field-path -> new option text. ValueError (with the reason) when anything is unsafe."""
+RESET_FIELDS = ("weakest_distractor_index", "strongest_distractor_index", "option_difficulty_order")
+
+
+def validate_rewrite(data: Mapping[str, Any], result: Mapping[str, Mapping[str, str]],
+                     reset_conflicting: bool = False) -> Dict[tuple, Any]:
+    """Field-path -> new value. ValueError (with the reason) when anything is unsafe.
+
+    With `reset_conflicting`, rewriting an option that weakest/strongest_distractor_index points to nulls
+    the three index fields (values stay in the backup) so the backfill regenerates them."""
     defects = defective_options(data)
     correct = data.get("correct_answer")
     referenced = {data.get("weakest_distractor_index"), data.get("strongest_distractor_index")} - {None}
     updates: Dict[tuple, Any] = {}
+    conflict = False
     for loc, letters_map in result.items():
         info = defects.get(loc)
         if not info or not info["letters"]:
@@ -107,7 +115,9 @@ def validate_rewrite(data: Mapping[str, Any], result: Mapping[str, Mapping[str, 
             if letter not in info["letters"] or letter == correct:
                 raise ValueError(f"{loc}.{letter}: not a defective non-correct option")
             if LETTERS.index(letter) in referenced:
-                raise ValueError(f"{loc}.{letter}: referenced by weakest/strongest_distractor_index")
+                if not reset_conflicting:
+                    raise ValueError(f"{loc}.{letter}: referenced by weakest/strongest_distractor_index")
+                conflict = True
             options[letter] = str(text or "").strip()
         if set(letters_map) != set(info["letters"]):
             raise ValueError(f"{loc}: result does not cover {info['letters']}")
@@ -119,6 +129,8 @@ def validate_rewrite(data: Mapping[str, Any], result: Mapping[str, Mapping[str, 
             updates[("translations", loc, "options", letter)] = options[letter]
         if options[correct] != original[correct]:
             raise ValueError(f"{loc}: correct option changed")
+    if conflict:
+        updates.update({(field,): None for field in RESET_FIELDS})
     return updates
 
 
@@ -247,6 +259,8 @@ def main() -> int:
     parser.add_argument("--fix-order", action="store_true")
     parser.add_argument("--deactivate-suspects", action="store_true")
     parser.add_argument("--reactivate", metavar="BACKUP_FILE")
+    parser.add_argument("--reset-conflicting-indices", action="store_true",
+                        help="With --import-rewrites: null weakest/strongest/option_difficulty_order instead of skipping.")
     parser.add_argument("--chunk-size", type=int, default=20)
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
@@ -293,10 +307,18 @@ def main() -> int:
                 states[doc_id] = "skipped: document not found"
                 continue
             try:
-                plan.append((doc_id, snap, validate_rewrite(snap.to_dict() or {}, result)))
+                plan.append((doc_id, snap, validate_rewrite(snap.to_dict() or {}, result, args.reset_conflicting_indices)))
             except ValueError as exc:
                 states[doc_id] = f"skipped: invalid ({str(exc)[:140]})"
+        resets = [d for d, _s, payload in plan if ("weakest_distractor_index",) in payload]
+        logger.info("%d doc(s) %s have their index fields reset to null", len(resets), "will" if not args.apply else "had")
         _commit("rewrite", plan, args.apply, states, "written")
+        if args.apply and resets:  # let the skill-field backfill see them again
+            backfill = ROOT / "local_backups" / "v110_skill_backfill_progress.json"
+            if backfill.exists():
+                ids = set(json.loads(backfill.read_text(encoding="utf-8")))
+                ids -= {d for d in resets if states.get(d) == "written"}
+                backfill.write_text(json.dumps(sorted(ids)), encoding="utf-8")
         _report("Rewrite import", states, args.apply)
         return 0
 

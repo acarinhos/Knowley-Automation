@@ -66,3 +66,21 @@ class MiscTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ResetIndicesTests(unittest.TestCase):
+    def test_reset_conflicting_indices_nulls_index_fields(self):
+        d = doc(DUP, option_difficulty_order=[0, 1, 2, 3])  # weakest index 1 == B
+        updates = validate_rewrite(d, {"en": {"B": "K2"}}, reset_conflicting=True)
+        self.assertEqual(updates[("translations", "en", "options", "B")], "K2")
+        for field in ("weakest_distractor_index", "strongest_distractor_index", "option_difficulty_order"):
+            self.assertIsNone(updates[(field,)])
+            self.assertIn((field,), updates)
+
+    def test_no_reset_without_conflict_and_nulls_count_as_missing(self):
+        d = doc(DUP, weakest_distractor_index=3, strongest_distractor_index=2)
+        self.assertEqual(set(validate_rewrite(d, {"en": {"B": "K2"}}, reset_conflicting=True)), {("translations", "en", "options", "B")})
+        from scripts.backfill_v110_skill_fields import missing_fields
+
+        gaps = missing_fields({"weakest_distractor_index": None, "strongest_distractor_index": None, "option_difficulty_order": None, "translations": {}})
+        self.assertEqual(gaps["root"], ["weakest_distractor_index", "strongest_distractor_index", "option_difficulty_order"])
