@@ -18,6 +18,7 @@ import logging
 import math
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -120,6 +121,13 @@ def build_updates(gaps: Mapping[str, Any], root_values: Mapping[str, Any],
     return updates
 
 
+def unresolved(gaps: Mapping[str, Any], updates: Mapping[tuple, Any]) -> int:
+    """Gap fields still missing after the planned updates (such docs are not marked done and are retried)."""
+    wanted = {(f,) for f in gaps["root"] if f != "option_difficulty_order"}  # that one may legitimately stay null
+    wanted |= {("translations", loc, f) for loc, fields in gaps["locales"].items() for f in fields}
+    return len(wanted - set(updates))
+
+
 def generation_prompt(data: Mapping[str, Any], language: str, content: Mapping[str, Any]) -> str:
     opts = content["options"]
     fixed = {k: data.get(k) for k in ROOT_FIELDS[:2] if data.get(k) is not None}
@@ -156,6 +164,21 @@ GEN_SCHEMA = {
 }
 
 
+PLACEHOLDER = "ok"  # Azure/LLM translators require these base fields; their translations are discarded.
+
+
+def translation_stub(source: Mapping[str, Any], gaps: Mapping[str, Any], others: List[str]) -> Dict[str, Any]:
+    """Source content carrying ONLY the fields some target locale lacks (question/options are not re-translated)."""
+    needed = {f for loc in others for f in gaps["locales"][loc]}
+    stub: Dict[str, Any] = {
+        "question": PLACEHOLDER, "options": {k: PLACEHOLDER for k in "ABCD"},
+        "explanation": PLACEHOLDER, "filter_tag": PLACEHOLDER,
+    }
+    for field in needed:
+        stub[field] = source[field]
+    return stub
+
+
 def process_doc(data: Mapping[str, Any], llm_manager: Any) -> Dict[tuple, Any]:
     """Generate the missing fields for one document; ValueError if the result is not valid."""
     from core.translation_service import translate_localized_content
@@ -181,28 +204,42 @@ def process_doc(data: Mapping[str, Any], llm_manager: Any) -> Dict[tuple, Any]:
     generated: Dict[str, Dict[str, Any]] = {language: source}
     others = [loc for loc in gaps["locales"] if loc != language]
     if others:
+        # Azure first (respects AZURE_TRANSLATOR_CHARACTERS_PER_MINUTE), LLM chain for languages Azure fails.
         translated, _provider = translate_localized_content(
-            source, language, others, llm_manager=llm_manager, prefer_azure=False, llm_batch_size=8)
+            translation_stub(source, gaps, others), language, others,
+            llm_manager=llm_manager, prefer_azure=True, llm_batch_size=8)
         for loc in others:
             content = dict(translated.get(loc) or {})
-            if isinstance(content.get("binary_fallback"), Mapping):  # truth value comes from the validated source
+            if isinstance(content.get("binary_fallback"), Mapping) and isinstance(source.get("binary_fallback"), Mapping):
+                # truth value comes from the validated source
                 content["binary_fallback"] = {**content["binary_fallback"], "is_true": source["binary_fallback"]["is_true"]}
             generated[loc] = content
     return build_updates(gaps, root, generated)
 
 
-def estimate(plans: List[Mapping[str, Any]]) -> Dict[str, int]:
+def source_chars(data: Mapping[str, Any]) -> int:
+    """Rough size of the fields to translate per locale (about the size of question + options + explanation)."""
+    content = (data.get("translations") or {}).get(pick_source_language(data) or "", {})
+    options = content.get("options") or {}
+    return len(str(content.get("question", ""))) + len(str(content.get("explanation", ""))) + sum(len(str(v)) for v in options.values())
+
+
+def estimate(plans: List[Mapping[str, Any]], datas: Optional[List[Mapping[str, Any]]] = None,
+             azure_chars_per_minute: int = 30_000, workers: int = 4, seconds_per_call: float = 8.0) -> Dict[str, Any]:
+    chars = sum(source_chars(d) * max(0, len(g["locales"]) - 1) for g, d in zip(plans, datas or [])) if datas else 0
+    calls = sum(1 for g in plans if g["root"] or g["locales"])
     return {
-        "docs": len(plans),
-        "generation_calls": sum(1 for g in plans if g["root"] or g["locales"]),
-        "translation_calls": sum(math.ceil(max(0, len(g["locales"]) - 1) / 8) for g in plans),
+        "docs": len(plans), "generation_calls": calls,
         "locale_fields": sum(len(f) for g in plans for f in g["locales"].values()),
+        "azure_chars": chars, "azure_minutes": round(chars / max(1, azure_chars_per_minute), 1),
+        "generation_minutes": round(calls * seconds_per_call / max(1, workers) / 60, 1),
     }
 
 
 def _gemini_env() -> None:
+    # Quota limits apply to Gemini only; Groq/Cohere stay in the fallback chain.
     os.environ.update({
-        "LLM_ALLOWED_PROVIDERS": "gemini", "GEMINI_MODELS": "gemini-3.5-flash-lite,gemini-3.1-flash-lite",
+        "GEMINI_MODELS": "gemini-3.5-flash-lite,gemini-3.1-flash-lite",
         "GEMINI_QUOTA_GUARD": "1", "GEMINI_RPM": "8", "GEMINI_TPM": "200000", "GEMINI_RPD": "450",
         "GEMINI_MAX_OUTPUT_TOKENS": "65536",
     })
@@ -213,6 +250,7 @@ def main() -> int:
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--project-id", help="Required with --apply (must equal knowley-1).")
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--workers", type=int, default=4, help="Parallel documents (default 4).")
     parser.add_argument("--resume", action="store_true", help="Skip documents listed in the progress file.")
     args = parser.parse_args()
     if args.apply and args.project_id != "knowley-1":
@@ -237,9 +275,12 @@ def main() -> int:
     todo = [t for t in todo if t[2]["root"] or t[2]["locales"]]
     if args.limit > 0:
         todo = todo[: args.limit]
-    est = estimate([t[2] for t in todo])
-    logger.info("Project %s; 1.1.0 docs %d; to process %d; estimate %s; ~%.1f days at Gemini free-tier RPD 450",
-                project_id, len(snapshots), len(todo), est, (est["generation_calls"] + est["translation_calls"]) / 450)
+    workers = max(1, args.workers)
+    azure_cpm = int(os.getenv("AZURE_TRANSLATOR_CHARACTERS_PER_MINUTE", "30000") or 30000)
+    est = estimate([t[2] for t in todo], [t[1].to_dict() or {} for t in todo], azure_cpm, workers)
+    logger.info("Project %s; 1.1.0 docs %d; to process %d; estimate %s (Azure %d chars/min; generation assumes ~8s/call, "
+                "%d workers; Gemini alone is capped at RPD 450, Groq/Cohere fill the rest)",
+                project_id, len(snapshots), len(todo), est, azure_cpm, workers)
     if not args.apply:
         logger.info("Dry run only. No Firestore data was changed.")
         return 0
@@ -254,21 +295,39 @@ def main() -> int:
     manager = get_llm_manager()
     written = failed = 0
     done_now = set(done)
-    for sid, snap, _gaps in todo:
-        try:
-            updates = process_doc(snap.to_dict() or {}, manager)
-            if updates:
-                payload = {get_field_path(list(path)): value for path, value in updates.items()}
-                snap.reference.update(payload, option=LastUpdateOption(snap.update_time))
-                written += 1
-            done_now.add(sid)
-        except AllProvidersCoolingDown as exc:
-            logger.warning("Providers cooling down; stopping so the run can be resumed: %s", exc)
-            break
-        except Exception as exc:  # failed docs are retried by the next run
-            failed += 1
-            logger.warning("Skipped %s: %s", sid, str(exc)[:200])
-        PROGRESS_FILE.write_text(json.dumps(sorted(done_now)), encoding="utf-8")
+    stop = False
+    chunk = workers * 2
+
+    def work(item):
+        sid, snap, gaps = item
+        updates = process_doc(snap.to_dict() or {}, manager)
+        return sid, snap, gaps, updates
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for start in range(0, len(todo), chunk):
+            if stop:
+                break
+            futures = {pool.submit(work, item): item[0] for item in todo[start:start + chunk]}
+            for future in as_completed(futures):
+                sid = futures[future]
+                try:
+                    _sid, snap, gaps, updates = future.result()
+                    if updates:
+                        payload = {get_field_path(list(path)): value for path, value in updates.items()}
+                        snap.reference.update(payload, option=LastUpdateOption(snap.update_time))
+                        written += 1
+                    if unresolved(gaps, updates) == 0:
+                        done_now.add(sid)
+                    else:
+                        failed += 1
+                        logger.warning("Partially filled %s; it will be retried on --resume", sid)
+                except AllProvidersCoolingDown as exc:
+                    stop = True
+                    logger.warning("Providers cooling down; stopping so the run can be resumed: %s", exc)
+                except Exception as exc:  # provider/validation errors never mark a doc done
+                    failed += 1
+                    logger.warning("Skipped %s: %s", sid, str(exc)[:200])
+            PROGRESS_FILE.write_text(json.dumps(sorted(done_now)), encoding="utf-8")
     logger.info("Updated %d docs; failed/skipped %d; progress file %s", written, failed, PROGRESS_FILE)
     return 0 if not failed else 1
 

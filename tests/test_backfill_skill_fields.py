@@ -1,7 +1,7 @@
 import unittest
 
 from scripts.backfill_v110_skill_fields import (
-    build_updates, check_support, estimate, missing_fields, pick_source_language, valid_order,
+    build_updates, check_support, estimate, missing_fields, pick_source_language, translation_stub, unresolved, valid_order,
 )
 
 FULL = {
@@ -49,7 +49,22 @@ class BackfillPureTests(unittest.TestCase):
         self.assertEqual(pick_source_language(doc()), "en")
         self.assertIsNone(pick_source_language({"translations": {"en": {"question": ""}}}))
         gaps = missing_fields(doc(translations={"en": {**FULL, "hint": ""}, "tr": {**FULL, "hint": ""}}))
-        self.assertEqual(estimate([gaps]), {"docs": 1, "generation_calls": 1, "translation_calls": 1, "locale_fields": 2})
+        est = estimate([gaps], [doc()], 30_000, 4, 8.0)
+        self.assertEqual((est["docs"], est["generation_calls"], est["locale_fields"]), (1, 1, 2))
+        self.assertEqual(est["azure_chars"], 5 * 1)  # q + 4 one-letter options, one non-source locale
+
+    def test_translation_stub_carries_only_needed_fields(self):
+        gaps = missing_fields(doc(translations={"en": FULL, "tr": {**FULL, "hint": ""}, "de": {**FULL, "keyword": ""}}))
+        stub = translation_stub(FULL, gaps, ["tr", "de"])
+        self.assertEqual(stub["hint"], "h")
+        self.assertEqual(stub["keyword"], "k")
+        self.assertNotIn("simplified_question", stub)
+        self.assertEqual(stub["question"], "ok")
+
+    def test_unresolved_counts_unfilled_gaps(self):
+        gaps = {"root": ["strongest_distractor_index", "option_difficulty_order"], "locales": {"tr": ["hint", "keyword"]}}
+        updates = {("strongest_distractor_index",): 2, ("translations", "tr", "hint"): "x"}
+        self.assertEqual(unresolved(gaps, updates), 1)
 
 
 if __name__ == "__main__":
