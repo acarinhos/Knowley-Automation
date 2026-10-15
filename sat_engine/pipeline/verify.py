@@ -10,6 +10,16 @@ from ..visuals import describe, facts
 SYSTEM = "You are an expert SAT solver. Solve from scratch. Reply with JSON only."
 
 
+CONVENTIONS = ("Boundaries", "Form, Structure, and Sense")
+
+
+def judge_providers(q, providers=None):
+    base = list(providers or llm.DEFAULT_ORDER)
+    gen = q.meta.provider
+    others = [p for p in base if p != gen]
+    return others + [p for p in base if p == gen] if others else base
+
+
 def to_number(s) -> float | None:
     try:
         t = str(s).strip().replace(",", "").replace("$", "").rstrip("%")
@@ -46,11 +56,27 @@ def verify(q, providers=None) -> tuple[bool, str]:
         else:
             ok = same_number(r.get("answer"), q.correct_answer)
         return (True, "") if ok else (False, "solver disagrees with key")
+    providers = judge_providers(q, providers)  # judge != generator when possible
     r = llm.generate_json(_body(q) + 'Pick the best answer. JSON: {"choice": "A-D"}', system=SYSTEM, providers=providers)
     if str(r.get("choice", "")).strip().upper() != q.correct_answer:
         return False, "solver disagrees with key"
-    j = llm.generate_json(_body(q) + 'List every option that is defensibly correct. JSON: {"defensible": ["A"]}',
-                          system=SYSTEM, providers=providers)
-    if sorted(str(x).strip().upper() for x in j.get("defensible", [])) != [q.correct_answer]:
-        return False, "not exactly one defensible answer"
+    conv = q.skill in CONVENTIONS
+    j = llm.generate_json(
+        _body(q) + "Evaluate EACH option independently: is it an acceptable, correct completion/answer on its own? "
+        + ("For every option that is NOT acceptable, name the single rule it violates (subject-verb agreement, tense "
+           "consistency, parallelism, punctuation, pronoun case, modifier placement, ...). " if conv else "")
+        + 'JSON: {"options": {"A": {"acceptable": true, "reason": "...", "rule": "rule violated or null"}, "B": {...}, "C": {...}, "D": {...}}}',
+        system=SYSTEM, providers=providers)
+    ev = j.get("options") if isinstance(j.get("options"), dict) else {}
+    ev = {str(k).strip().upper(): v for k, v in ev.items() if isinstance(v, dict)}
+    if sorted(ev) != ["A", "B", "C", "D"]:
+        return False, "judge did not evaluate every option"
+    ok_opts = [k for k, v in ev.items() if str(v.get("acceptable")).strip().lower() in ("true", "yes")]
+    if ok_opts != [q.correct_answer]:
+        return False, "not exactly one acceptable option"
+    if conv:
+        rules = {k: str(ev[k].get("rule") or "").strip() for k in ev if k != q.correct_answer}
+        if any(len(r_) < 3 or r_.lower() in ("none", "null", "n/a") for r_ in rules.values()):
+            return False, "distractor without a named violated rule"
+        q.explanation += " Distractor rules: " + "; ".join(f"{k}: {v}" for k, v in sorted(rules.items())) + "."
     return True, ""

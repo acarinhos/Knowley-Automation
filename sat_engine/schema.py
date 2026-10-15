@@ -40,6 +40,26 @@ Difficulty = Literal["easy", "medium", "hard"]
 _GRID_RE = re.compile(r"^-?(\d+(\.\d+)?|\.\d+|\d+/\d+)$")
 
 
+_NULLS = {"", "null", "none", "n/a", "na", "nil"}
+_ZW = dict.fromkeys(map(ord, "\u200b\u200c\u200d\u2060\ufeff"))
+_SPACES = dict.fromkeys(map(ord, "\u00a0\u202f\u2007\u2009\u200a\u2002\u2003"), " ")
+_QUOTES = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201a": "'", "\u201c": '"', "\u201d": '"', "\u201e": '"'})
+
+
+def normalize_text(s, math: bool = False):
+    """Single typography normaliser for all generated text (non-str passes through)."""
+    if not isinstance(s, str):
+        return s
+    s = s.translate(_ZW).translate(_SPACES).translate(_QUOTES)
+    s = re.sub(r"(?<=\w)[\u2010\u2011\u2013](?=\w)", "-", s)
+    s = s.replace("\u2010", "-").replace("\u2011", "-")
+    return s if math else s.replace("\u2212", "-")
+
+
+def _none_if_null(v):
+    return None if v is None or (isinstance(v, str) and v.strip().lower() in _NULLS) or v == {} else v
+
+
 class QuestionMeta(BaseModel):
     blueprint_id: Optional[str] = None
     provider: Optional[str] = None
@@ -64,6 +84,25 @@ class SATQuestion(BaseModel):
     visual: Optional[dict] = None  # validated later by the visuals package
     meta: QuestionMeta = Field(default_factory=QuestionMeta)
 
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize(cls, d):
+        if not isinstance(d, dict):
+            return d
+        d = dict(d)
+        math = d.get("section") == "math"
+        for k in ("passage", "options"):
+            d[k] = _none_if_null(d.get(k))
+        for k in ("stem", "passage", "explanation", "correct_answer"):
+            d[k] = normalize_text(d.get(k), math) if k in d else None
+            if d[k] is None:
+                d.pop(k)
+        if isinstance(d.get("options"), dict):
+            d["options"] = {k: normalize_text(v, math) for k, v in d["options"].items()}
+        if d.get("answer_type") == "grid_in":
+            d["options"] = None
+        return d
+
     @model_validator(mode="after")
     def _check(self):
         if self.domain not in TAXONOMY[self.section]:
@@ -79,8 +118,8 @@ class SATQuestion(BaseModel):
             if self.correct_answer not in o:
                 raise ValueError("correct_answer must be one of A-D")
         else:
-            if self.options:
-                raise ValueError("grid_in must not have options")
+            if re.search(r"wrong (choice|option|answer)s?|incorrect (choice|option)s?|distractor", self.explanation, re.I):
+                raise ValueError("grid_in explanation must not discuss answer choices")
             if not _GRID_RE.match(self.correct_answer.strip()):
                 raise ValueError("grid_in answer must be numeric or a fraction")
         return self

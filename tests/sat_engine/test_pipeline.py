@@ -17,8 +17,9 @@ def fake_llm(solver_choice="B", defensible=("B",), figure_values=None):
     def f(prompt, system=None, schema=None, providers=None, images=None):
         if "Pick the best answer" in prompt:
             return {"choice": solver_choice}
-        if "defensibly correct" in prompt:
-            return {"defensible": list(defensible)}
+        if "Evaluate EACH" in prompt:
+            return {"options": {k: {"acceptable": k in defensible, "reason": "r", "rule": None if k in defensible else "subject-verb agreement"}
+                                for k in "ABCD"}}
         if "Solve." in prompt:
             return {"answer": "10", "choice": solver_choice}
         n = next(_n)
@@ -73,7 +74,7 @@ def test_verifier_rejects_wrong_key(monkeypatch):
     monkeypatch.setattr(llm, "generate_json", fake_llm(solver_choice="C"))
     assert not verify.verify(q)[0]
     monkeypatch.setattr(llm, "generate_json", fake_llm(defensible=("B", "D")))
-    assert "defensible" in verify.verify(q)[1]
+    assert "exactly one acceptable" in verify.verify(q)[1]
     m = generator.generate(slot("math"))
     monkeypatch.setattr(llm, "generate_json", fake_llm(solver_choice="A"))
     assert not verify.verify(m)[0]
@@ -110,7 +111,7 @@ def test_session_stops_when_unverifiable(monkeypatch, tmp_path):
     monkeypatch.setattr(llm, "generate_json", fake_llm(solver_choice="D"))
     r = session.run_session(sections=("rw",), seed=1, limit=3, output_dir=tmp_path, blueprints=[],
                             store=FakeStore(), checker=OriginalityChecker(refs=[]))
-    assert not r["ok"] and r["sections"]["rw"]["accepted"] == 0 and len(r["failures"]) == 1
+    assert not r["ok"] and r["sections"]["rw"]["accepted"] == 0 and len(r["failures"]) == 3
 
 
 def test_meta_records_provider_and_model(monkeypatch):
@@ -159,3 +160,74 @@ def test_official_stem_boilerplate_is_not_flagged():
     chk = OriginalityChecker(refs=[set(shingles(stem))])
     q = SimpleNamespace(passage="Zebras graze at dusk", options={"A": "runs", "B": "run"}, stem=stem)
     assert chk.check(q)[0]
+
+
+def test_conventions_requires_named_rules_and_records_them(monkeypatch):
+    s = planner.Slot(0, "rw", 1, "Standard English Conventions", "Form, Structure, and Sense", "easy", False, {"id": "b", "answer_type": "mcq"})
+    monkeypatch.setattr(llm, "generate_json", fake_llm())
+    q = generator.generate(s)
+    assert verify.verify(q) == (True, "") and "Distractor rules: A: subject-verb agreement" in q.explanation
+    base = fake_llm()
+    def no_rule(prompt, **k):
+        r = base(prompt, **k)
+        if "Evaluate EACH" in prompt:
+            r["options"]["A"]["rule"] = None
+        return r
+    monkeypatch.setattr(llm, "generate_json", no_rule)
+    assert "named" in verify.verify(generator.generate(s))[1]
+
+
+def test_judge_prefers_other_provider():
+    q = SimpleNamespace(meta=SimpleNamespace(provider="gemini"))
+    assert verify.judge_providers(q)[0] == "groq" and verify.judge_providers(q)[-1] == "gemini"
+    assert verify.judge_providers(q, ["gemini"]) == ["gemini"]
+
+
+def test_null_strings_and_typography_normalized():
+    base = dict(id="x", section="math", module=1, difficulty="easy", domain="Algebra", skill="Linear functions",
+                stem="Find x‑intercept of “f” now​ − 3", passage="None", answer_type="grid_in",
+                options="null", correct_answer="3", explanation="Solve: x − 3 = 0 so x–3 is 3.")
+    q = SATQuestion.model_validate(base)
+    assert q.passage is None and q.options is None
+    assert q.stem == 'Find x-intercept of "f" now − 3' and "x-3" in q.explanation
+    r = SATQuestion.model_validate({**base, "section": "rw", "domain": "Craft and Structure", "skill": "Words in Context",
+                                    "answer_type": "mcq", "options": {"A": "a−", "B": "b", "C": "c", "D": "d"}, "correct_answer": "A"})
+    assert r.options["A"] == "a-" and "−" not in r.stem
+    with pytest.raises(ValueError, match="answer choices"):
+        SATQuestion.model_validate({**base, "explanation": "The wrong choices are 4 and 5"})
+
+
+def test_parallel_session_keeps_going_and_orders(monkeypatch, tmp_path):
+    base = fake_llm()
+    def flaky(prompt, **k):
+        if "Pick the best answer" in prompt and "zq" in prompt and flaky.bad(prompt):
+            return {"choice": "D"}
+        return base(prompt, **k)
+    flaky.bad = lambda p: "p1" in p  # one specific generated item always fails verification
+    monkeypatch.setattr(llm, "generate_json", flaky)
+    st = FakeStore()
+    r = session.run_session(sections=("rw",), seed=2, limit=6, output_dir=tmp_path, blueprints=[], store=st,
+                            checker=OriginalityChecker(refs=[]), workers=4)
+    got = r["sections"]["rw"]
+    assert got["accepted"] + len(r["failures"]) == 6 and got["complete"] == (not r["failures"])
+
+
+def test_quota_error_is_not_retried_and_logged(monkeypatch, caplog):
+    class Quota(Exception):
+        status = 429
+    calls = []
+    def boom(*a):
+        calls.append(1)
+        raise Quota("quota exceeded. Please retry in 10h56m12.6s")
+    monkeypatch.setattr(llm, "PROVIDERS", {**llm.PROVIDERS, "gemini": boom, "groq": lambda *a: '{"a": 1}'})
+    monkeypatch.setattr(llm, "_cooldown", {})
+    assert llm.generate_json("x") == {"a": 1} and len(calls) == 1
+    assert "provider gemini" in caplog.text and "Quota" in caplog.text
+    llm.generate_json("x")
+    assert len(calls) == 1  # cooled down
+
+
+def test_status_reads_int_code_when_status_is_string():
+    class E(Exception):
+        status, code = "RESOURCE_EXHAUSTED", 429
+    assert llm._status(E()) == 429

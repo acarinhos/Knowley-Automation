@@ -109,16 +109,34 @@ PROVIDERS: dict[str, Callable] = {
 
 
 def _status(e: Exception) -> Optional[int]:
-    s = getattr(e, "status", None) or getattr(e, "status_code", None) or getattr(e, "code", None)
-    return s if isinstance(s, int) else None
+    # google-genai: .status is a string ("RESOURCE_EXHAUSTED"), the int lives in .code
+    return next((v for v in (getattr(e, a, None) for a in ("status", "status_code", "code")) if isinstance(v, int)), None)
+
+
+_SEMS = {n: threading.BoundedSemaphore(3) for n in DEFAULT_ORDER}  # <= ~3 concurrent calls per provider
+_cooldown: dict[str, float] = {}  # provider -> monotonic time until which it is skipped (daily quota exhausted)
+log = logging.getLogger("sat_engine.llm")
+
+
+def _retry_after(e) -> float:
+    """Seconds suggested by a 'retry in 10h56m12.6s' style message (0 if absent)."""
+    m = re.search(r"retry in ((?:\d+h)?(?:\d+m)?(?:[\d.]+s)?)", str(e))
+    if not m or not m.group(1):
+        return 0.0
+    return sum(float(v) * {"h": 3600, "m": 60, "s": 1}[u] for v, u in re.findall(r"([\d.]+)([hms])", m.group(1)))
 
 
 def _call_with_retry(name, prompt, system, images, json_mode) -> str:
     for attempt in range(MAX_RETRIES + 1):
         try:
-            return PROVIDERS[name](prompt, system, images, json_mode)
+            with _SEMS.setdefault(name, threading.BoundedSemaphore(3)):
+                return PROVIDERS[name](prompt, system, images, json_mode)
         except Exception as e:  # noqa: BLE001 - SDKs raise varied types
             s = _status(e)
+            wait = _retry_after(e)
+            if s == 429 and wait > 60:  # quota exhausted for hours: retrying is pointless, skip provider meanwhile
+                _cooldown[name] = time.monotonic() + min(wait, 3600)
+                raise
             if (s == 429 or (s is not None and s >= 500)) and attempt < MAX_RETRIES:
                 time.sleep(BACKOFF_BASE ** attempt)
                 continue
@@ -133,12 +151,17 @@ def _run(prompt, system, images, providers, json_mode, accept: Callable[[str], o
         if not get_env(KEY_ENV[name]) and PROVIDERS[name].__module__ == __name__:
             errors.append(f"{name}: no key")
             continue
+        if _cooldown.get(name, 0) > time.monotonic():
+            errors.append(f"{name}: quota cooldown")
+            continue
         try:
             res = accept(_call_with_retry(name, prompt, system, images, json_mode))
             _last.info = {"provider": name, "model": model_for(name)}
             return res, name
         except Exception as e:  # noqa: BLE001
-            errors.append(f"{name}: {type(e).__name__}: {str(e)[:200]}")
+            msg = f"{type(e).__name__}: {str(e)[:200]}"
+            log.warning("provider %s (%s) failed: %s", name, model_for(name), msg)
+            errors.append(f"{name}: {msg}")
     raise LLMError("all providers failed: " + "; ".join(errors))
 
 

@@ -48,7 +48,11 @@ MATH_RULES = (
     "errors (sign slip, wrong operation, forgetting a step). Calibrate: easy = 1 step; medium = 2-3 steps; hard = multi-step "
     "or abstract reasoning. For a student-produced response the answer must be a single number (integer, decimal or simple "
     "fraction like 7/2), never a range, expression or unit. The explanation must show the solution steps and, for MCQ, "
-    "name the error behind each wrong option.")
+    "name the error behind each wrong option. For a student-produced response there are NO answer choices: never mention 'choices', 'options' or 'wrong answers' in the explanation, and use null (not a string) for passage and options.")
+EVIDENCE_RULE = (
+    "Command of Evidence at this difficulty requires INFERENCE: the correct choice must paraphrase or logically entail the "
+    "claim, never echo the passage's wording; the passage should supply evidence the student must interpret, and distractors "
+    "should reuse passage words while failing to support (or while reversing) the claim.")
 
 FIGURE_EXAMPLES = {
     "function_graph": {"kind": "function_graph", "curves": [{"type": "quadratic_vertex", "a": 1, "h": 2, "k": -4, "label": "f"}], "points": [{"x": 2, "y": -4, "label": "V"}], "x_label": "x", "y_label": "y"},
@@ -125,6 +129,12 @@ def build_prompt(slot) -> str:
                  "pick the one that fits and copy its exact field names: "
                  + "; ".join(f"{k}: {json.dumps(FIGURE_EXAMPLES[k], separators=(',', ':'))}" for k in kinds))
     rules = RW_RULES + f"\nOfficial stem for this skill: {RW_STEMS.get(slot.skill, '')}" if rw else MATH_RULES
+    if rw and slot.skill == "Command of Evidence" and slot.difficulty in ("medium", "hard"):
+        rules += "\n" + EVIDENCE_RULE
+    if rw and slot.skill in ("Boundaries", "Form, Structure, and Sense"):
+        rules += ("\nConventions: exactly one option is grammatical; each of the three others must violate one named rule "
+                  "(subject-verb agreement, tense consistency, parallelism, punctuation, pronoun case, modifier placement). "
+                  "Check every distractor really is ungrammatical in context (e.g. do not offer two acceptable verb forms).")
     return (f"Section: {slot.section}; domain: {slot.domain}; skill: {slot.skill}; difficulty: {slot.difficulty}; module {slot.module}.\n"
             f"Abstract pattern (do not copy any source wording): stem pattern={bp.get('stem_pattern')}; "
             f"passage genre={bp.get('passage_genre')}; reasoning steps={bp.get('reasoning_steps')}; "
@@ -149,7 +159,7 @@ def generate(slot, providers=None, qid: str | None = None, feedback: str | None 
     ans = str(d.get("correct_answer", "")).strip()
     return SATQuestion(
         id=qid or uuid.uuid4().hex, section=slot.section, module=slot.module, difficulty=slot.difficulty,
-        domain=slot.domain, skill=slot.skill, passage=d.get("passage") or None, stem=d.get("stem", ""),
+        domain=slot.domain, skill=slot.skill, passage=d.get("passage"), stem=d.get("stem", ""),
         answer_type="grid_in" if slot.blueprint.get("answer_type") == "grid_in" else "mcq",
         options=d["options"] if isinstance(d.get("options"), dict) and d["options"] else None, correct_answer=ans.upper() if len(ans) == 1 else ans,
         explanation=d.get("explanation", ""), visual=visual,
