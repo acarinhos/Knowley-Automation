@@ -24,3 +24,4 @@ sat_engine/reference/
 sat_engine/output/
 
 sat_engine/blueprints/.state.json
+!sat_engine/blueprints/blueprints.json

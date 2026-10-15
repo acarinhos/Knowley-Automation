@@ -1,0 +1,5607 @@
+[
+ {
+  "id": "march2021-p3-1",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "personal narrative",
+  "stem_pattern": "Select the definition that best matches a highlighted word based on its sentence context.",
+  "reasoning_steps": [
+   "Read the sentence containing the word",
+   "Identify contextual clues",
+   "Match clue to definition"
+  ],
+  "distractor_types": [
+   "Synonym with related meaning but not supported by context",
+   "Antonym or unrelated meaning"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 3
+ },
+ {
+  "id": "march2021-p3-2",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Central Ideas and Details",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "personal narrative",
+  "stem_pattern": "Determine the primary reason the author includes a specific place name in the passage.",
+  "reasoning_steps": [
+   "Locate the reference",
+   "Analyze surrounding sentences",
+   "Infer the author's intent"
+  ],
+  "distractor_types": [
+   "Assume it sets mood",
+   "Interpret as character background",
+   "View as plot detail"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 3
+ },
+ {
+  "id": "march2021-p3-3",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Text Structure and Purpose",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "personal narrative",
+  "stem_pattern": "Identify the narrator’s overall attitude toward his career situation as conveyed by the passage.",
+  "reasoning_steps": [
+   "Examine narrator’s statements",
+   "Assess tone and word choice",
+   "Choose the option that matches inferred attitude"
+  ],
+  "distractor_types": [
+   "Misread nostalgia as regret",
+   "Confuse enthusiasm with nostalgia",
+   "Interpret neutrality as uncertainty"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 3
+ },
+ {
+  "id": "march2021-p3-4",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "personal narrative",
+  "stem_pattern": "Infer which factor the narrator attributes to his early film employment.",
+  "reasoning_steps": [
+   "Identify statements about early career",
+   "Link cause and effect implied",
+   "Select the most supported option"
+  ],
+  "distractor_types": [
+   "Attribute to skill rather than luck",
+   "Attribute to popularity",
+   "Attribute to mentorship"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 3
+ },
+ {
+  "id": "march2021-p4-1",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "personal narrative",
+  "stem_pattern": "Select the passage excerpt that best supports the previous inference about the narrator’s employment reason.",
+  "reasoning_steps": [
+   "Recall inference answer",
+   "Scan passage for supporting lines",
+   "Match lines that directly cite the cause"
+  ],
+  "distractor_types": [
+   "Lines that mention setting but not cause",
+   "Lines that discuss emotions unrelated",
+   "Lines that mention other characters"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 4
+ },
+ {
+  "id": "march2021-p4-2",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "personal narrative",
+  "stem_pattern": "Choose the meaning of a highlighted verb based on its usage in the sentence.",
+  "reasoning_steps": [
+   "Read the sentence",
+   "Identify function of the verb",
+   "Match to definition"
+  ],
+  "distractor_types": [
+   "Definition that fits general meaning but not specific usage",
+   "Definition that is opposite"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 4
+ },
+ {
+  "id": "march2021-p4-3",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "personal narrative",
+  "stem_pattern": "Determine how the secondary character most directly shapes the narrator’s growth.",
+  "reasoning_steps": [
+   "Identify actions of secondary character",
+   "Assess impact on narrator",
+   "Choose the most direct influence"
+  ],
+  "distractor_types": [
+   "Option that overstates influence",
+   "Option that misattributes motivation",
+   "Option focusing on external factors"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 4
+ },
+ {
+  "id": "march2021-p4-4",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "personal narrative",
+  "stem_pattern": "Choose the passage excerpt that best evidences the identified influence of the secondary character.",
+  "reasoning_steps": [
+   "Recall chosen influence",
+   "Locate lines describing that behavior",
+   "Select the excerpt that directly illustrates it"
+  ],
+  "distractor_types": [
+   "Lines describing setting",
+   "Lines with unrelated dialogue",
+   "Lines that summarize but don’t show"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 4
+ },
+ {
+  "id": "march2021-p4-5",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "personal narrative",
+  "stem_pattern": "Infer the narrator’s emotional response when the secondary character critiques a famous actor.",
+  "reasoning_steps": [
+   "Examine narrator’s reactions in text",
+   "Interpret tone and internal commentary",
+   "Select the option aligning with inferred feeling"
+  ],
+  "distractor_types": [
+   "Option assuming fear",
+   "Option assuming agreement",
+   "Option assuming disappointment"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 4
+ },
+ {
+  "id": "march2021-p4-6",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "fiction passage",
+  "stem_pattern": "Based on the passage, infer which factor the secondary character believes determines an actor’s merit.",
+  "reasoning_steps": [
+   "Locate the character’s explicit or implicit statements about acting merit",
+   "Interpret the underlying value being emphasized",
+   "Compare each answer choice to the inferred principle",
+   "Choose the option that matches the character’s viewpoint"
+  ],
+  "distractor_types": [
+   "Plausible factors not mentioned by the character",
+   "Choices that reverse the character’s stated preference",
+   "Answers that combine multiple factors, diluting the core idea",
+   "Options that reflect a common misconception rather than the text"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 4
+ },
+ {
+  "id": "march2021-p5-1",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Central Ideas and Details",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Identify the primary purpose of the passage among several summary statements.",
+  "reasoning_steps": [
+   "Determine overall focus of the text",
+   "Match each choice to the central claim",
+   "Eliminate options that focus on details or misinterpret the aim"
+  ],
+  "distractor_types": [
+   "focus on specific detail rather than overall purpose",
+   "mischaracterize the study’s intent",
+   "overgeneralize the findings"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 5
+ },
+ {
+  "id": "march2021-p5-2",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Select the meaning of a highlighted phrase as used in the passage.",
+  "reasoning_steps": [
+   "Locate the phrase in context",
+   "Infer the nuance from surrounding sentences",
+   "Choose the synonym that best fits that nuance"
+  ],
+  "distractor_types": [
+   "choose a synonym with a related but different connotation",
+   "select an opposite meaning",
+   "pick a broader but inaccurate definition"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 5
+ },
+ {
+  "id": "march2021-p5-3",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Find the textual evidence that shows the researchers needed a control mechanism to isolate effects.",
+  "reasoning_steps": [
+   "Identify where the passage discusses experimental design",
+   "Locate sentences describing control versus treatment",
+   "Select the option that directly cites that explanation"
+  ],
+  "distractor_types": [
+   "choose a sentence describing motivation only",
+   "select a line about methodology without control emphasis",
+   "pick a detail unrelated to experimental validation"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 5
+ },
+ {
+  "id": "march2021-p5-4",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Determine the reported impact of the opinion articles on Twitter users’ views based on the study’s findings.",
+  "reasoning_steps": [
+   "Summarize the reported effect size description",
+   "Interpret the direction of change indicated",
+   "Match the interpretation to the answer choice"
+  ],
+  "distractor_types": [
+   "interpret effect as negative rather than positive",
+   "assert no measurable change",
+   "limit effect to pre‑interested audiences"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 5
+ },
+ {
+  "id": "march2021-p7-1",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "social science passage",
+  "stem_pattern": "Determine the meaning of a word as used in a specific line of the passage.",
+  "reasoning_steps": [
+   "Identify context clues around the target line",
+   "Consider part of speech and connotation",
+   "Match the meaning to the answer choices"
+  ],
+  "distractor_types": [
+   "Synonym that fits general meaning but not context",
+   "Antonym",
+   "Unrelated word with similar spelling",
+   "Word that fits a different sense of the term"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 7
+ },
+ {
+  "id": "march2021-p7-2",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "social science passage",
+  "stem_pattern": "Infer what the experimental design makes less likely to happen based on its description.",
+  "reasoning_steps": [
+   "Understand the experimental setup described",
+   "Identify potential outcomes that the design would affect",
+   "Select the outcome that the design reduces the likelihood of"
+  ],
+  "distractor_types": [
+   "Outcome that would be more likely given the design",
+   "Outcome unrelated to the design",
+   "Outcome that the design would increase",
+   "Extreme or absolute statement not supported"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 7
+ },
+ {
+  "id": "march2021-p7-3",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "social science passage",
+  "stem_pattern": "Choose which follow‑up study would best provide evidence to measure the effect described.",
+  "reasoning_steps": [
+   "Identify the claim or effect that needs to be measured",
+   "Determine what data would directly address that claim",
+   "Select the study that gathers the relevant data"
+  ],
+  "distractor_types": [
+   "Study measuring an unrelated variable",
+   "Study that merely replicates existing data",
+   "Study with insufficient sample or controls",
+   "Study that introduces confounding variables"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 7
+ },
+ {
+  "id": "march2021-p7-4",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "social science passage",
+  "stem_pattern": "Select the lines that most strongly support the answer to the earlier question.",
+  "reasoning_steps": [
+   "Review each line reference provided",
+   "Check which lines contain an explicit statement matching the chosen answer",
+   "Pick the line set that gives the strongest direct support"
+  ],
+  "distractor_types": [
+   "Lines that are irrelevant to the question",
+   "Lines that support a different answer choice",
+   "Lines that are ambiguous or vague",
+   "Lines that contradict the chosen answer"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 7
+ },
+ {
+  "id": "march2021-p7-5",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "social science passage",
+  "stem_pattern": "Interpret what the model shows about the trend of excess Twitter posts over time.",
+  "reasoning_steps": [
+   "Read the axes of the graph to understand what is plotted",
+   "Trace the line or bars across the days indicated",
+   "Describe whether the quantity increases, decreases, or stays steady",
+   "Match the description to the answer choice"
+  ],
+  "distractor_types": [
+   "Misreading the direction of the axis",
+   "Confusing increase with decrease",
+   "Misidentifying the relevant time point",
+   "Ignoring the baseline or average value"
+  ],
+  "needs_visual": true,
+  "visual_kind": "function_graph",
+  "source_tag": "march2021",
+  "page": 7
+ },
+ {
+  "id": "march2021-p7-6",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "social science passage",
+  "stem_pattern": "Determine which statement correctly reflects the relationship shown in the second model.",
+  "reasoning_steps": [
+   "Locate the relevant day and group on the graph",
+   "Compare the percent changes or frequencies for high vs. low influence users",
+   "Evaluate each answer choice against the visualized data",
+   "Select the choice that matches the visual pattern"
+  ],
+  "distractor_types": [
+   "Swapping high and low influence groups",
+   "Misreading the day indicated",
+   "Confusing percent change with absolute frequency",
+   "Assuming a uniform trend across all days"
+  ],
+  "needs_visual": true,
+  "visual_kind": "bar_chart",
+  "source_tag": "march2021",
+  "page": 7
+ },
+ {
+  "id": "march2021-p9-1",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Central Ideas and Details",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Identify the primary claim about the subject presented in the passage.",
+  "reasoning_steps": [
+   "Read passage",
+   "Locate overarching statement",
+   "Select answer that expresses the main claim"
+  ],
+  "distractor_types": [
+   "focus on a specific detail",
+   "misinterpret purpose of the passage",
+   "choose an overly broad statement"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 9
+ },
+ {
+  "id": "march2021-p9-2",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Text Structure and Purpose",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Determine which description best matches the organizational pattern of the passage.",
+  "reasoning_steps": [
+   "Analyze paragraph sequence",
+   "Identify logical moves",
+   "Map moves onto answer patterns"
+  ],
+  "distractor_types": [
+   "confuse hypothesis testing with description",
+   "select problem‑solution pattern when argument is presented",
+   "misread revision step as new study"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 9
+ },
+ {
+  "id": "march2021-p9-3",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Infer one underlying reason the bees might master a particular task based on the passage.",
+  "reasoning_steps": [
+   "Locate relevant sentence",
+   "Interpret implied cause",
+   "Choose answer reflecting the inferred reason"
+  ],
+  "distractor_types": [
+   "choose a statement directly stated",
+   "select unrelated detail",
+   "reverse cause and effect"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 9
+ },
+ {
+  "id": "march2021-p10-1",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "expository text",
+  "stem_pattern": "Determine what can logically be inferred about certain participants in the introductory activity.",
+  "reasoning_steps": [
+   "Locate the segment describing the activity",
+   "Evaluate the implied limitation",
+   "Pick the choice that best expresses a reasonable inference"
+  ],
+  "distractor_types": [
+   "select a literal restatement",
+   "choose an unrelated attribute",
+   "make an extreme or unsupported claim"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 10
+ },
+ {
+  "id": "march2021-p10-2",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Select the passage lines that best support the answer to the preceding inference question.",
+  "reasoning_steps": [
+   "Recall correct inference",
+   "Locate citation that directly backs it",
+   "Verify that citation matches the inference"
+  ],
+  "distractor_types": [
+   "choose a line with a similar idea but not the exact support",
+   "select a later unrelated line",
+   "pick a vague reference"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 10
+ },
+ {
+  "id": "march2021-p10-3",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "informational text",
+  "stem_pattern": "Given the presented information, what broad claim would the writers most probably favor?",
+  "reasoning_steps": [
+   "Extract the central outcomes",
+   "Identify the overarching perspective of the writers",
+   "Connect that perspective to the answer options"
+  ],
+  "distractor_types": [
+   "focus on procedural details",
+   "offer an excessively precise assertion",
+   "present a contrary viewpoint"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 10
+ },
+ {
+  "id": "march2021-p10-4",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Identify which passage excerpt provides the strongest evidence for the authors’ stance identified above.",
+  "reasoning_steps": [
+   "Recall chosen stance",
+   "Search for explicit textual support",
+   "Confirm that the excerpt directly addresses the stance"
+  ],
+  "distractor_types": [
+   "pick a line that mentions related work but not the stance",
+   "choose a generic summary sentence",
+   "select a line that is tangential"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 10
+ },
+ {
+  "id": "march2021-p10-5",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Determine the nearest synonym for the highlighted word as used in its sentence.",
+  "reasoning_steps": [
+   "Read sentence containing the word",
+   "Use surrounding context to gauge meaning",
+   "Match meaning to answer choices"
+  ],
+  "distractor_types": [
+   "choose an antonym",
+   "pick a meaning unrelated to context",
+   "select a literal definition that doesn’t fit the sentence"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 10
+ },
+ {
+  "id": "march2021-p10-6",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Based on the data displayed in the figure, choose the statement best supported by the evidence.",
+  "reasoning_steps": [
+   "Examine visual data",
+   "Compare relevant groups or trends",
+   "Select answer that aligns with observed pattern"
+  ],
+  "distractor_types": [
+   "overgeneralize beyond the data",
+   "state the opposite of what the figure shows",
+   "rely on anecdotal description rather than numeric evidence"
+  ],
+  "needs_visual": true,
+  "visual_kind": "bar_chart",
+  "source_tag": "march2021",
+  "page": 10
+ },
+ {
+  "id": "march2021-p11-1",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Central Ideas and Details",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Based on the provided diagram, select the pairing of demonstration method and ball position that resulted in the lowest success rate.",
+  "reasoning_steps": [
+   "Locate the relevant data in the figure",
+   "Compare success rates across listed conditions",
+   "Identify the minimum value",
+   "Match condition to answer choice"
+  ],
+  "distractor_types": [
+   "confusing similar values",
+   "selecting highest instead of lowest",
+   "misreading axis labels"
+  ],
+  "needs_visual": true,
+  "visual_kind": "table",
+  "source_tag": "march2021",
+  "page": 11
+ },
+ {
+  "id": "march2021-p11-2",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "In the sentence, the word \"limited\" most closely means which of the following?",
+  "reasoning_steps": [
+   "Identify the sentence containing the target word",
+   "Consider overall context for nuance",
+   "Match synonym that fits meaning"
+  ],
+  "distractor_types": [
+   "choices with related but inaccurate nuance",
+   "overly literal interpretation"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 11
+ },
+ {
+  "id": "march2021-p13-1",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "historical argument passage",
+  "stem_pattern": "Identify why the author labels a reform movement as unusual based on the text.",
+  "reasoning_steps": [
+   "Locate the author's description of the movement",
+   "Interpret the implied reason behind the label",
+   "Match interpretation to answer choice"
+  ],
+  "distractor_types": [
+   "confuses motivation with method",
+   "chooses a literal reading instead of implied meaning"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 13
+ },
+ {
+  "id": "march2021-p13-2",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Central Ideas and Details",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "historical argument passage",
+  "stem_pattern": "Determine which limitation of opponents the author says reformers must consider.",
+  "reasoning_steps": [
+   "Find the passage discussing opponents' comprehension",
+   "Extract the specific limitation mentioned",
+   "Select matching answer"
+  ],
+  "distractor_types": [
+   "selects a related but incorrect limitation",
+   "misreads a synonym as the target term"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 13
+ },
+ {
+  "id": "march2021-p13-3",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "analytical exposition",
+  "stem_pattern": "Select the portion that most convincingly validates the earlier decision.",
+  "reasoning_steps": [
+   "Recall the earlier decision",
+   "Locate a segment that directly confirms it",
+   "Link that segment to the chosen option"
+  ],
+  "distractor_types": [
+   "Presents related material that does not directly support the decision",
+   "Offers a segment that addresses a different concept"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 13
+ },
+ {
+  "id": "march2021-p13-4",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Central Ideas and Details",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "historical argument passage",
+  "stem_pattern": "Identify the main claim the author makes about reformers and social injustice.",
+  "reasoning_steps": [
+   "Summarize overall argument",
+   "Distinguish main claim from supporting details",
+   "Select answer that reflects that claim"
+  ],
+  "distractor_types": [
+   "selects a peripheral detail as main claim",
+   "confuses author's stance with a counterargument"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 13
+ },
+ {
+  "id": "march2021-p13-5",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Text Structure and Purpose",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "historical argument passage",
+  "stem_pattern": "Describe how the author organizes the second paragraph to advance his argument.",
+  "reasoning_steps": [
+   "Analyze the function of the paragraph",
+   "Identify the rhetorical move employed",
+   "Match move to answer choice"
+  ],
+  "distractor_types": [
+   "confuses chronological ordering with causal explanation",
+   "mistakes illustration for refutation"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 13
+ },
+ {
+  "id": "march2021-p13-6",
+  "section": "rw",
+  "domain": "Expression of Ideas",
+  "skill": "Rhetorical Synthesis",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "historical argument passage",
+  "stem_pattern": "Explain the primary purpose of the historical example inserted in the passage.",
+  "reasoning_steps": [
+   "Identify the example’s content",
+   "Determine how it connects to the broader argument",
+   "Select answer reflecting that connection"
+  ],
+  "distractor_types": [
+   "treats example as mere illustration rather than argumentative support",
+   "assigns a purpose not indicated by surrounding context"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 13
+ },
+ {
+  "id": "march2021-p14-1",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "historical argument passage",
+  "stem_pattern": "Infer the likely impact of widespread prejudice on members of a society as suggested by the passage.",
+  "reasoning_steps": [
+   "Locate passage describing effects of prejudice",
+   "Draw logical consequence for individuals",
+   "Match consequence to answer choice"
+  ],
+  "distractor_types": [
+   "chooses a consequence that is too extreme or too mild",
+   "confuses cause with effect"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 14
+ },
+ {
+  "id": "march2021-p14-2",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "expository text presenting a view of past developments",
+  "stem_pattern": "Choose the option that most accurately reflects the writer's perspective on the emphasized individual.",
+  "reasoning_steps": [
+   "Detect descriptive cues about the figure",
+   "Assess the overall tone conveyed",
+   "Match the identified tone to the most fitting answer choice"
+  ],
+  "distractor_types": [
+   "interprets neutral language as overtly positive or negative",
+   "selects a synonym whose nuance differs from the intended attitude"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 14
+ },
+ {
+  "id": "march2021-p14-3",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "historical argument passage",
+  "stem_pattern": "Determine the meaning of a specific phrase as used in the passage.",
+  "reasoning_steps": [
+   "Locate phrase",
+   "Consider surrounding context",
+   "Select closest synonymous meaning"
+  ],
+  "distractor_types": [
+   "chooses a literal meaning ignoring contextual nuance",
+   "selects a related but inaccurate synonym"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 14
+ },
+ {
+  "id": "march2021-p14-4",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "historical argument passage",
+  "stem_pattern": "Pick the passage excerpt that best supports the meaning identified for the phrase.",
+  "reasoning_steps": [
+   "Recall chosen meaning",
+   "Find text that illustrates that meaning",
+   "Match to answer choice"
+  ],
+  "distractor_types": [
+   "provides a passage that mentions the phrase but does not clarify meaning",
+   "selects a nearby but unrelated sentence"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 14
+ },
+ {
+  "id": "march2021-p14-5",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "historical argument passage",
+  "stem_pattern": "Infer what the author implies about opponents' tactics based on a specific phrase.",
+  "reasoning_steps": [
+   "Locate the phrase",
+   "Interpret its connotation regarding opponents",
+   "Select answer that captures that implication"
+  ],
+  "distractor_types": [
+   "confuses distortion with concealment",
+   "chooses a neutral interpretation"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 14
+ },
+ {
+  "id": "march2021-p16-1",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Determine whether data presented in a passage supports a specific quantitative claim about comparative frequencies.",
+  "reasoning_steps": [
+   "Identify the claim being evaluated",
+   "Locate relevant data in the passage",
+   "Assess whether the data directly supports, contradicts, or is insufficient for the claim",
+   "Select the answer that matches this assessment"
+  ],
+  "distractor_types": [
+   "Confuses support with contradiction",
+   "Misinterprets the scope of the data",
+   "Uses information not presented in the passage",
+   "Assumes additional unstated assumptions"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 16
+ },
+ {
+  "id": "march2021-p16-2",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "informative passage on a technical subject",
+  "stem_pattern": "Identify the excerpts that most directly support the conclusion reached in the prior inference prompt.",
+  "reasoning_steps": [
+   "Recall the conclusion from the earlier question",
+   "Locate statements that explicitly confirm that conclusion",
+   "Exclude statements that are only loosely related or peripheral",
+   "Choose the option offering the clearest direct support"
+  ],
+  "distractor_types": [
+   "Cites statements about a related theme but not the precise point",
+   "Selects statements that actually contradict the conclusion",
+   "Provides statements that are overly general or vague",
+   "References statements from a different section of the text"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 16
+ },
+ {
+  "id": "march2021-p16-3",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Central Ideas and Details",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Identify the primary purpose of a described scientific procedure as stated in the passage.",
+  "reasoning_steps": [
+   "Locate the description of the procedure in the passage",
+   "Determine what the researchers aimed to accomplish with that procedure",
+   "Match that aim to the answer choices"
+  ],
+  "distractor_types": [
+   "Describes a secondary outcome of the procedure",
+   "States an unrelated scientific goal",
+   "Confuses the procedure with a different method mentioned elsewhere",
+   "Reverses the cause‑effect relationship"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 16
+ },
+ {
+  "id": "march2021-p16-4",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Determine the meaning of a specific word or phrase as used in a given line of the passage.",
+  "reasoning_steps": [
+   "Read the sentence containing the target word",
+   "Consider surrounding context for clues",
+   "Infer the sense that best fits the context",
+   "Select the answer choice that matches that sense"
+  ],
+  "distractor_types": [
+   "Provides a synonym that fits a different meaning of the word",
+   "Chooses a definition that is too broad or too narrow",
+   "Selects a word that is related but not appropriate in context",
+   "Picks an antonym"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 16
+ },
+ {
+  "id": "march2021-p16-5",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Text Structure and Purpose",
+  "difficulty": "hard",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Describe the dual function of a specific paragraph in the passage (e.g., acknowledging recent findings and explaining their implications for earlier conclusions).",
+  "reasoning_steps": [
+   "Identify the main point of the paragraph",
+   "Determine how it relates to preceding material (e.g., confirms or contrasts)",
+   "Determine how it relates to following material or broader argument (e.g., explains impact on prior claims)",
+   "Select the answer that captures both functions"
+  ],
+  "distractor_types": [
+   "Describes only one of the two functions",
+   "Mischaracterizes the paragraph as purely critical or purely supportive",
+   "Confuses the paragraph’s role with that of a different paragraph",
+   "Introduces an unrelated function not suggested by the text"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 16
+ },
+ {
+  "id": "march2021-p17-1",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "In the passage, a specific phrase is used; choose the answer that best captures its meaning in that context.",
+  "reasoning_steps": [
+   "Locate the target phrase in the passage",
+   "Interpret surrounding sentences to infer intended sense",
+   "Match the inferred sense to the closest answer choice",
+   "Eliminate choices that are synonyms of other senses or unrelated"
+  ],
+  "distractor_types": [
+   "close synonym but wrong nuance",
+   "opposite meaning",
+   "unrelated definition"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 17
+ },
+ {
+  "id": "march2021-p17-2",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Cross-Text Connections",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "expository text",
+  "stem_pattern": "Identify where the two excerpts convey contrasting viewpoints about the mentioned astronomical entity",
+  "reasoning_steps": [
+   "Locate the claim concerning the astronomical entity in each excerpt",
+   "Evaluate each excerpt's position regarding that claim",
+   "Compare the positions to determine if they conflict",
+   "Select the response that represents the conflict"
+  ],
+  "distractor_types": [
+   "choice that reflects a point of agreement between the excerpts",
+   "choice that addresses a separate topic altogether",
+   "choice that misreads one excerpt's stance"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 17
+ },
+ {
+  "id": "march2021-p17-3",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Text Structure and Purpose",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Choose the description that best characterizes how the second passage relates to the first.",
+  "reasoning_steps": [
+   "Analyze the purpose of the first passage",
+   "Analyze the purpose of the second passage",
+   "Identify whether the second challenges, extends, supports, or adds variables to the first",
+   "Match that relationship to the correct label"
+  ],
+  "distractor_types": [
+   "confusing extension with support",
+   "mistaking addition of variables for challenge",
+   "selecting a relationship that is partially true but not primary"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 17
+ },
+ {
+  "id": "march2021-p18-1",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Select the excerpt from Passage 2 that most directly backs the answer given to the previous question.",
+  "reasoning_steps": [
+   "Recall the answer to the prior question",
+   "Scan Passage 2 for statements that address the same claim",
+   "Verify that the statement provides direct evidence rather than peripheral info",
+   "Choose the exact line that fulfills this role"
+  ],
+  "distractor_types": [
+   "passage that mentions the topic but does not support the claim",
+   "statement that is related but only tangential",
+   "line that misattributes the evidence to the wrong source"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 18
+ },
+ {
+  "id": "march2021-p18-2",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Central Ideas and Details",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Identify the scientific concept that is implied by both passages.",
+  "reasoning_steps": [
+   "Summarize the main idea of each passage",
+   "Look for overlap in the underlying concepts",
+   "Distinguish between shared concepts and coincidental details",
+   "Select the concept that appears in both summaries"
+  ],
+  "distractor_types": [
+   "idea mentioned in only one passage",
+   "a detail that is true but not central",
+   "a broader theme that is not directly suggested"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 18
+ },
+ {
+  "id": "march2021-p20-1",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Select the answer that best improves the underlined phrase in the passage.",
+  "reasoning_steps": [
+   "Identify the intended meaning of the underlined phrase",
+   "Consider verb tense and aspect that match the context",
+   "Evaluate each option for precision and concision",
+   "Choose the option that most accurately conveys the meaning"
+  ],
+  "distractor_types": [
+   "Incorrect verb tense or aspect",
+   "Wordy or redundant phrasing",
+   "Verb form that changes meaning",
+   "No change that is less precise"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 20
+ },
+ {
+  "id": "march2021-p21-1",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Text Structure and Purpose",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Given a paragraph about a research study, decide where a new sentence describing nighttime illumination belongs.",
+  "reasoning_steps": [
+   "Identify the main idea of each existing sentence",
+   "Determine the logical sequence of events",
+   "Locate the point where the illumination detail adds needed context",
+   "Eliminate choices that disrupt chronology or create redundancy"
+  ],
+  "distractor_types": [
+   "Placement that repeats earlier information",
+   "Placement that breaks cause‑effect order",
+   "Placement that inserts the sentence after an unrelated idea",
+   "Placement that creates a chronological gap"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 21
+ },
+ {
+  "id": "march2021-p22-1",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Form, Structure, and Sense",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Select the option that most effectively merges two sentences describing why bagged plants lacked pollinator visits.",
+  "reasoning_steps": [
+   "Identify the cause‑effect relationship expressed in the two sentences",
+   "Choose a conjunction or structure that conveys that relationship concisely",
+   "Preserve the original meaning without adding or omitting information",
+   "Check that the resulting sentence is grammatically complete"
+  ],
+  "distractor_types": [
+   "Option that creates a dangling modifier",
+   "Option that reverses cause and effect",
+   "Option that leaves a sentence fragment",
+   "Option that repeats wording without improvement"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 22
+ },
+ {
+  "id": "march2021-p22-2",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Based on the graph showing fruit counts per plant, identify the statement that accurately reflects the displayed data.",
+  "reasoning_steps": [
+   "Read the axis labels and units on the graph",
+   "Locate the bars/points for each condition",
+   "Compare the numerical values shown",
+   "Select the answer whose numbers match the graph"
+  ],
+  "distractor_types": [
+   "Option that swaps values between conditions",
+   "Option that states an incorrect magnitude",
+   "Option that adds a trend not present in the graph",
+   "Option that includes extraneous information"
+  ],
+  "needs_visual": true,
+  "visual_kind": "bar_chart",
+  "source_tag": "march2021",
+  "page": 22
+ },
+ {
+  "id": "march2021-p22-3",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Choose the answer that most precisely summarizes the information presented in the graph.",
+  "reasoning_steps": [
+   "Interpret the graph’s data points and overall pattern",
+   "Determine the key comparison the graph highlights",
+   "Formulate a concise statement that captures that comparison",
+   "Match the statement to the graph without adding unsupported details"
+  ],
+  "distractor_types": [
+   "Option that overgeneralizes the trend",
+   "Option that misstates the direction of change",
+   "Option that includes numbers not shown",
+   "Option that omits a critical difference shown"
+  ],
+  "needs_visual": true,
+  "visual_kind": "bar_chart",
+  "source_tag": "march2021",
+  "page": 22
+ },
+ {
+  "id": "march2021-p23-1",
+  "section": "rw",
+  "domain": "Expression of Ideas",
+  "skill": "Transitions",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Select the option that most effectively links the ideas of the current paragraph to the following paragraph.",
+  "reasoning_steps": [
+   "Identify logical relation between paragraphs",
+   "Evaluate how each choice connects the two ideas",
+   "Choose the option that provides a clear, appropriate transition"
+  ],
+  "distractor_types": [
+   "Repeats earlier idea without linking",
+   "Introduces unrelated concept",
+   "Uses inappropriate conjunction or tense"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 23
+ },
+ {
+  "id": "march2021-p23-2",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Choose the phrase that best expresses the reported relationship between the two variables described.",
+  "reasoning_steps": [
+   "Determine the intended relationship",
+   "Match each option to that relationship",
+   "Eliminate choices with mismatched nuance or grammar"
+  ],
+  "distractor_types": [
+   "Synonym with slightly different connotation",
+   "Incorrect preposition",
+   "Verb tense mismatch"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 23
+ },
+ {
+  "id": "march2021-p23-3",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Select the wording that correctly conveys the notion of occurrence or existence in the context.",
+  "reasoning_steps": [
+   "Interpret the surrounding sentence for the intended meaning",
+   "Compare each option for semantic fit",
+   "Reject options that alter the intended sense"
+  ],
+  "distractor_types": [
+   "Uses a verb form that changes meaning",
+   "Employs an incorrect preposition",
+   "Creates an awkward collocation"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 23
+ },
+ {
+  "id": "march2021-p23-4",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Pick the alternative that accurately reflects the intended state or condition in the sentence.",
+  "reasoning_steps": [
+   "Identify the required grammatical construction",
+   "Assess each option for proper word choice",
+   "Discard options that are grammatically or semantically off"
+  ],
+  "distractor_types": [
+   "Wrong part of speech",
+   "Misuses a similar‑sounding word",
+   "Alters the intended nuance"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 23
+ },
+ {
+  "id": "march2021-p24-1",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "business/organizational passage",
+  "stem_pattern": "Choose the phrasing that most precisely conveys that a recent practice mirrors a broader movement.",
+  "reasoning_steps": [
+   "Clarify the intended relationship between the practice and the broader movement",
+   "Evaluate each option for precision and idiomatic usage",
+   "Select the option that best captures the intended meaning"
+  ],
+  "distractor_types": [
+   "Overly vague wording",
+   "Incorrect idiom",
+   "Redundant phrasing"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 24
+ },
+ {
+  "id": "march2021-p24-2",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Boundaries",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "business/organizational passage",
+  "stem_pattern": "Identify the revision that eliminates the run‑on structure and improves the flow of the sentence.",
+  "reasoning_steps": [
+   "Spot the punctuation error causing a run‑on",
+   "Consider options that add appropriate punctuation or conjunction",
+   "Choose the option that yields a grammatically sound sentence"
+  ],
+  "distractor_types": [
+   "Leaves the run‑on intact",
+   "Introduces a comma splice",
+   "Changes meaning unintentionally"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 24
+ },
+ {
+  "id": "march2021-p24-3",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Form, Structure, and Sense",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "business/organizational passage",
+  "stem_pattern": "Select the pronoun choice that provides inclusive, grammatically correct reference to the employees.",
+  "reasoning_steps": [
+   "Determine the antecedent the pronoun must refer to",
+   "Evaluate each option for agreement and inclusivity",
+   "Pick the option that maintains correct pronoun reference"
+  ],
+  "distractor_types": [
+   "Singular pronoun for plural antecedent",
+   "Gender‑specific pronoun that excludes some readers",
+   "Awkward or nonstandard construction"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 24
+ },
+ {
+  "id": "march2021-p25-1",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Boundaries",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "argumentative passage",
+  "stem_pattern": "Choose the correct possessive form of a plural noun in a sentence.",
+  "reasoning_steps": [
+   "Identify the noun that requires possession",
+   "Determine if the noun is plural",
+   "Apply apostrophe‑placement rule for plural possessive"
+  ],
+  "distractor_types": [
+   "Missing apostrophe",
+   "Apostrophe placed before the s",
+   "Apostrophe placed after the s incorrectly",
+   "Using singular possessive form"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 25
+ },
+ {
+  "id": "march2021-p25-2",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "informational passage",
+  "stem_pattern": "Select a phrase that accurately reflects data presented in a table to set up a subsequent claim.",
+  "reasoning_steps": [
+   "Read the table to obtain the relevant percentages",
+   "Interpret what the data indicate about preferences",
+   "Match the meaning to the answer choices",
+   "Eliminate choices that misrepresent the data"
+  ],
+  "distractor_types": [
+   "Overgeneralizing (e.g., 'all')",
+   "Underestimating (e.g., 'fewer than a quarter')",
+   "Misreading a category (e.g., confusing formal with casual)",
+   "Using the opposite relationship"
+  ],
+  "needs_visual": true,
+  "visual_kind": "table",
+  "source_tag": "march2021",
+  "page": 25
+ },
+ {
+  "id": "march2021-p25-3",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "informational passage",
+  "stem_pattern": "Determine whether adding a specific data‑based sentence improves the logical flow and accuracy of an argument.",
+  "reasoning_steps": [
+   "Identify the claim the sentence would support",
+   "Check if the sentence accurately reflects the table data",
+   "Assess relevance to the surrounding context",
+   "Decide if the addition strengthens, weakens, or is irrelevant"
+  ],
+  "distractor_types": [
+   "Misinterprets the data",
+   "Adds unrelated information",
+   "Repeats a point already made",
+   "Contradicts the argument"
+  ],
+  "needs_visual": true,
+  "visual_kind": "table",
+  "source_tag": "march2021",
+  "page": 25
+ },
+ {
+  "id": "march2021-p26-2",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Boundaries",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "explanatory passage",
+  "stem_pattern": "Select the correct punctuation to separate two clauses in a sentence.",
+  "reasoning_steps": [
+   "Determine the relationship between the clauses",
+   "Choose punctuation that correctly links or separates them",
+   "Apply rules for commas, semicolons, or conjunctions"
+  ],
+  "distractor_types": [
+   "Missing needed punctuation",
+   "Using a comma when a stronger break is needed",
+   "Using a semicolon incorrectly",
+   "Adding unnecessary words"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 26
+ },
+ {
+  "id": "march2021-p26-3",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Boundaries",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "explanatory passage",
+  "stem_pattern": "Choose the appropriate punctuation mark to introduce a list or explanation after a verb.",
+  "reasoning_steps": [
+   "Recognize that the following phrase introduces a clarification or list",
+   "Decide whether a colon, semicolon, or comma is appropriate",
+   "Apply punctuation rules for introducing explanations"
+  ],
+  "distractor_types": [
+   "Omitting needed punctuation",
+   "Using a comma where a colon is required",
+   "Using a semicolon incorrectly",
+   "Adding extra words"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 26
+ },
+ {
+  "id": "march2021-p26-4",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "explanatory passage",
+  "stem_pattern": "Select the word that best fits the meaning and tone of the sentence.",
+  "reasoning_steps": [
+   "Consider the surrounding context and intended meaning",
+   "Evaluate each answer choice for semantic appropriateness",
+   "Choose the word that maintains the sentence's tone"
+  ],
+  "distractor_types": [
+   "Word with unrelated meaning",
+   "Word that is too formal or informal",
+   "Word that creates redundancy",
+   "Word that changes the sentence's logic"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 26
+ },
+ {
+  "id": "march2021-p26-5",
+  "section": "rw",
+  "domain": "Expression of Ideas",
+  "skill": "Transitions",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "explanatory passage",
+  "stem_pattern": "Select the transition that best shows the logical relationship between two sentences.",
+  "reasoning_steps": [
+   "Identify the relationship (e.g., addition, contrast, cause) between the sentences",
+   "Match each transition option to that relationship",
+   "Choose the transition that accurately conveys the link"
+  ],
+  "distractor_types": [
+   "Transition that signals the wrong relationship",
+   "Transition that is overly vague",
+   "Transition that creates a nonsensical shift",
+   "Transition that repeats the previous idea"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 26
+ },
+ {
+  "id": "march2021-p27-1",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Boundaries",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "expository",
+  "stem_pattern": "Select the correctly punctuated version of the underlined clause that follows the phrase describing user data collection.",
+  "reasoning_steps": [
+   "Identify clause boundary",
+   "Determine appropriate punctuation for compound sentence",
+   "Compare options to rule"
+  ],
+  "distractor_types": [
+   "missing comma",
+   "incorrect semicolon usage",
+   "run‑on without punctuation"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 27
+ },
+ {
+  "id": "march2021-p27-2",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Form, Structure, and Sense",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "expository",
+  "stem_pattern": "Choose the word that most accurately conveys the author's intended emphasis in the underlined segment.",
+  "reasoning_steps": [
+   "Interpret surrounding context",
+   "Assess connotative meaning of each option",
+   "Select the best match"
+  ],
+  "distractor_types": [
+   "synonym with weaker intensity",
+   "word that changes nuance",
+   "word that creates redundancy"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 27
+ },
+ {
+  "id": "march2021-p27-3",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Text Structure and Purpose",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "expository",
+  "stem_pattern": "Determine which connective best merges the two sentences while preserving their logical relationship.",
+  "reasoning_steps": [
+   "Identify relationship between sentences",
+   "Match relationship to appropriate connective",
+   "Eliminate options that misrepresent relation"
+  ],
+  "distractor_types": [
+   "conjunction implying contrast when similarity intended",
+   "colon used without explanatory clause",
+   "redundant phrasing"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 27
+ },
+ {
+  "id": "march2021-p27-4",
+  "section": "rw",
+  "domain": "Expression of Ideas",
+  "skill": "Rhetorical Synthesis",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "expository",
+  "stem_pattern": "Select the opening sentence that most effectively introduces the passage’s central claim.",
+  "reasoning_steps": [
+   "Identify main argument of passage",
+   "Evaluate how each option frames that argument",
+   "Pick option that sets up claim clearly"
+  ],
+  "distractor_types": [
+   "sentence that introduces tangential detail",
+   "option that states conclusion without lead‑in",
+   "overly broad statement"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 27
+ },
+ {
+  "id": "march2021-p28-1",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Boundaries",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "expository",
+  "stem_pattern": "Choose the punctuation that correctly separates the introductory phrase from the main clause.",
+  "reasoning_steps": [
+   "Recognize introductory element",
+   "Apply rule for comma after introductory clause",
+   "Compare options"
+  ],
+  "distractor_types": [
+   "no comma",
+   "colon incorrectly used",
+   "semicolon"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 28
+ },
+ {
+  "id": "march2021-p28-2",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Form, Structure, and Sense",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "expository",
+  "stem_pattern": "Select the verb form that agrees with the singular subject and correctly reflects the time frame.",
+  "reasoning_steps": [
+   "Identify subject",
+   "Determine required tense",
+   "Match verb form"
+  ],
+  "distractor_types": [
+   "plural verb",
+   "present tense when past needed",
+   "incorrect auxiliary"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 28
+ },
+ {
+  "id": "march2021-p28-3",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Boundaries",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "expository",
+  "stem_pattern": "Identify the correct placement of the transitional phrase and accompanying punctuation.",
+  "reasoning_steps": [
+   "Recognize transitional phrase",
+   "Place commas before/after appropriately",
+   "Validate against style rules"
+  ],
+  "distractor_types": [
+   "missing comma before however",
+   "comma after instead of before",
+   "semicolon misuse"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 28
+ },
+ {
+  "id": "march2021-p28-4",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "expository",
+  "stem_pattern": "Choose the phrase that correctly expresses the plural possessive form of the referenced data collections.",
+  "reasoning_steps": [
+   "Determine grammatical number",
+   "Apply possessive rules",
+   "Select option with correct form"
+  ],
+  "distractor_types": [
+   "singular possessive",
+   "non‑possessive plural",
+   "misplaced apostrophe"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 28
+ },
+ {
+  "id": "march2021-p29-1",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Text Structure and Purpose",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "social science passage",
+  "stem_pattern": "Select the sentence that most smoothly links the ideas of the preceding paragraph with the upcoming discussion.",
+  "reasoning_steps": [
+   "Identify main idea of previous paragraph",
+   "Determine focus of following paragraph",
+   "Choose linking sentence that logically connects the two ideas"
+  ],
+  "distractor_types": [
+   "Provides contrast rather than connection",
+   "Introduces unrelated information",
+   "Uses a weak generic connector",
+   "Repeats earlier phrasing"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 29
+ },
+ {
+  "id": "march2021-p29-2",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Text Structure and Purpose",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "social science passage",
+  "stem_pattern": "Choose the connective that best continues the flow from the earlier paragraph to the next sentence.",
+  "reasoning_steps": [
+   "Clarify the logical relationship between the two paragraphs",
+   "Select a transition that signals that relationship",
+   "Reject options that imply reversal or unrelated shift"
+  ],
+  "distractor_types": [
+   "Implies reversal of argument",
+   "Adds a mitigating clause that changes tone",
+   "Uses a connector that suggests causality not present",
+   "Leaves transition vague"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 29
+ },
+ {
+  "id": "march2021-p29-3",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Text Structure and Purpose",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "social science passage",
+  "stem_pattern": "Decide whether the highlighted expression should stay in the passage or be removed, based on its impact on focus and argument.",
+  "reasoning_steps": [
+   "Assess relevance of the highlighted sentence to central claim",
+   "Check for redundancy with surrounding sentences",
+   "Determine if it introduces unrelated material"
+  ],
+  "distractor_types": [
+   "Keeps phrase for minor detail",
+   "Deletes phrase for stylistic preference",
+   "Keeps phrase because it offers a solution",
+   "Deletes phrase citing repetition"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 29
+ },
+ {
+  "id": "march2021-p30-1",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Text Structure and Purpose",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "cultural/anthropology passage",
+  "stem_pattern": "Identify the linking sentence that best bridges the prior statement with the subsequent claim.",
+  "reasoning_steps": [
+   "Summarize the idea in the preceding sentence",
+   "Identify the purpose of the following sentence",
+   "Select the transition that creates a clear logical bridge"
+  ],
+  "distractor_types": [
+   "Provides a non‑sequential jump",
+   "Repeats earlier wording",
+   "Introduces a cause‑effect relationship that isn’t indicated",
+   "Uses a weak or overly generic connector"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 30
+ },
+ {
+  "id": "march2021-p30-2",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Boundaries",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "cultural/anthropology passage",
+  "stem_pattern": "Select the punctuation that correctly separates the introductory element from the clause that follows.",
+  "reasoning_steps": [
+   "Identify function of introductory element",
+   "Match punctuation to the required separation (list, explanation, contrast)",
+   "Eliminate options that create a run‑on or fragment"
+  ],
+  "distractor_types": [
+   "Uses a colon where a dash is needed",
+   "Leaves a comma creating a splice",
+   "Retains original punctuation that fails to clarify the relationship"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 30
+ },
+ {
+  "id": "march2021-p30-3",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Central Ideas and Details",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "cultural/anthropology passage",
+  "stem_pattern": "Choose the answer that accurately reflects one of the central arguments presented in the passage.",
+  "reasoning_steps": [
+   "Summarize the overall purpose of the passage",
+   "Identify supporting details that align with a main claim",
+   "Match the summary to the correct option"
+  ],
+  "distractor_types": [
+   "Focuses on a peripheral detail",
+   "Misstates the passage’s purpose",
+   "Introduces an unrelated solution",
+   "Combines multiple ideas into one option"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 30
+ },
+ {
+  "id": "march2021-p31-1",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Central Ideas and Details",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "arts nonfiction",
+  "stem_pattern": "Select the answer that provides the most relevant supporting detail about the individual mentioned in the passage.",
+  "reasoning_steps": [
+   "Identify the key attribute of the individual described in the passage",
+   "Compare each option to that attribute",
+   "Choose the option that directly reinforces the passage's claim"
+  ],
+  "distractor_types": [
+   "irrelevant accomplishment",
+   "overly broad description",
+   "detail about a different field"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 31
+ },
+ {
+  "id": "march2021-p31-2",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Text Structure and Purpose",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "arts nonfiction",
+  "stem_pattern": "Choose the revision that best combines the two highlighted sentences into a single, clear statement.",
+  "reasoning_steps": [
+   "Determine the logical relationship between the two sentences",
+   "Evaluate each option for grammatical correctness and concision",
+   "Select the option that preserves meaning while improving flow"
+  ],
+  "distractor_types": [
+   "awkward phrasing",
+   "misplaced modifier",
+   "incorrect punctuation"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 31
+ },
+ {
+  "id": "march2021-p31-3",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "arts nonfiction",
+  "stem_pattern": "Select the pronoun that correctly completes the sentence based on the antecedent.",
+  "reasoning_steps": [
+   "Identify the antecedent of the blank",
+   "Check pronoun agreement in number and gender",
+   "Pick the pronoun that maintains clear reference"
+  ],
+  "distractor_types": [
+   "gender mismatch",
+   "singular/plural mismatch",
+   "ambiguous reference"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 31
+ },
+ {
+  "id": "march2021-p32-1",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "arts nonfiction",
+  "stem_pattern": "Choose the word that best conveys the intended tone for the description of the bus.",
+  "reasoning_steps": [
+   "Assess the nuance each candidate word adds",
+   "Match the nuance to the passage's overall tone",
+   "Select the word that aligns with the author’s intent"
+  ],
+  "distractor_types": [
+   "synonym with stronger connotation",
+   "synonym with weaker connotation",
+   "word that alters meaning"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 32
+ },
+ {
+  "id": "march2021-p32-2",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "arts nonfiction",
+  "stem_pattern": "Select the punctuation that correctly sets off the appositive phrase naming the individual.",
+  "reasoning_steps": [
+   "Identify the appositive phrase",
+   "Apply standard punctuation rules for appositives",
+   "Choose the option that punctuates the phrase correctly"
+  ],
+  "distractor_types": [
+   "missing comma",
+   "extra comma",
+   "incorrect dash usage"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 32
+ },
+ {
+  "id": "march2021-p33-1",
+  "section": "rw",
+  "domain": "Expression of Ideas",
+  "skill": "Rhetorical Synthesis",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "nonfiction informational",
+  "stem_pattern": "Select the quotation that best serves as a concluding statement summarizing the passage’s main idea.",
+  "reasoning_steps": [
+   "Identify the passage’s central theme",
+   "Compare each quoted option for alignment with that theme",
+   "Choose the quote that most effectively encapsulates and reflects the theme in a concluding tone"
+  ],
+  "distractor_types": [
+   "Quote introduces new information unrelated to main idea",
+   "Quote repeats details without synthesis",
+   "Quote is overly vague or generic",
+   "Quote attributes an irrelevant perspective"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 33
+ },
+ {
+  "id": "march2021-p35-1",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear functions",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given a function expressed algebraically, choose the graph that correctly depicts its behavior.",
+  "reasoning_steps": [
+   "interpret the algebraic form",
+   "determine intercepts and slope or curvature",
+   "recognize any vertical or horizontal shifts",
+   "match these features to the provided sketches"
+  ],
+  "distractor_types": [
+   "sign error on coefficient",
+   "incorrect direction of shift",
+   "confusing a curve with a straight line"
+  ],
+  "needs_visual": true,
+  "visual_kind": "function_graph",
+  "source_tag": "march2021",
+  "page": 35
+ },
+ {
+  "id": "march2021-p36-1",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in one variable",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Find the positive number that satisfies a simple equation where the variable appears with a constant added term.",
+  "reasoning_steps": [
+   "move constant to opposite side",
+   "apply the appropriate root or inverse operation",
+   "select the positive solution"
+  ],
+  "distractor_types": [
+   "choosing the negative root",
+   "mis‑calculating the constant subtraction",
+   "reading the exponent incorrectly"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 36
+ },
+ {
+  "id": "march2021-p36-2",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in one variable",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Determine the value of the variable that makes a linear equation with the variable on both sides true.",
+  "reasoning_steps": [
+   "distribute any multiplication",
+   "collect like terms on one side",
+   "solve for the variable"
+  ],
+  "distractor_types": [
+   "failing to distribute correctly",
+   "adding instead of subtracting terms",
+   "solving for the wrong variable"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 36
+ },
+ {
+  "id": "march2021-p36-3",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in two variables",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Translate a word problem about two kinds of coins into an equation that represents their combined monetary value.",
+  "reasoning_steps": [
+   "identify the value of each coin type",
+   "express total value as a linear combination",
+   "write the equation equating this sum to the given total"
+  ],
+  "distractor_types": [
+   "swapping coefficients of the variables",
+   "omitting the multiplier for the higher‑value coin",
+   "using an incorrect total on the right‑hand side"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 36
+ },
+ {
+  "id": "march2021-p37-1",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear inequalities in one or two variables",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given two linear inequalities, select the ordered pair that lies in the region where both are true.",
+  "reasoning_steps": [
+   "Rewrite each inequality in slope‑intercept form",
+   "Sketch or visualize the feasible region",
+   "Check each answer choice against both inequalities"
+  ],
+  "distractor_types": [
+   "sign error in inequality",
+   "satisfies only one inequality",
+   "misread variable sign",
+   "off‑by‑one coordinate"
+  ],
+  "needs_visual": true,
+  "visual_kind": "coordinate_lines",
+  "source_tag": "march2021",
+  "page": 37
+ },
+ {
+  "id": "march2021-p37-2",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear functions",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "A linear model expresses total quantity as initial amount plus a constant rate times time; what is the constant rate?",
+  "reasoning_steps": [
+   "Identify the coefficient of the time variable",
+   "Interpret coefficient as units per time"
+  ],
+  "distractor_types": [
+   "confuse coefficient with intercept",
+   "use wrong unit",
+   "add instead of multiply"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 37
+ },
+ {
+  "id": "march2021-p37-3",
+  "section": "math",
+  "domain": "Geometry and Trigonometry",
+  "skill": "Circles",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Rewrite a general quadratic equation in x and y to standard circle form and read off the center coordinates.",
+  "reasoning_steps": [
+   "Group x terms and y terms",
+   "Complete the square for each variable",
+   "Extract center from the completed squares"
+  ],
+  "distractor_types": [
+   "sign mistake when completing square",
+   "swap x and y coordinates",
+   "forget to divide coefficient",
+   "incorrect constant term"
+  ],
+  "needs_visual": true,
+  "visual_kind": "coordinate_lines",
+  "source_tag": "march2021",
+  "page": 37
+ },
+ {
+  "id": "march2021-p38-1",
+  "section": "math",
+  "domain": "Advanced Math",
+  "skill": "Equivalent expressions",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Simplify a difference of two polynomial expressions and choose the matching simplified form.",
+  "reasoning_steps": [
+   "Distribute subtraction across second polynomial",
+   "Combine like terms",
+   "Check for sign errors"
+  ],
+  "distractor_types": [
+   "fail to distribute negative sign",
+   "combine incorrectly",
+   "omit a term",
+   "incorrect exponent handling"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 38
+ },
+ {
+  "id": "march2021-p38-2",
+  "section": "math",
+  "domain": "Geometry and Trigonometry",
+  "skill": "Area and volume",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Compare volumes of two spheres whose diameters differ by a factor, and express the ratio of the larger volume to the smaller.",
+  "reasoning_steps": [
+   "Recall volume formula proportional to cube of radius",
+   "Express each radius in terms of the variable",
+   "Form ratio and simplify"
+  ],
+  "distractor_types": [
+   "treat diameters as radii",
+   "forget cube relationship",
+   "linear ratio instead of cubic",
+   "mis‑place variable exponent"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 38
+ },
+ {
+  "id": "march2021-p38-3",
+  "section": "math",
+  "domain": "Advanced Math",
+  "skill": "Nonlinear functions",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given a cubic function factored into three linear terms, determine which y‑value cannot occur for an x‑value within a specified interval.",
+  "reasoning_steps": [
+   "Identify zeros of the function",
+   "Analyze sign of function between zeros",
+   "Evaluate possible output values in interval",
+   "Eliminate impossible value"
+  ],
+  "distractor_types": [
+   "confuse interval endpoints",
+   "assume symmetry",
+   "ignore sign changes",
+   "calculate wrong product"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 38
+ },
+ {
+  "id": "march2021-p39-1",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear functions",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given a linear equation, choose the graph that correctly represents its slope and y‑intercept.",
+  "reasoning_steps": [
+   "Convert equation to slope‑intercept form",
+   "Identify slope from coefficient",
+   "Identify y‑intercept from constant term",
+   "Match these values to the plotted line"
+  ],
+  "distractor_types": [
+   "Incorrect slope sign",
+   "Incorrect intercept value",
+   "Confusing slope with intercept",
+   "Graph shifted vertically or horizontally"
+  ],
+  "needs_visual": true,
+  "visual_kind": "function_graph",
+  "source_tag": "march2021",
+  "page": 39
+ },
+ {
+  "id": "march2021-p40-1",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in one variable",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "From a displayed graph, select an x‑coordinate where the function’s value equals zero.",
+  "reasoning_steps": [
+   "Locate points where the curve crosses the x‑axis",
+   "Read the corresponding x‑value",
+   "Choose that value from options"
+  ],
+  "distractor_types": [
+   "Choosing a point where y is non‑zero",
+   "Misreading the axis scale",
+   "Selecting a nearby but incorrect x‑value"
+  ],
+  "needs_visual": true,
+  "visual_kind": "function_graph",
+  "source_tag": "march2021",
+  "page": 40
+ },
+ {
+  "id": "march2021-p40-2",
+  "section": "math",
+  "domain": "Advanced Math",
+  "skill": "Nonlinear functions",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Interpret the exponent in an exponential growth model describing a population over time.",
+  "reasoning_steps": [
+   "Recognize the base as a growth factor",
+   "Understand the exponent represents the number of time intervals",
+   "Translate to a statement about repeated doublings"
+  ],
+  "distractor_types": [
+   "Confusing exponent with multiplier",
+   "Mistaking the base for the increment",
+   "Applying the growth interval incorrectly",
+   "Assuming linear increase"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 40
+ },
+ {
+  "id": "march2021-p42-1",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in two variables",
+  "difficulty": "medium",
+  "answer_type": "grid_in",
+  "passage_genre": null,
+  "stem_pattern": "Given a system of linear equations linking three quantities, rewrite one equation to express a target variable as a linear combination of the other two and determine the coefficient of one term.",
+  "reasoning_steps": [
+   "Convert the system to standard form",
+   "Use substitution or elimination to isolate the target variable",
+   "Identify the coefficient of the chosen term"
+  ],
+  "distractor_types": [
+   "Sign error in coefficient",
+   "Incorrect substitution order",
+   "Arithmetic mistake in solving"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 42
+ },
+ {
+  "id": "march2021-p42-2",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in one variable",
+  "difficulty": "medium",
+  "answer_type": "grid_in",
+  "passage_genre": null,
+  "stem_pattern": "Find the value of a parameter that makes a linear equation in one variable have no solution.",
+  "reasoning_steps": [
+   "Set the coefficients of the variable equal for parallel lines",
+   "Require the constant terms to differ",
+   "Solve for the parameter"
+  ],
+  "distractor_types": [
+   "Solving for the variable instead of the parameter",
+   "Ignoring the need for unequal constants",
+   "Sign reversal error"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 42
+ },
+ {
+  "id": "march2021-p42-3",
+  "section": "math",
+  "domain": "Geometry and Trigonometry",
+  "skill": "Lines, angles, and triangles",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "A quadrilateral has one pair of opposite sides parallel and the non‑parallel sides equal; compute its perimeter from the given side lengths.",
+  "reasoning_steps": [
+   "Identify the figure as an isosceles trapezoid",
+   "Apply properties of parallel sides and equal non‑parallel sides",
+   "Add the lengths of all four sides"
+  ],
+  "distractor_types": [
+   "Treating the shape as a rectangle",
+   "Using the wrong base length",
+   "Assuming all sides are equal"
+  ],
+  "needs_visual": true,
+  "visual_kind": "geometry",
+  "source_tag": "march2021",
+  "page": 42
+ },
+ {
+  "id": "march2021-p42-4",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in one variable",
+  "difficulty": "medium",
+  "answer_type": "grid_in",
+  "passage_genre": null,
+  "stem_pattern": "A quadratic equation’s solutions are expressed as an integer plus/minus a square root; determine the sum of that integer and the radicand.",
+  "reasoning_steps": [
+   "Write the quadratic in standard form",
+   "Relate coefficients to the sum and product of the roots",
+   "Solve for the integer and radicand"
+  ],
+  "distractor_types": [
+   "Swapping the integer with the radicand",
+   "Incorrect sign in the root expression",
+   "Miscalculating the product of the roots"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 42
+ },
+ {
+  "id": "march2021-p45-1",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "From a frequency table of pH intervals, determine the count of samples with pH at least 7.4.",
+  "reasoning_steps": [
+   "Locate the interval that includes 7.4",
+   "Add frequencies for that interval and all higher intervals"
+  ],
+  "distractor_types": [
+   "omit the target interval",
+   "count only higher intervals",
+   "misread the table headings"
+  ],
+  "needs_visual": true,
+  "visual_kind": "table",
+  "source_tag": "march2021",
+  "page": 45
+ },
+ {
+  "id": "march2021-p47-1",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in one variable",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given a constant speed relationship distance = rate × time, determine the distance after a specified number of hours.",
+  "reasoning_steps": [
+   "identify the rate from the equation",
+   "multiply the rate by the given time"
+  ],
+  "distractor_types": [
+   "use incorrect rate",
+   "multiply by wrong time",
+   "confuse distance with time"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 47
+ },
+ {
+  "id": "march2021-p47-2",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in one variable",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Using a uniform speed model, find the time interval during which travel occurs in the middle segment of a multi‑state trip given segment distances.",
+  "reasoning_steps": [
+   "compute time to finish first segment",
+   "compute time to finish second segment",
+   "express interval between those two times"
+  ],
+  "distractor_types": [
+   "omit first segment time",
+   "reverse start/end times",
+   "divide distance by wrong rate"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 47
+ },
+ {
+  "id": "march2021-p47-3",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear functions",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "From a plotted line of cell count versus day, select the consecutive days where the slope (growth rate) is greatest.",
+  "reasoning_steps": [
+   "identify consecutive day pairs",
+   "calculate average change for each pair",
+   "compare averages to find maximum"
+  ],
+  "distractor_types": [
+   "choose pair with largest raw count",
+   "ignore sign of change",
+   "mis‑read axis values"
+  ],
+  "needs_visual": true,
+  "visual_kind": "function_graph",
+  "source_tag": "march2021",
+  "page": 47
+ },
+ {
+  "id": "march2021-p48-1",
+  "section": "math",
+  "domain": "Problem-Solving and Data Analysis",
+  "skill": "Percentages",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "A price after a known percentage discount is given; compute the original price before discount.",
+  "reasoning_steps": [
+   "recognize discount factor",
+   "divide discounted price by (1‑discount)"
+  ],
+  "distractor_types": [
+   "add discount instead of dividing",
+   "use wrong percent value",
+   "multiply rather than divide"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 48
+ },
+ {
+  "id": "march2021-p48-2",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear functions",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given a table of x‑values and corresponding f(x) for a linear function, determine the y‑intercept of its graph.",
+  "reasoning_steps": [
+   "locate the entry where x equals zero",
+   "read the associated y value"
+  ],
+  "distractor_types": [
+   "read y for wrong x",
+   "apply incorrect sign",
+   "confuse y‑intercept with a point on the line"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 48
+ },
+ {
+  "id": "march2021-p48-3",
+  "section": "math",
+  "domain": "Problem-Solving and Data Analysis",
+  "skill": "One-variable data: distributions and measures of center and spread",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "From a frequency distribution of bottle fill levels, calculate how many bottles out of a larger production run fall outside a specified acceptable range.",
+  "reasoning_steps": [
+   "sum frequencies within acceptable range",
+   "divide by total sample size to get proportion",
+   "multiply proportion by total production"
+  ],
+  "distractor_types": [
+   "include boundary values incorrectly",
+   "use wrong total sample size",
+   "round proportion before scaling"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 48
+ },
+ {
+  "id": "march2021-p49-1",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear functions",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given a base price and a constant change in price per unit sold, find the price that maximizes total revenue.",
+  "reasoning_steps": [
+   "express revenue as product of price and quantity",
+   "substitute linear demand relationship",
+   "derive quadratic revenue function",
+   "identify vertex of parabola"
+  ],
+  "distractor_types": [
+   "confusing price with quantity",
+   "ignoring decrease in demand",
+   "selecting endpoint value",
+   "miscalculating slope sign"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 49
+ },
+ {
+  "id": "march2021-p49-2",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in one variable",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Solve a one‑step linear equation and adjust the solution to a related expression.",
+  "reasoning_steps": [
+   "isolate variable",
+   "perform arithmetic operation",
+   "add constant to solution"
+  ],
+  "distractor_types": [
+   "sign error",
+   "incorrect arithmetic",
+   "mistaking variable for constant"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 49
+ },
+ {
+  "id": "march2021-p49-3",
+  "section": "math",
+  "domain": "Problem-Solving and Data Analysis",
+  "skill": "Two-variable data: models and scatterplots",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "From a scatter diagram with a displayed regression line, choose the algebraic form that matches the line’s slope and intercept.",
+  "reasoning_steps": [
+   "read slope from line rise over run",
+   "read y‑intercept where line crosses y‑axis",
+   "translate values into equation y = mx + b"
+  ],
+  "distractor_types": [
+   "swap slope and intercept",
+   "incorrect sign for slope",
+   "use negative intercept",
+   "confuse x and y roles"
+  ],
+  "needs_visual": true,
+  "visual_kind": "scatter_with_line",
+  "source_tag": "march2021",
+  "page": 49
+ },
+ {
+  "id": "march2021-p50-1",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Systems of two linear equations in two variables",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Solve a pair of linear equations and compute a linear combination of the solution components.",
+  "reasoning_steps": [
+   "solve system via substitution or elimination",
+   "obtain values for variables",
+   "substitute into expression"
+  ],
+  "distractor_types": [
+   "arithmetic error in elimination",
+   "mixing up variable order",
+   "miscomputing expression"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 50
+ },
+ {
+  "id": "march2021-p50-2",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear functions",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Identify the functional form that best represents a constant percentage increase each period.",
+  "reasoning_steps": [
+   "recognize constant multiplicative change",
+   "match to exponential pattern",
+   "exclude linear alternatives"
+  ],
+  "distractor_types": [
+   "confusing additive with multiplicative change",
+   "selecting linear growth",
+   "misreading percent as absolute increase"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 50
+ },
+ {
+  "id": "march2021-p50-3",
+  "section": "math",
+  "domain": "Problem-Solving and Data Analysis",
+  "skill": "Two-variable data: models and scatterplots",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Compare each data point in a scatter plot to the predicted value from the regression line and count how many lie below the line.",
+  "reasoning_steps": [
+   "for each point, compute predicted y from line",
+   "compare predicted y to actual y",
+   "tally points where predicted > actual"
+  ],
+  "distractor_types": [
+   "off‑by‑one counting error",
+   "misinterpreting above vs below",
+   "using wrong slope sign"
+  ],
+  "needs_visual": true,
+  "visual_kind": "scatter_with_line",
+  "source_tag": "march2021",
+  "page": 50
+ },
+ {
+  "id": "march2021-p50-4",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear functions",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Interpret the meaning of the function value at a specific input in a real‑world context of distance remaining versus time elapsed.",
+  "reasoning_steps": [
+   "identify independent variable (time)",
+   "read function output as remaining distance",
+   "apply to given input"
+  ],
+  "distractor_types": [
+   "reversing remaining vs traveled",
+   "confusing time with distance",
+   "misreading sign of slope"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 50
+ },
+ {
+  "id": "march2021-p51-1",
+  "section": "math",
+  "domain": "Geometry and Trigonometry",
+  "skill": "Lines, angles, and triangles",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given two triangles with two pairs of equal angles, which additional condition guarantees the triangles are congruent?",
+  "reasoning_steps": [
+   "Identify congruence criteria",
+   "Match given angle correspondences",
+   "Apply appropriate triangle congruence theorem"
+  ],
+  "distractor_types": [
+   "Provides side length unrelated to included angle",
+   "Gives angle measure that does not complete a criterion",
+   "States equality of a side that is not between given angles",
+   "Offers angle equality that is redundant"
+  ],
+  "needs_visual": true,
+  "visual_kind": "geometry",
+  "source_tag": "march2021",
+  "page": 51
+ },
+ {
+  "id": "march2021-p51-2",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in one variable",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Determine the number of real solutions for an absolute‑value equation whose right‑hand side is a negative constant.",
+  "reasoning_steps": [
+   "Recognize absolute value yields non‑negative output",
+   "Compare to negative RHS",
+   "Conclude impossibility"
+  ],
+  "distractor_types": [
+   "Assume two solutions as usual",
+   "Mistake sign and treat RHS as positive",
+   "Consider extraneous root"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 51
+ },
+ {
+  "id": "march2021-p51-3",
+  "section": "math",
+  "domain": "Advanced Math",
+  "skill": "Nonlinear equations in one variable and systems of equations in two variables",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "For a quadratic equation, compute the sum of its two roots using coefficient relationships.",
+  "reasoning_steps": [
+   "Identify coefficients of quadratic",
+   "Apply sum‑of‑roots formula (negative b/a)",
+   "Calculate result"
+  ],
+  "distractor_types": [
+   "Sign error on coefficient",
+   "Swap numerator and denominator",
+   "Forget to divide by leading coefficient"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 51
+ },
+ {
+  "id": "march2021-p51-4",
+  "section": "math",
+  "domain": "Geometry and Trigonometry",
+  "skill": "Area and volume",
+  "difficulty": "hard",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given a square with one vertex at a circle’s center and the opposite vertex on the circle, and a known area of the region between them, find the square’s perimeter.",
+  "reasoning_steps": [
+   "Relate side length to radius via diagonal",
+   "Express circle area in terms of radius",
+   "Express square area in terms of side",
+   "Set up equation using given shaded area",
+   "Solve for side length",
+   "Compute perimeter"
+  ],
+  "distractor_types": [
+   "Confuse radius with side length",
+   "Omit factor of 2 in diagonal relationship",
+   "Use area of quarter‑circle instead of full circle",
+   "Arithmetic error in solving"
+  ],
+  "needs_visual": true,
+  "visual_kind": "geometry",
+  "source_tag": "march2021",
+  "page": 51
+ },
+ {
+  "id": "march2021-p52-1",
+  "section": "math",
+  "domain": "Advanced Math",
+  "skill": "Equivalent expressions",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Select the algebraic expression that is mathematically equivalent to a given linear combination after simplifying.",
+  "reasoning_steps": [
+   "Distribute multiplication over addition",
+   "Combine like terms",
+   "Rearrange to standard form"
+  ],
+  "distractor_types": [
+   "Fail to distribute correctly",
+   "Sign error when combining terms",
+   "Leave parentheses unexpanded",
+   "Swap order of terms incorrectly"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 52
+ },
+ {
+  "id": "march2021-p53-1",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear functions",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given two temperature–gap width points, determine the linear equation that models gap width as a function of temperature.",
+  "reasoning_steps": [
+   "Compute slope from the two given points",
+   "Write point‑slope form",
+   "Convert to slope‑intercept form"
+  ],
+  "distractor_types": [
+   "slope sign error",
+   "incorrect intercept",
+   "swap variables",
+   "arithmetic slip"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 53
+ },
+ {
+  "id": "march2021-p55-1",
+  "section": "math",
+  "domain": "Problem-Solving and Data Analysis",
+  "skill": "Probability and conditional probability",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given a total sample size and counts for two response categories, ask for the probability that a randomly chosen individual falls into the third category.",
+  "reasoning_steps": [
+   "identify total number of subjects",
+   "determine number in the two known categories",
+   "subtract to find count in the target category",
+   "divide target count by total"
+  ],
+  "distractor_types": [
+   "omit the non‑response group",
+   "use the complement of the wrong category",
+   "off‑by‑one arithmetic error"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 55
+ },
+ {
+  "id": "march2021-p55-2",
+  "section": "math",
+  "domain": "Geometry and Trigonometry",
+  "skill": "Lines, angles, and triangles",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Two triangles are declared similar with a given angle correspondence; ask for the measure of a specified angle in the second triangle.",
+  "reasoning_steps": [
+   "recognize that corresponding angles are equal",
+   "use the given correspondence to map the requested angle",
+   "state the equal measure"
+  ],
+  "distractor_types": [
+   "confuse which angle corresponds to which",
+   "add or subtract angles incorrectly",
+   "apply the similarity ratio to angle measure"
+  ],
+  "needs_visual": true,
+  "visual_kind": "geometry",
+  "source_tag": "march2021",
+  "page": 55
+ },
+ {
+  "id": "march2021-p55-3",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in one variable",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "A linear equation in slope‑intercept form is given; ask for the y‑coordinate of its y‑intercept.",
+  "reasoning_steps": [
+   "recognize that the y‑intercept occurs when x = 0",
+   "substitute x = 0 into the equation",
+   "evaluate the constant term"
+  ],
+  "distractor_types": [
+   "mistake the sign of the constant",
+   "use the slope instead of the constant",
+   "perform arithmetic incorrectly"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "march2021",
+  "page": 55
+ },
+ {
+  "id": "march2021-p56-1",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in two variables",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "A line with a known equation is shown; given a point with one coordinate specified, ask for the missing coordinate that lies on the line.",
+  "reasoning_steps": [
+   "write the line’s equation in standard or slope‑intercept form",
+   "substitute the known coordinate into the equation",
+   "solve the resulting linear equation for the unknown coordinate"
+  ],
+  "distractor_types": [
+   "solve for the wrong variable",
+   "apply an incorrect sign when isolating the variable",
+   "forget to simplify the equation before solving"
+  ],
+  "needs_visual": true,
+  "visual_kind": "coordinate_lines",
+  "source_tag": "march2021",
+  "page": 56
+ },
+ {
+  "id": "march2021-p56-2",
+  "section": "math",
+  "domain": "Problem-Solving and Data Analysis",
+  "skill": "One-variable data: distributions and measures of center and spread",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "A table lists nine numeric values; ask for the value that occupies the middle position when the values are ordered from smallest to largest.",
+  "reasoning_steps": [
+   "recognize that the median is the middle entry in an ordered list",
+   "order the nine values from low to high",
+   "identify the fifth value"
+  ],
+  "distractor_types": [
+   "choose the average of the two middle values instead of the single middle value",
+   "misorder the values",
+   "select the highest or lowest value"
+  ],
+  "needs_visual": true,
+  "visual_kind": "table",
+  "source_tag": "march2021",
+  "page": 56
+ },
+ {
+  "id": "march2021-p57-1",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear functions",
+  "difficulty": "medium",
+  "answer_type": "grid_in",
+  "passage_genre": null,
+  "stem_pattern": "Given a table of x and f(x) values that follow a linear rule f(x)=mx+b, determine the constant term b.",
+  "reasoning_steps": [
+   "Identify two coordinate pairs from the table",
+   "Compute slope m using the difference of y over difference of x",
+   "Plug one pair into the linear equation to solve for b"
+  ],
+  "distractor_types": [
+   "Incorrect slope calculation",
+   "Algebraic sign error when solving for b",
+   "Using wrong point from the table"
+  ],
+  "needs_visual": true,
+  "visual_kind": "table",
+  "source_tag": "march2021",
+  "page": 57
+ },
+ {
+  "id": "march2021-p57-2",
+  "section": "math",
+  "domain": "Problem-Solving and Data Analysis",
+  "skill": "Ratios, rates, proportional relationships, and units",
+  "difficulty": "easy",
+  "answer_type": "grid_in",
+  "passage_genre": null,
+  "stem_pattern": "From a table showing the minimum adult weight of an African elephant in tons, convert that weight to pounds using the given conversion factor.",
+  "reasoning_steps": [
+   "Locate the minimum weight value in tons",
+   "Multiply by the number of pounds per ton",
+   "Express the product as the answer"
+  ],
+  "distractor_types": [
+   "Omitting the conversion factor",
+   "Using the conversion factor in the wrong direction",
+   "Miscalculating the multiplication"
+  ],
+  "needs_visual": true,
+  "visual_kind": "table",
+  "source_tag": "march2021",
+  "page": 57
+ },
+ {
+  "id": "march2021-p57-3",
+  "section": "math",
+  "domain": "Problem-Solving and Data Analysis",
+  "skill": "Percentages",
+  "difficulty": "easy",
+  "answer_type": "grid_in",
+  "passage_genre": null,
+  "stem_pattern": "Using the typical life spans of African and Asian elephants from a table, find how many percent longer the African lifespan is compared to the Asian lifespan.",
+  "reasoning_steps": [
+   "Extract the two lifespan values from the table",
+   "Compute the difference between African and Asian values",
+   "Divide the difference by the Asian value and multiply by 100"
+  ],
+  "distractor_types": [
+   "Swapping numerator and denominator",
+   "Forgetting to multiply by 100",
+   "Using absolute difference instead of percentage increase"
+  ],
+  "needs_visual": true,
+  "visual_kind": "table",
+  "source_tag": "march2021",
+  "page": 57
+ },
+ {
+  "id": "sample4-p4-1",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Choose the most precise word or phrase to complete a sentence describing a spacecraft's action on an asteroid surface.",
+  "reasoning_steps": [
+   "Determine the overall intent of the sentence",
+   "Assess which candidate word matches that intent",
+   "Check grammatical fit and nuance"
+  ],
+  "distractor_types": [
+   "Word that is grammatically correct but semantically off",
+   "Word that alters the intended action",
+   "Word that is unrelated to the context"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 4
+ },
+ {
+  "id": "sample4-p4-2",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Select the most appropriate word to complete a sentence about lunar surface evidence of early impacts.",
+  "reasoning_steps": [
+   "Identify what the missing term should convey about representation",
+   "Match each option to that meaning",
+   "Eliminate options that misrepresent or are unrelated"
+  ],
+  "distractor_types": [
+   "Word that fits grammatically but not the scientific meaning",
+   "Word that changes the relationship incorrectly",
+   "Word that is unrelated to the concept"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 4
+ },
+ {
+  "id": "sample4-p5-1",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Select the most precise word or phrase to complete a sentence describing how a trait appears across species.",
+  "reasoning_steps": [
+   "interpret overall meaning of sentence",
+   "identify key nuance required by context",
+   "compare each option for connotation and precision",
+   "eliminate choices that are too vague, opposite, or unrelated"
+  ],
+  "distractor_types": [
+   "synonym with weaker precision",
+   "word with opposite nuance",
+   "term unrelated to scientific context"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 5
+ },
+ {
+  "id": "sample4-p5-2",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "art history passage",
+  "stem_pattern": "Choose the word that best fits a sentence stating the degree of difficulty in acknowledging an influence.",
+  "reasoning_steps": [
+   "understand idiomatic expression in sentence",
+   "determine intended level of difficulty conveyed",
+   "match each option to that level",
+   "reject options that imply the opposite or an unrelated intensity"
+  ],
+  "distractor_types": [
+   "word implying ease rather than difficulty",
+   "term suggesting irrelevance",
+   "choice with neutral tone not matching idiom"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 5
+ },
+ {
+  "id": "sample4-p6-1",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Central Ideas and Details",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "literary excerpt",
+  "stem_pattern": "Identify the primary purpose of a short narrative passage about a shop owner and a picture.",
+  "reasoning_steps": [
+   "determine the author’s overall intent",
+   "focus on the central action and emotional response",
+   "compare each answer for alignment with that intent",
+   "discard options that spotlight minor details or misread tone"
+  ],
+  "distractor_types": [
+   "focus on a single feeling rather than overall purpose",
+   "highlight a secondary character’s role",
+   "describe content instead of purpose"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 6
+ },
+ {
+  "id": "sample4-p6-2",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Text Structure and Purpose",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "poetry",
+  "stem_pattern": "Select the description that best captures the organizational pattern of a brief poem that observes a scene and then reflects on its meaning.",
+  "reasoning_steps": [
+   "recognize the initial descriptive segment",
+   "identify the subsequent reflective segment",
+   "match this sequence to the answer choices",
+   "eliminate choices that invert order or assign wrong function"
+  ],
+  "distractor_types": [
+   "reverse the description‑reflection order",
+   "attribute a personal narrative instead of reflection",
+   "confuse description with thematic analysis"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 6
+ },
+ {
+  "id": "sample4-p7-1",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Text Structure and Purpose",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "poem",
+  "stem_pattern": "Identify the overall organizational pattern of a brief lyrical excerpt in which the speaker first addresses a criticism and then declares an ambition.",
+  "reasoning_steps": [
+   "Locate the speaker's opening move",
+   "Determine the shift in focus",
+   "Match the progression to a structural label"
+  ],
+  "distractor_types": [
+   "Regret‑to‑prediction",
+   "Boasting‑to‑achievement",
+   "Question‑to‑summary"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 7
+ },
+ {
+  "id": "sample4-p7-2",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Text Structure and Purpose",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "informational excerpt",
+  "stem_pattern": "Identify the role of a sentence placed after the opening claim in a brief informational excerpt that mentions a newly occurring entity and its counterpart.",
+  "reasoning_steps": [
+   "Locate the sentence's position within the passage",
+   "Assess whether it supplies context, a forecast, data, or clarification",
+   "Match the assessment to the appropriate function label"
+  ],
+  "distractor_types": [
+   "Forecast claim",
+   "Broad assertion",
+   "Different rationale"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 7
+ },
+ {
+  "id": "sample4-p8-1",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Cross-Text Connections",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "cultural‑analysis",
+  "stem_pattern": "Choose how the later commentator would most likely react to the developmental‑phase claim presented by the earlier commentator.",
+  "reasoning_steps": [
+   "Restate the central assertion of the opening excerpt",
+   "Identify the opposing assertion in the subsequent excerpt",
+   "Pick the option that best captures the disagreement"
+  ],
+  "distractor_types": [
+   "Limited agreement with the claim",
+   "Mistaken order of events",
+   "Assigning a hierarchy to pre‑complex societies"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 8
+ },
+ {
+  "id": "sample4-p8-2",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Central Ideas and Details",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "literary fiction",
+  "stem_pattern": "Select the statement that best captures the main idea of a short narrative describing a girl's enthusiastic work in a hidden garden.",
+  "reasoning_steps": [
+   "Read for overall tone",
+   "Identify the primary activity and its emotional valence",
+   "Match to a concise summary"
+  ],
+  "distractor_types": [
+   "Misinterpretation of motive",
+   "Focus on boredom",
+   "Incorrect character action"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 8
+ },
+ {
+  "id": "sample4-p9-1",
+  "section": "rw",
+  "domain": "Expression of Ideas",
+  "skill": "Rhetorical Synthesis",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "poetry",
+  "stem_pattern": "Based on the passage, which statement best captures the way the author likens the human mind to a flower?",
+  "reasoning_steps": [
+   "identify the metaphorical comparison",
+   "determine the condition required for flourishing",
+   "match the inferred requirement to the answer choice"
+  ],
+  "distractor_types": [
+   "overstates persistence",
+   "attributes effect to weather alone",
+   "suggests gradual growth over time"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 9
+ },
+ {
+  "id": "sample4-p9-2",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Central Ideas and Details",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "imaginative prose",
+  "stem_pattern": "Select the option that best captures the overall purpose of the given segment.",
+  "reasoning_steps": [
+   "distill the core message",
+   "set aside particular episodes",
+   "choose the choice that aligns with the primary intent"
+  ],
+  "distractor_types": [
+   "emphasizes an isolated element",
+   "interprets tone incorrectly",
+   "adds an inference lacking support"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 9
+ },
+ {
+  "id": "sample4-p10-1",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "informational text",
+  "stem_pattern": "Which answer choice correctly completes the statement using data shown in the bar chart?",
+  "reasoning_steps": [
+   "read the bar representing the target state",
+   "interpret the range indicated on the bar",
+   "choose the interval that matches the chart"
+  ],
+  "distractor_types": [
+   "confuses scale units",
+   "selects a different state’s range",
+   "chooses an interval that overlaps but is not exact"
+  ],
+  "needs_visual": true,
+  "visual_kind": "bar_chart",
+  "source_tag": "sample4",
+  "page": 10
+ },
+ {
+  "id": "sample4-p10-2",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "hard",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Which finding would most directly support the researchers' hypothesis about female preference?",
+  "reasoning_steps": [
+   "identify the core claim of the hypothesis",
+   "evaluate each finding for direct relevance to female choice",
+   "eliminate options that address unrelated traits"
+  ],
+  "distractor_types": [
+   "provides plausible but unrelated anatomical detail",
+   "describes communication function not preference",
+   "states no change over generations"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 10
+ },
+ {
+  "id": "sample4-p11-1",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Given a table of percentage ablation rates for elements across dust sources, select the statement that correctly completes the illustrative example.",
+  "reasoning_steps": [
+   "locate the row for the element mentioned in the example",
+   "identify the column representing the relevant dust source",
+   "read the percentage value",
+   "match the value to the blank in the example"
+  ],
+  "distractor_types": [
+   "incorrect element",
+   "incorrect dust source",
+   "misread percentage",
+   "value from a different column"
+  ],
+  "needs_visual": true,
+  "visual_kind": "table",
+  "source_tag": "sample4",
+  "page": 11
+ },
+ {
+  "id": "sample4-p12-1",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Using the mass data in a table comparing plants grown with and without mycorrhizal fungi, pick the statement that accurately reflects the observed effect.",
+  "reasoning_steps": [
+   "find the rows for each plant species",
+   "compare the two mass values for each species",
+   "determine which differences are substantial",
+   "match the observed pattern to the answer choice"
+  ],
+  "distractor_types": [
+   "incorrect comparison of species",
+   "overstatement of magnitude",
+   "ignoring the presence/absence of fungi",
+   "mixing values from different species"
+  ],
+  "needs_visual": true,
+  "visual_kind": "table",
+  "source_tag": "sample4",
+  "page": 12
+ },
+ {
+  "id": "sample4-p13-1",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "art history",
+  "stem_pattern": "Given a description of a female figure with a cupid in ancient artwork, which statement logically follows about the figure’s identity?",
+  "reasoning_steps": [
+   "Identify the claim about the figure",
+   "Consider the role of the accompanying cupid",
+   "Determine what can be concluded without assuming extra evidence"
+  ],
+  "distractor_types": [
+   "overstates certainty",
+   "reverses the logical direction",
+   "eliminates possibility without basis"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 13
+ },
+ {
+  "id": "sample4-p13-2",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Form, Structure, and Sense",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "expository",
+  "stem_pattern": "Select the phrase that correctly completes the sentence about ghostwriters and the unnamed authors they write for.",
+  "reasoning_steps": [
+   "Identify the noun phrase needed",
+   "Apply rules for possessive forms",
+   "Choose the option with correct punctuation and agreement"
+  ],
+  "distractor_types": [
+   "incorrect apostrophe placement",
+   "mis‑pluralization of possessive",
+   "extraneous punctuation"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 13
+ },
+ {
+  "id": "sample4-p13-3",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Form, Structure, and Sense",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "scientific description",
+  "stem_pattern": "Choose the verb form that properly completes the sentence describing how the wood frog survives freezing temperatures.",
+  "reasoning_steps": [
+   "Determine the temporal context of the statement",
+   "Match verb tense to the general factual claim",
+   "Select the option with correct subject‑verb agreement"
+  ],
+  "distractor_types": [
+   "past‑tense mis‑match",
+   "modal misuse",
+   "subject‑verb disagreement"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 13
+ },
+ {
+  "id": "sample4-p13-4",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Form, Structure, and Sense",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "biographical narrative",
+  "stem_pattern": "Pick the punctuation and spacing that correctly joins the clause about Wilma Rudolph’s Olympic achievements to the preceding clause.",
+  "reasoning_steps": [
+   "Identify the relationship between the two clauses",
+   "Apply rules for coordinating punctuation",
+   "Select the option that preserves meaning and grammatical correctness"
+  ],
+  "distractor_types": [
+   "missing period after clause",
+   "incorrect dash usage",
+   "comma splice"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 13
+ },
+ {
+  "id": "sample4-p14-1",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Form, Structure, and Sense",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "visual commentary",
+  "stem_pattern": "Choose the appropriate grammatical form to finish a sentence that describes a geometric representation within a visual analysis context.",
+  "reasoning_steps": [
+   "Determine the main noun of the clause",
+   "Align the verb's number and person with that noun",
+   "Select the option that preserves proper subject‑verb agreement"
+  ],
+  "distractor_types": [
+   "verb form that mismatches the subject's number",
+   "verb tense that does not fit the surrounding context",
+   "auxiliary construction that is grammatically incorrect"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 14
+ },
+ {
+  "id": "sample4-p14-2",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Form, Structure, and Sense",
+  "difficulty": "hard",
+  "answer_type": "mcq",
+  "passage_genre": "art description",
+  "stem_pattern": "Choose the punctuation that correctly separates the introductory phrase from the rest of the sentence describing the artist’s work.",
+  "reasoning_steps": [
+   "Identify the introductory element",
+   "Apply punctuation rules for introductory clauses",
+   "Select the option that provides proper separation without altering meaning"
+  ],
+  "distractor_types": [
+   "missing semicolon where required",
+   "unnecessary comma",
+   "incorrect dash placement"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 14
+ },
+ {
+  "id": "sample4-p14-3",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Form, Structure, and Sense",
+  "difficulty": "hard",
+  "answer_type": "mcq",
+  "passage_genre": "biographical science",
+  "stem_pattern": "Select the construction that correctly embeds the historical detail about Julian’s synthesis within the sentence.",
+  "reasoning_steps": [
+   "Determine where the historical clause belongs",
+   "Apply rules for subordinate clauses and relative pronouns",
+   "Choose the option that maintains clear reference and proper punctuation"
+  ],
+  "distractor_types": [
+   "run‑on sentence",
+   "misplaced modifier",
+   "incorrect relative pronoun usage"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 14
+ },
+ {
+  "id": "sample4-p14-4",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Form, Structure, and Sense",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "environmental description",
+  "stem_pattern": "Pick the punctuation that correctly links the list of plant species with the subsequent clause about research and education.",
+  "reasoning_steps": [
+   "Identify the list and its relation to the following clause",
+   "Apply punctuation rules for separating list items from independent clauses",
+   "Select the option that yields a grammatically sound sentence"
+  ],
+  "distractor_types": [
+   "semicolon misuse",
+   "comma splice",
+   "missing conjunction"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 14
+ },
+ {
+  "id": "sample4-p15-1",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Boundaries",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "historical nonfiction",
+  "stem_pattern": "Select the punctuation that correctly separates a clause from a transitional phrase in a single sentence.",
+  "reasoning_steps": [
+   "Identify the independent clause",
+   "Identify the transitional phrase",
+   "Choose punctuation that marks the boundary between them"
+  ],
+  "distractor_types": [
+   "Missing comma",
+   "Comma splice",
+   "Incorrect semicolon usage",
+   "No punctuation"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 15
+ },
+ {
+  "id": "sample4-p15-2",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Text Structure and Purpose",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "political history",
+  "stem_pattern": "Choose the transition that best signals the final outcome after a long legislative effort.",
+  "reasoning_steps": [
+   "Interpret the chronology of events",
+   "Determine which connector indicates culmination",
+   "Select the word that fits the context"
+  ],
+  "distractor_types": [
+   "Contrast connector",
+   "Addition connector",
+   "Irrelevant connector",
+   "Incorrect sequencing word"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 15
+ },
+ {
+  "id": "sample4-p15-3",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Text Structure and Purpose",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science article",
+  "stem_pattern": "Select the transition that most appropriately contrasts an earlier claim with new evidence.",
+  "reasoning_steps": [
+   "Identify the preceding claim",
+   "Identify the contrasting evidence",
+   "Pick a connector that signals contrast"
+  ],
+  "distractor_types": [
+   "Addition connector",
+   "Sequence connector",
+   "Cause‑effect connector",
+   "Neutral connector"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 15
+ },
+ {
+  "id": "sample4-p15-4",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Text Structure and Purpose",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "biographical narrative",
+  "stem_pattern": "Choose the transition that adds a supporting detail about how the subject incorporated cultural elements into his work.",
+  "reasoning_steps": [
+   "Locate the statement about background",
+   "Determine the logical relation (addition)",
+   "Select a connector that signals addition"
+  ],
+  "distractor_types": [
+   "Contrast connector",
+   "Irrelevant connector",
+   "Temporal connector",
+   "Incorrect punctuation"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 15
+ },
+ {
+  "id": "sample4-p16-1",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "archaeology report",
+  "stem_pattern": "Pick the transition that best links the observed taste to the inferred purpose of the ancient dish.",
+  "reasoning_steps": [
+   "Interpret the observation",
+   "Identify the inferred purpose",
+   "Choose a connector that shows logical consequence"
+  ],
+  "distractor_types": [
+   "Contrast connector",
+   "Alternative possibility connector",
+   "Irrelevant connector",
+   "No connector"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 16
+ },
+ {
+  "id": "sample4-p16-2",
+  "section": "rw",
+  "domain": "Expression of Ideas",
+  "skill": "Rhetorical Synthesis",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science explanation",
+  "stem_pattern": "Select the sentence that most effectively highlights a contrast between two chemical leavening agents using the provided notes.",
+  "reasoning_steps": [
+   "Extract the relevant facts for each agent",
+   "Identify the differing requirement",
+   "Craft a statement that directly compares the two",
+   "Verify that only the needed information is included"
+  ],
+  "distractor_types": [
+   "General restatement without contrast",
+   "Irrelevant detail",
+   "Incorrect comparison",
+   "Incomplete synthesis"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 16
+ },
+ {
+  "id": "sample4-p17-2",
+  "section": "rw",
+  "domain": "Expression of Ideas",
+  "skill": "Rhetorical Synthesis",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "archaeology/technology description",
+  "stem_pattern": "Given notes about a historic site and a digital imaging method, choose the sentence that most effectively conveys the research to a lay audience.",
+  "reasoning_steps": [
+   "Pick the core facts about the site’s history",
+   "Select the key function of the imaging technique",
+   "Show the outcome of the technique in a concise way",
+   "Arrange the facts to flow logically for an unfamiliar reader"
+  ],
+  "distractor_types": [
+   "Focuses only on the method without site context",
+   "Emphasizes historical detail but omits the imaging result",
+   "Uses vague language that weakens the cause‑effect link",
+   "Presents information in a disjointed order"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 17
+ },
+ {
+  "id": "sample4-p18-1",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "business/economics article",
+  "stem_pattern": "A sentence describing projected market growth contains a blank; select the word that precisely conveys the analyst’s expectation.",
+  "reasoning_steps": [
+   "Interpret overall sentence meaning",
+   "Identify the required semantic relation (prediction vs denial)",
+   "Match each choice to that relation",
+   "Eliminate choices with opposite or neutral connotations"
+  ],
+  "distractor_types": [
+   "Opposite meaning (denial)",
+   "Neutral word lacking predictive force",
+   "Verb that implies concern rather than projection"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 18
+ },
+ {
+  "id": "sample4-p18-2",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "science article",
+  "stem_pattern": "A sentence about overcoming a technical obstacle contains a blank; choose the word that best expresses a successful resolution.",
+  "reasoning_steps": [
+   "Determine the sentence’s cause‑effect structure",
+   "Identify the verb that denotes solving or surmounting a problem",
+   "Test each option for grammatical fit and contextual accuracy",
+   "Select the option that conveys successful mitigation"
+  ],
+  "distractor_types": [
+   "Verb implying only description, not solution",
+   "Word suggesting failure or inability",
+   "Verb that does not match the technical context"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 18
+ },
+ {
+  "id": "sample4-p19-1",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Choose the verb that best conveys the scientists' activity of dealing with imperceptible phenomena.",
+  "reasoning_steps": [
+   "Identify the overall action described in the sentence",
+   "Determine the nuance required by the surrounding context",
+   "Match each answer choice to the intended meaning and grammatical role",
+   "Eliminate options that are semantically or syntactically mismatched"
+  ],
+  "distractor_types": [
+   "verb with related meaning but wrong nuance",
+   "verb that does not fit the scientific context",
+   "verb that creates a grammatical error"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 19
+ },
+ {
+  "id": "sample4-p19-2",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "anthropology passage",
+  "stem_pattern": "Select the phrase that accurately expresses the relationship between the fossil bones and those of modern arboreal apes.",
+  "reasoning_steps": [
+   "Interpret the comparative statement being made",
+   "Identify the intended degree of similarity",
+   "Assess each choice for comparative accuracy and grammatical fit",
+   "Discard options that imply inequality or unrelated concepts"
+  ],
+  "distractor_types": [
+   "choice suggesting superiority rather than similarity",
+   "choice indicating independence instead of comparison",
+   "choice that is grammatically incompatible"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 19
+ },
+ {
+  "id": "sample4-p19-3",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "literature passage",
+  "stem_pattern": "Pick the adjective that conveys that being a poet is unusual in the author's fictional world.",
+  "reasoning_steps": [
+   "Determine the implied rarity of the occupation",
+   "Match each adjective to the sense of exceptionality or normalcy",
+   "Check that the selected word fits syntactically",
+   "Reject options that contradict the passage's tone or meaning"
+  ],
+  "distractor_types": [
+   "adjective with a positive connotation unrelated to rarity",
+   "adjective describing a different quality (e.g., profit)",
+   "adjective that creates a logical inconsistency"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 19
+ },
+ {
+  "id": "sample4-p19-4",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "art/photography passage",
+  "stem_pattern": "Identify the verb that describes the photographer's production of new images derived from earlier posters.",
+  "reasoning_steps": [
+   "Recognize the action of generating a new series",
+   "Evaluate each verb for appropriateness to artistic creation",
+   "Confirm grammatical compatibility with the sentence structure",
+   "Eliminate verbs that imply evaluation or restoration instead of creation"
+  ],
+  "distractor_types": [
+   "verb implying validation rather than creation",
+   "verb suggesting challenge or opposition",
+   "verb indicating restoration of existing work"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 19
+ },
+ {
+  "id": "sample4-p20-2",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "historical analysis passage",
+  "stem_pattern": "Select the verb that best describes how the monarch reinforced his claim to the throne.",
+  "reasoning_steps": [
+   "Determine the action associated with strengthening legitimacy",
+   "Compare each verb to the notion of support or reinforcement",
+   "Check for proper fit within the sentence's grammatical frame",
+   "Eliminate verbs that imply removal, recording, or unrelated activity"
+  ],
+  "distractor_types": [
+   "verb indicating withdrawal or disengagement",
+   "verb suggesting annotation rather than support",
+   "verb that does not convey reinforcement"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 20
+ },
+ {
+  "id": "sample4-p21-1",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Text Structure and Purpose",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Identify the overall role of a specific sentence within the passage.",
+  "reasoning_steps": [
+   "Locate the underlined sentence",
+   "Determine its relation to preceding and following ideas",
+   "Match the function to the answer choices"
+  ],
+  "distractor_types": [
+   "Confuses descriptive detail with purpose",
+   "Selects option about later content instead of function",
+   "Chooses answer about reaction of other characters"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 21
+ },
+ {
+  "id": "sample4-p21-2",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "From the passage, determine how researchers measured the cats' level of surprise.",
+  "reasoning_steps": [
+   "Identify description of measurement method",
+   "Link observed behavior to the variable being measured",
+   "Select the choice that names that behavior"
+  ],
+  "distractor_types": [
+   "Misreads ear/head movement as overall movement",
+   "Selects option about stranger's voice",
+   "Chooses answer about spatial tracking"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 21
+ },
+ {
+  "id": "sample4-p22-1",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Choose the result that would most directly contradict the stated hypothesis.",
+  "reasoning_steps": [
+   "Recall hypothesis about acidic soil benefit",
+   "Interpret each result's implication for growth",
+   "Select the result that opposes the hypothesized advantage"
+  ],
+  "distractor_types": [
+   "Selects result that shows a different but not opposite effect",
+   "Confuses height with weight direction",
+   "Chooses outcome that affects timing rather than overall benefit"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 22
+ },
+ {
+  "id": "sample4-p22-2",
+  "section": "rw",
+  "domain": "Expression of Ideas",
+  "skill": "Rhetorical Synthesis",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "literary passage",
+  "stem_pattern": "Select the quotation that best illustrates the claim about contrast between appearance and attitude.",
+  "reasoning_steps": [
+   "Understand the analytical claim",
+   "Evaluate each quote for relevance to appearance vs attitude contrast",
+   "Pick the quote that most clearly shows the contrast"
+  ],
+  "distractor_types": [
+   "Quote focuses only on appearance",
+   "Quote describes neutral behavior without attitude contrast",
+   "Quote is vague and does not highlight the juxtaposition"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 22
+ },
+ {
+  "id": "sample4-p24-1",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Command of Evidence",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "social‑science passage",
+  "stem_pattern": "Which finding would most strongly support the hypothesis that presenting multiple perspectives is more informative than a debate format?",
+  "reasoning_steps": [
+   "identify the hypothesis",
+   "evaluate which result aligns with the hypothesis",
+   "eliminate options that measure only perceived expertise or favor other formats"
+  ],
+  "distractor_types": [
+   "focuses on perceived expertise",
+   "chooses outcome favoring debate",
+   "selects single‑source advantage"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 24
+ },
+ {
+  "id": "sample4-p24-2",
+  "section": "rw",
+  "domain": "Craft and Structure",
+  "skill": "Words in Context",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "literary passage",
+  "stem_pattern": "Which quotation best illustrates the claim about the character’s regret?",
+  "reasoning_steps": [
+   "identify the claim about regret",
+   "match the quote that expresses regret",
+   "reject quotes that address unrelated ideas"
+  ],
+  "distractor_types": [
+   "quote about different theme",
+   "misinterprets metaphor",
+   "focuses on storm imagery"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 24
+ },
+ {
+  "id": "sample4-p24-3",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "literary analysis passage",
+  "stem_pattern": "Which sentence most logically completes the paragraph about the accessibility of Shakespeare’s history plays?",
+  "reasoning_steps": [
+   "determine logical consequence of the preceding sentences",
+   "select statement that follows from the given context",
+   "discard options that are unrelated or contradictory"
+  ],
+  "distractor_types": [
+   "introduces unrelated comparison",
+   "states a personal opinion not inferred",
+   "makes a claim opposite to the context"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 24
+ },
+ {
+  "id": "sample4-p25-1",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "history passage",
+  "stem_pattern": "Given evidence linking ancient turkey remains to modern populations, choose the conclusion that logically follows from the genetic data.",
+  "reasoning_steps": [
+   "Identify the relationship described",
+   "Determine what can be inferred about movement or interaction",
+   "Select the answer that reflects that inference"
+  ],
+  "distractor_types": [
+   "introduces unrelated environmental similarity",
+   "attributes cultural practices without evidence",
+   "states reverse causation",
+   "adds unsupported adoption claim"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 25
+ },
+ {
+  "id": "sample4-p25-2",
+  "section": "rw",
+  "domain": "Information and Ideas",
+  "skill": "Inferences",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "social‑science passage",
+  "stem_pattern": "Based on a description of control‑group challenges in political research, select the statement that best completes the argument about feasibility.",
+  "reasoning_steps": [
+   "Recognize the need for comparable non‑office‑holders",
+   "Identify the obstacle described",
+   "Choose the option that restates the difficulty"
+  ],
+  "distractor_types": [
+   "suggests data‑availability issue unrelated to control selection",
+   "proposes a reversed time frame",
+   "advocates using a dissimilar control group",
+   "offers an implausible solution"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 25
+ },
+ {
+  "id": "sample4-p25-3",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Form, Structure, and Sense",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "single‑sentence academic excerpt",
+  "stem_pattern": "Choose the grammatically correct phrase to complete a sentence describing the sources used in a book.",
+  "reasoning_steps": [
+   "Identify singular vs plural noun",
+   "Match verb agreement",
+   "Apply correct possessive form"
+  ],
+  "distractor_types": [
+   "incorrect pluralization",
+   "misplaced apostrophe",
+   "wrong possessive construction",
+   "extraneous punctuation"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 25
+ },
+ {
+  "id": "sample4-p26-1",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Form, Structure, and Sense",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "single‑sentence artistic description",
+  "stem_pattern": "Select the proper punctuation to follow a phrase introducing themes in an artist's work.",
+  "reasoning_steps": [
+   "Determine the function of the introductory phrase",
+   "Choose punctuation that signals continuation or list"
+  ],
+  "distractor_types": [
+   "comma without needed pause",
+   "dash used incorrectly",
+   "colon used when not introducing list",
+   "no punctuation"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 26
+ },
+ {
+  "id": "sample4-p26-2",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Form, Structure, and Sense",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "single‑sentence business description",
+  "stem_pattern": "Pick the correct way to combine a noun with a relative clause describing a company.",
+  "reasoning_steps": [
+   "Identify the relative clause needed",
+   "Select punctuation that joins the clause correctly"
+  ],
+  "distractor_types": [
+   "comma splice",
+   "unnecessary relative pronoun",
+   "missing relative pronoun",
+   "extraneous comma"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 26
+ },
+ {
+  "id": "sample4-p26-3",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Form, Structure, and Sense",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "single‑sentence scientific finding",
+  "stem_pattern": "Choose the correct formatting for a chemical name followed by its abbreviation within a sentence.",
+  "reasoning_steps": [
+   "Place the chemical name before abbreviation",
+   "Use parentheses correctly",
+   "Decide on required commas"
+  ],
+  "distractor_types": [
+   "comma before abbreviation when not needed",
+   "missing parentheses",
+   "extra comma after abbreviation",
+   "incorrect order of terms"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 26
+ },
+ {
+  "id": "sample4-p26-4",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Form, Structure, and Sense",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "single‑sentence archaeological report",
+  "stem_pattern": "Select the punctuation that properly separates two independent clauses describing a discovery.",
+  "reasoning_steps": [
+   "Identify two complete ideas",
+   "Choose appropriate coordinating punctuation"
+  ],
+  "distractor_types": [
+   "run‑on sentence without punctuation",
+   "semicolon used incorrectly",
+   "comma splice",
+   "period placed mid‑clause"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 26
+ },
+ {
+  "id": "sample4-p27-1",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Boundaries",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science article",
+  "stem_pattern": "Choose the verb form that correctly completes a sentence about reprogramming a molecular tool.",
+  "reasoning_steps": [
+   "Determine the part of speech required",
+   "Match verb tense with surrounding narrative",
+   "Verify subject‑verb agreement"
+  ],
+  "distractor_types": [
+   "Gerund used where infinitive needed",
+   "Past‑tense verb instead of present",
+   "Unnecessary conjunction"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 27
+ },
+ {
+  "id": "sample4-p27-2",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Boundaries",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "environmental engineering report",
+  "stem_pattern": "Select the wording that properly finishes a sentence describing how vegetated channels reduce runoff effects.",
+  "reasoning_steps": [
+   "Identify the main action of the subject",
+   "Choose a structure that places the verb correctly",
+   "Ensure parallelism of listed outcomes"
+  ],
+  "distractor_types": [
+   "Misplaced modifier",
+   "Incorrect verb‑subject order",
+   "Awkward passive construction"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 27
+ },
+ {
+  "id": "sample4-p27-3",
+  "section": "rw",
+  "domain": "Standard English Conventions",
+  "skill": "Boundaries",
+  "difficulty": "hard",
+  "answer_type": "mcq",
+  "passage_genre": "geology research summary",
+  "stem_pattern": "Pick the punctuation and capitalization that correctly joins two related clauses about continental geological structures.",
+  "reasoning_steps": [
+   "Determine relationship between clauses",
+   "Select appropriate punctuation (colon, semicolon, period)",
+   "Capitalize the second clause correctly"
+  ],
+  "distractor_types": [
+   "Comma splice",
+   "Incorrect use of colon versus semicolon",
+   "Missing capitalization"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 27
+ },
+ {
+  "id": "sample4-p28-1",
+  "section": "rw",
+  "domain": "Expression of Ideas",
+  "skill": "Transitions",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "technology news brief",
+  "stem_pattern": "Choose the transition that logically links a failure description with a subsequent apology statement.",
+  "reasoning_steps": [
+   "Interpret cause‑effect relationship",
+   "Match transition to logical sequence",
+   "Eliminate transitions that imply similarity or addition"
+  ],
+  "distractor_types": [
+   "Transition implying addition",
+   "Transition implying similarity",
+   "Transition indicating contrast"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 28
+ },
+ {
+  "id": "sample4-p28-2",
+  "section": "rw",
+  "domain": "Expression of Ideas",
+  "skill": "Transitions",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "environmental science description",
+  "stem_pattern": "Select the transition that best connects a statement about contaminant removal with an explanation of a plant‑based remediation method.",
+  "reasoning_steps": [
+   "Identify cause‑effect flow",
+   "Pick a transition that signals illustration or example",
+   "Discard transitions that signal contrast or sequence"
+  ],
+  "distractor_types": [
+   "Transition suggesting contrast",
+   "Transition indicating chronology",
+   "Transition implying addition"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 28
+ },
+ {
+  "id": "sample4-p28-3",
+  "section": "rw",
+  "domain": "Expression of Ideas",
+  "skill": "Rhetorical Synthesis",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "instructional compilation",
+  "stem_pattern": "Identify the choice that most effectively weaves the supplied information into a clear illustration of a benefit offered by a different temporal framework.",
+  "reasoning_steps": [
+   "Locate the pertinent detail within the supplied material",
+   "Merge those details into a single cohesive assertion about regularity",
+   "Judge each option for how directly and succinctly it reflects that assertion"
+  ],
+  "distractor_types": [
+   "Provides a parallel that does not address the central advantage",
+   "Offers a vague claim that lacks supporting evidence",
+   "Echoes the source material without creating a new integrated explanation"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 28
+ },
+ {
+  "id": "sample4-p29-2",
+  "section": "rw",
+  "domain": "Expression of Ideas",
+  "skill": "Rhetorical Synthesis",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Given a set of notes containing comparative data, select the sentence that best emphasizes the requested relationship (e.g., relative hotness) using the provided numbers.",
+  "reasoning_steps": [
+   "Determine the comparative relationship the question asks to highlight",
+   "Extract the relevant quantitative or categorical data from the notes",
+   "Select the option that correctly states the relationship using those data",
+   "Reject options that misstate the direction, omit the comparison, or introduce incorrect values"
+  ],
+  "distractor_types": [
+   "Misstates the direction of the comparison",
+   "Omits the comparative element entirely",
+   "Uses incorrect numbers or classifications from the notes",
+   "Adds irrelevant detail about unrelated stars",
+   "States a fact that is true but does not address the emphasis requested"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 29
+ },
+ {
+  "id": "sample4-p30-2",
+  "section": "rw",
+  "domain": "Expression of Ideas",
+  "skill": "Rhetorical Synthesis",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": "science passage",
+  "stem_pattern": "Given notes describing two distinct methods or behaviors, select the sentence that best highlights a similarity between them.",
+  "reasoning_steps": [
+   "Identify the two methods or behaviors described in the notes",
+   "Determine what attribute they share (e.g., both lack a certain action)",
+   "Choose the option that explicitly states that shared attribute",
+   "Eliminate choices that describe only one method, note a difference, or introduce unrelated information"
+  ],
+  "distractor_types": [
+   "Describes only one of the two methods",
+   "Highlights a difference rather than a similarity",
+   "Adds irrelevant detail about appearance or habitat",
+   "States a similarity that is not supported by the notes",
+   "Combines correct and incorrect elements causing confusion"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 30
+ },
+ {
+  "id": "sample4-p34-1",
+  "section": "math",
+  "domain": "Problem-Solving and Data Analysis",
+  "skill": "Two-variable data: models and scatterplots",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": "graph",
+  "stem_pattern": "Given a bar graph of counts for several categories, select the count associated with a specified category.",
+  "reasoning_steps": [
+   "Locate the label for the target category on the horizontal axis",
+   "Read the corresponding bar height using the vertical scale",
+   "Convert the visual height to the numeric count"
+  ],
+  "distractor_types": [
+   "misreading the scale",
+   "choosing the count for an adjacent category",
+   "off‑by‑a‑constant error"
+  ],
+  "needs_visual": true,
+  "visual_kind": "bar_chart",
+  "source_tag": "sample4",
+  "page": 34
+ },
+ {
+  "id": "sample4-p34-2",
+  "section": "math",
+  "domain": "Problem-Solving and Data Analysis",
+  "skill": "Percentages",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Determine what percent a given part represents of a given whole number.",
+  "reasoning_steps": [
+   "Divide the part by the whole",
+   "Multiply the quotient by 100"
+  ],
+  "distractor_types": [
+   "swapped numerator and denominator",
+   "multiplied instead of divided",
+   "incorrect scaling of the result"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 34
+ },
+ {
+  "id": "sample4-p34-3",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in one variable",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Solve a simple linear equation containing one variable and a constant coefficient.",
+  "reasoning_steps": [
+   "Isolate the variable by dividing both sides by the coefficient"
+  ],
+  "distractor_types": [
+   "multiplied instead of divided",
+   "added or subtracted the constant incorrectly",
+   "sign error"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 34
+ },
+ {
+  "id": "sample4-p34-4",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in one variable",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Translate a verbal statement involving multiplication and addition into an algebraic equation.",
+  "reasoning_steps": [
+   "Identify the multiplicative phrase and write it as a product term",
+   "Interpret the ‘more than’ phrase as an addition",
+   "Set the resulting expression equal to the stated total"
+  ],
+  "distractor_types": [
+   "placing the additive constant on the wrong side",
+   "reversing the order of operations",
+   "using incorrect coefficients"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 34
+ },
+ {
+  "id": "sample4-p35-1",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear functions",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given a linear function for a bank balance, identify what the coefficient of the month variable represents.",
+  "reasoning_steps": [
+   "recognize the coefficient as the slope",
+   "interpret slope as amount added each period"
+  ],
+  "distractor_types": [
+   "confuse slope with initial balance",
+   "think coefficient is total number of deposits",
+   "mistake coefficient for a fixed dollar amount"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 35
+ },
+ {
+  "id": "sample4-p35-2",
+  "section": "math",
+  "domain": "Problem-Solving and Data Analysis",
+  "skill": "Ratios, rates, proportional relationships, and units",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Total cost and price per pound are given; determine the weight purchased.",
+  "reasoning_steps": [
+   "divide total cost by unit price"
+  ],
+  "distractor_types": [
+   "multiply instead of divide",
+   "use wrong unit price",
+   "off‑by‑one error"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 35
+ },
+ {
+  "id": "sample4-p35-3",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in one variable",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Number of identical items, total cost after a fixed discount, and discount amount are known; find original unit price.",
+  "reasoning_steps": [
+   "set up equation total = n·price – discount",
+   "solve for price"
+  ],
+  "distractor_types": [
+   "add discount instead of subtracting",
+   "divide discount by number of items",
+   "treat discounted total as original price"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 35
+ },
+ {
+  "id": "sample4-p35-4",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear functions",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "A table lists three (x, f(x)) pairs for a linear function; choose the correct formula.",
+  "reasoning_steps": [
+   "compute slope from two points",
+   "determine y‑intercept",
+   "write equation in slope‑intercept form"
+  ],
+  "distractor_types": [
+   "swap slope and intercept",
+   "use a non‑corresponding point",
+   "assume coefficient equals a y‑value"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 35
+ },
+ {
+  "id": "sample4-p35-5",
+  "section": "math",
+  "domain": "Geometry and Trigonometry",
+  "skill": "Lines, angles, and triangles",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Two similar right triangles are shown; a non‑right angle in one triangle is given; find the corresponding angle in the other.",
+  "reasoning_steps": [
+   "recognize corresponding angles are equal in similar triangles"
+  ],
+  "distractor_types": [
+   "add angles together",
+   "subtract from 180°",
+   "choose a non‑corresponding angle"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 35
+ },
+ {
+  "id": "sample4-p36-1",
+  "section": "math",
+  "domain": "Problem-Solving and Data Analysis",
+  "skill": "Two-variable data: models and scatterplots",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "A scatterplot of (x, y) points is shown; select the linear equation that best fits the displayed trend.",
+  "reasoning_steps": [
+   "estimate slope direction and magnitude",
+   "approximate y‑intercept from graph",
+   "match estimated parameters to options"
+  ],
+  "distractor_types": [
+   "incorrect sign on slope",
+   "swap slope and intercept values",
+   "use overly large or small coefficient"
+  ],
+  "needs_visual": true,
+  "visual_kind": "scatter_with_line",
+  "source_tag": "sample4",
+  "page": 36
+ },
+ {
+  "id": "sample4-p36-2",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in two variables",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "A linear relation between birds and reptiles is given; the number of reptiles is specified; find the number of birds.",
+  "reasoning_steps": [
+   "substitute given value",
+   "solve the resulting one‑variable linear equation"
+  ],
+  "distractor_types": [
+   "divide instead of subtracting",
+   "ignore coefficient on birds",
+   "mistake zero for correct answer"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 36
+ },
+ {
+  "id": "sample4-p36-3",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear functions",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "A line is graphed; choose the algebraic equation that represents it.",
+  "reasoning_steps": [
+   "determine slope from rise over run",
+   "identify y‑intercept",
+   "write equation in y = mx + b form"
+  ],
+  "distractor_types": [
+   "sign error on slope",
+   "sign error on intercept",
+   "confuse y‑intercept with x‑intercept"
+  ],
+  "needs_visual": true,
+  "visual_kind": "function_graph",
+  "source_tag": "sample4",
+  "page": 36
+ },
+ {
+  "id": "sample4-p36-4",
+  "section": "math",
+  "domain": "Advanced Math",
+  "skill": "Nonlinear functions",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given a rational exponent value, evaluate the corresponding power expression.",
+  "reasoning_steps": [
+   "rewrite rational exponent as root and power",
+   "compute the resulting value"
+  ],
+  "distractor_types": [
+   "invert exponent",
+   "treat exponent as denominator only",
+   "round prematurely"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 36
+ },
+ {
+  "id": "sample4-p37-1",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in two variables",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given a line's slope and a point, choose the correct linear equation in standard form.",
+  "reasoning_steps": [
+   "Apply point‑slope formula to find intercept",
+   "Convert to desired form",
+   "Match coefficients to options"
+  ],
+  "distractor_types": [
+   "sign error on slope",
+   "incorrect intercept calculation",
+   "swapped x and y terms"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 37
+ },
+ {
+  "id": "sample4-p37-2",
+  "section": "math",
+  "domain": "Problem-Solving and Data Analysis",
+  "skill": "Ratios, rates, proportional relationships, and units",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Interpret what a specific function value represents in a yearly growth model.",
+  "reasoning_steps": [
+   "Identify base year and exponent meaning",
+   "Compute the modeled value for the given year",
+   "Translate the numeric result into a real‑world statement"
+  ],
+  "distractor_types": [
+   "treating change as additive instead of multiplicative",
+   "confusing exponent with a linear increase",
+   "misreading the year associated with the input"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 37
+ },
+ {
+  "id": "sample4-p37-3",
+  "section": "math",
+  "domain": "Problem-Solving and Data Analysis",
+  "skill": "Ratios, rates, proportional relationships, and units",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "When the width of a rectangle increases, determine how the length must change to keep a fixed length‑to‑width ratio.",
+  "reasoning_steps": [
+   "Set up proportion using original ratio",
+   "Add the width increase to the variable width",
+   "Solve for the required change in length"
+  ],
+  "distractor_types": [
+   "reversing the ratio",
+   "adding instead of subtracting the change",
+   "ignoring the proportional relationship"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 37
+ },
+ {
+  "id": "sample4-p38-1",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in two variables",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Isolate one variable in a linear equation that involves three distinct variables.",
+  "reasoning_steps": [
+   "Collect terms containing the target variable",
+   "Factor the target variable if necessary",
+   "Divide by the coefficient to solve for the variable"
+  ],
+  "distractor_types": [
+   "sign mistake when moving terms",
+   "dividing by the wrong coefficient",
+   "leaving a term on the wrong side of the equation"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 38
+ },
+ {
+  "id": "sample4-p38-2",
+  "section": "math",
+  "domain": "Geometry and Trigonometry",
+  "skill": "Circles",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Convert a given arc measure to the measure of its central angle.",
+  "reasoning_steps": [
+   "Recall that central angle measure equals its intercepted arc measure",
+   "Directly equate the two measures"
+  ],
+  "distractor_types": [
+   "halving the arc measure",
+   "doubling the arc measure",
+   "confusing with an inscribed angle"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 38
+ },
+ {
+  "id": "sample4-p38-3",
+  "section": "math",
+  "domain": "Advanced Math",
+  "skill": "Equivalent expressions",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Simplify a product of powers into a single power and identify the sum of the resulting coefficient and exponent.",
+  "reasoning_steps": [
+   "Apply exponent rules to combine bases",
+   "Combine numerical coefficients",
+   "Match the simplified form to the template a·x^b"
+  ],
+  "distractor_types": [
+   "adding exponents instead of multiplying bases",
+   "dropping the coefficient when combining",
+   "misidentifying which term is the coefficient"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 38
+ },
+ {
+  "id": "sample4-p38-4",
+  "section": "math",
+  "domain": "Geometry and Trigonometry",
+  "skill": "Lines, angles, and triangles",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Calculate the area of a right triangle given the lengths of its two legs.",
+  "reasoning_steps": [
+   "Identify the two legs that are perpendicular",
+   "Multiply the leg lengths",
+   "Multiply the product by one‑half"
+  ],
+  "distractor_types": [
+   "using the hypotenuse as a leg",
+   "omitting the one‑half factor",
+   "squaring a leg instead of multiplying"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 38
+ },
+ {
+  "id": "sample4-p38-5",
+  "section": "math",
+  "domain": "Advanced Math",
+  "skill": "Nonlinear equations in one variable and systems of equations in two variables",
+  "difficulty": "hard",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Factor a quadratic with a parameter and determine which derived expression must be an integer.",
+  "reasoning_steps": [
+   "Set up factor pairs matching the constant term",
+   "Use integer constraints on the parameters",
+   "Identify the expression that is forced to be integral by the factorization"
+  ],
+  "distractor_types": [
+   "assuming the wrong parameter is integral",
+   "ignoring the integer requirement for the constant term",
+   "misapplying Vieta’s relations"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 38
+ },
+ {
+  "id": "sample4-p39-1",
+  "section": "math",
+  "domain": "Advanced Math",
+  "skill": "Nonlinear equations in one variable and systems of equations in two variables",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given two algebraic expressions, one of higher degree and one of first degree, that share exactly one solution, determine the variable value at that solution.",
+  "reasoning_steps": [
+   "Insert the expression from the simpler relation into the more complex one",
+   "Obtain an equation involving only a single variable",
+   "Apply the criterion that guarantees a single solution",
+   "Extract the variable's value"
+  ],
+  "distractor_types": [
+   "incorrect handling of sign during substitution",
+   "failure to enforce the single-solution criterion",
+   "choosing a solution that does not satisfy the original condition",
+   "error in simplifying the resulting expression"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 39
+ },
+ {
+  "id": "sample4-p39-2",
+  "section": "math",
+  "domain": "Geometry and Trigonometry",
+  "skill": "Right triangles and trigonometry",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given the length of the hypotenuse of an isosceles right triangle, determine its perimeter.",
+  "reasoning_steps": [
+   "Recall that legs are equal and each leg is hypotenuse divided by √2",
+   "Compute leg length",
+   "Add the three sides"
+  ],
+  "distractor_types": [
+   "confusing leg‑hypotenuse relationship",
+   "omitting √2 factor",
+   "adding only two sides"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 39
+ },
+ {
+  "id": "sample4-p39-3",
+  "section": "math",
+  "domain": "Advanced Math",
+  "skill": "Nonlinear equations in one variable and systems of equations in two variables",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "A parabola with a known vertex and two x‑intercepts is expressed in standard form; identify a possible value of the sum of its coefficients.",
+  "reasoning_steps": [
+   "Convert vertex form to standard form",
+   "Express a, b, c in terms of vertex coordinates and x‑intercepts",
+   "Compute a + b + c and test sign constraints"
+  ],
+  "distractor_types": [
+   "incorrect sign when expanding",
+   "using wrong intercept values",
+   "miscalculating constant term"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 39
+ },
+ {
+  "id": "sample4-p39-4",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear functions",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "For a linear function f(x)=‑a x + b, a horizontal shift produces a graph with a specified y‑intercept; given a · b, find a.",
+  "reasoning_steps": [
+   "Apply the horizontal shift to the function expression",
+   "Set x = 0 to obtain the y‑intercept value",
+   "Use the product a · b to relate a and b",
+   "Solve the resulting linear equations"
+  ],
+  "distractor_types": [
+   "mixing up shift direction",
+   "sign error in the intercept equation",
+   "solving for b instead of a",
+   "ignoring the product condition"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 39
+ },
+ {
+  "id": "sample4-p42-1",
+  "section": "math",
+  "domain": "Problem-Solving and Data Analysis",
+  "skill": "Two-variable data: models and scatterplots",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given a line graph showing a quantity over time, identify the time point with the highest value.",
+  "reasoning_steps": [
+   "Read the axes to understand variables",
+   "Locate the point where the plotted line reaches its maximum",
+   "Read the corresponding time label",
+   "Select that choice"
+  ],
+  "distractor_types": [
+   "Selects a year near the peak but not the highest",
+   "Misinterprets axis direction or scale",
+   "Assumes monotonic increase without checking the graph"
+  ],
+  "needs_visual": true,
+  "visual_kind": "scatter_with_line",
+  "source_tag": "sample4",
+  "page": 42
+ },
+ {
+  "id": "sample4-p42-2",
+  "section": "math",
+  "domain": "Problem-Solving and Data Analysis",
+  "skill": "Ratios, rates, proportional relationships, and units",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Convert a distance given in yards to miles using a provided conversion factor.",
+  "reasoning_steps": [
+   "Identify the conversion factor between yards and miles",
+   "Divide the yard measurement by the factor",
+   "Simplify or round the result as needed"
+  ],
+  "distractor_types": [
+   "Multiplies instead of dividing",
+   "Uses an incorrect conversion factor",
+   "Rounds incorrectly or adds extra digits"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 42
+ },
+ {
+  "id": "sample4-p42-3",
+  "section": "math",
+  "domain": "Advanced Math",
+  "skill": "Equivalent expressions",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Find an equivalent form of a polynomial expression by applying exponent and coefficient rules.",
+  "reasoning_steps": [
+   "Apply exponent multiplication to combine like bases",
+   "Combine coefficients as appropriate",
+   "Rewrite the expression in simplest form"
+  ],
+  "distractor_types": [
+   "Incorrectly adds exponents instead of multiplying",
+   "Changes sign of a term",
+   "Leaves a coefficient unchanged when it should be combined"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 42
+ },
+ {
+  "id": "sample4-p42-4",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Systems of two linear equations in two variables",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Solve a simultaneous linear system given with fractional coefficients to find the integer ordered pair.",
+  "reasoning_steps": [
+   "Clear fractions by multiplying each equation by a common denominator",
+   "Isolate one variable in one equation",
+   "Substitute into the other equation",
+   "Solve for the remaining variable and back‑substitute"
+  ],
+  "distractor_types": [
+   "Arithmetic slip when clearing fractions",
+   "Sign error when moving terms",
+   "Confuses which variable corresponds to which coordinate"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 42
+ },
+ {
+  "id": "sample4-p45-1",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in two variables",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given a relationship that one quantity equals three times another and a difference of fifteen thousand between them, find the smaller quantity.",
+  "reasoning_steps": [
+   "Translate the verbal statements into algebraic equations",
+   "Set up a system of two linear equations",
+   "Solve the system for the unknown",
+   "Verify that the solution satisfies both original statements"
+  ],
+  "distractor_types": [
+   "Swapped the larger and smaller quantities",
+   "Ignored the multiplier factor",
+   "Mis‑computed the difference",
+   "Off‑by‑a‑factor arithmetic error"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 45
+ },
+ {
+  "id": "sample4-p45-2",
+  "section": "math",
+  "domain": "Geometry and Trigonometry",
+  "skill": "Lines, angles, and triangles",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "With parallel lines and algebraic expressions for two intersecting angles, determine the third angle value using the given relationships.",
+  "reasoning_steps": [
+   "Identify the relevant parallel‑line angle relationships",
+   "Substitute the given expressions for the known angles",
+   "Form an equation linking the three angle variables",
+   "Solve for the unknown angle"
+  ],
+  "distractor_types": [
+   "Sign error when substituting expressions",
+   "Confusing which angle corresponds to which expression",
+   "Simple arithmetic mistake in solving the equation"
+  ],
+  "needs_visual": true,
+  "visual_kind": "geometry",
+  "source_tag": "sample4",
+  "page": 45
+ },
+ {
+  "id": "sample4-p45-3",
+  "section": "math",
+  "domain": "Algebra",
+  "skill": "Linear equations in one variable",
+  "difficulty": "easy",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "A linear equation contains a parameter multiplying the variable term; find the parameter that makes the equation have no solution.",
+  "reasoning_steps": [
+   "Factor the coefficient of the variable term",
+   "Recognize that an equation has no solution when the variable coefficient is zero while the constant term is non‑zero",
+   "Set the coefficient equal to zero and solve for the parameter"
+  ],
+  "distractor_types": [
+   "Solving for the variable instead of the parameter",
+   "Setting the constant term to zero rather than the coefficient",
+   "Arithmetic slip in isolating the parameter"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 45
+ },
+ {
+  "id": "sample4-p45-4",
+  "section": "math",
+  "domain": "Advanced Math",
+  "skill": "Nonlinear functions",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given a quadratic expressed as a product of two linear factors, locate the x‑value where the function attains its minimum.",
+  "reasoning_steps": [
+   "Recognize the function as a upward‑opening parabola",
+   "Recall that the vertex lies midway between the roots",
+   "Compute the average of the root values",
+   "Select the corresponding x‑coordinate"
+  ],
+  "distractor_types": [
+   "Choosing one of the root values instead of the midpoint",
+   "Incorrect averaging of the roots",
+   "Sign error in the computed midpoint"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 45
+ },
+ {
+  "id": "sample4-p46-2",
+  "section": "math",
+  "domain": "Geometry and Trigonometry",
+  "skill": "Right triangles and trigonometry",
+  "difficulty": "medium",
+  "answer_type": "mcq",
+  "passage_genre": null,
+  "stem_pattern": "Given the cosine of one acute angle in a right triangle, determine the cosine of the other acute angle.",
+  "reasoning_steps": [
+   "Use the fact that the two acute angles sum to 90°",
+   "Apply the identity cos θ = sin(90° − θ)",
+   "Convert the known cosine to the complementary sine value",
+   "Select the resulting cosine value"
+  ],
+  "distractor_types": [
+   "Treating the two angles as equal",
+   "Using a reciprocal or reciprocal‑square‑root relationship",
+   "Applying the Pythagorean identity incorrectly"
+  ],
+  "needs_visual": false,
+  "visual_kind": null,
+  "source_tag": "sample4",
+  "page": 46
+ }
+]
