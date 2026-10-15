@@ -1,7 +1,7 @@
 import unittest
 
 from scripts.backfill_v110_skill_fields import (
-    build_updates, check_support, estimate, missing_fields, pick_source_language, translation_stub, unresolved, valid_order,
+    build_updates, check_support, estimate, missing_fields, pick_source_language, outcome, summarize, translation_stub, unresolved, valid_order,
 )
 
 FULL = {
@@ -65,6 +65,15 @@ class BackfillPureTests(unittest.TestCase):
         gaps = {"root": ["strongest_distractor_index", "option_difficulty_order"], "locales": {"tr": ["hint", "keyword"]}}
         updates = {("strongest_distractor_index",): 2, ("translations", "tr", "hint"): "x"}
         self.assertEqual(unresolved(gaps, updates), 1)
+
+    def test_outcome_and_summary_account_for_every_doc(self):
+        gaps = {"root": ["strongest_distractor_index"], "locales": {"tr": ["hint"]}}
+        full = {("strongest_distractor_index",): 2, ("translations", "tr", "hint"): "x"}
+        self.assertEqual(outcome(gaps, full), "complete")
+        self.assertEqual(outcome(gaps, {("strongest_distractor_index",): 2}), "partial")
+        self.assertEqual(outcome(gaps, {}), "unfilled")
+        results = {"a": "written", "b": "skipped: not attempted", "c": "skipped: ValueError: x", "d": "complete(no change)"}
+        self.assertEqual(summarize(results), {"written": 1, "skipped": 2, "complete(no change)": 1})
 
 
 if __name__ == "__main__":

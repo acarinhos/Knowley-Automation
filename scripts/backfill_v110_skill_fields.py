@@ -128,6 +128,13 @@ def unresolved(gaps: Mapping[str, Any], updates: Mapping[tuple, Any]) -> int:
     return len(wanted - set(updates))
 
 
+def outcome(gaps: Mapping[str, Any], updates: Mapping[tuple, Any]) -> str:
+    """'complete' (all gaps filled, mark done), 'partial' (some written, retry later) or 'unfilled'."""
+    if unresolved(gaps, updates) == 0:
+        return "complete"
+    return "partial" if updates else "unfilled"
+
+
 def generation_prompt(data: Mapping[str, Any], language: str, content: Mapping[str, Any]) -> str:
     opts = content["options"]
     fixed = {k: data.get(k) for k in ROOT_FIELDS[:2] if data.get(k) is not None}
@@ -224,6 +231,15 @@ def source_chars(data: Mapping[str, Any]) -> int:
     return len(str(content.get("question", ""))) + len(str(content.get("explanation", ""))) + sum(len(str(v)) for v in options.values())
 
 
+def summarize(results: Mapping[str, str]) -> Dict[str, int]:
+    """Per-doc outcome counts; every processed doc lands in exactly one bucket."""
+    counts: Dict[str, int] = {}
+    for state in results.values():
+        key = "skipped" if state.startswith("skipped") else state
+        counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
 def estimate(plans: List[Mapping[str, Any]], datas: Optional[List[Mapping[str, Any]]] = None,
              azure_chars_per_minute: int = 30_000, workers: int = 4, seconds_per_call: float = 8.0) -> Dict[str, Any]:
     chars = sum(source_chars(d) * max(0, len(g["locales"]) - 1) for g, d in zip(plans, datas or [])) if datas else 0
@@ -293,15 +309,15 @@ def main() -> int:
     from core.llm_manager import AllProvidersCoolingDown, get_llm_manager
 
     manager = get_llm_manager()
-    written = failed = 0
+    written = 0
+    results: Dict[str, str] = {}  # doc id -> "written", "complete(no change)" or "skipped: <reason>"
     done_now = set(done)
     stop = False
     chunk = workers * 2
 
     def work(item):
         sid, snap, gaps = item
-        updates = process_doc(snap.to_dict() or {}, manager)
-        return sid, snap, gaps, updates
+        return sid, snap, gaps, process_doc(snap.to_dict() or {}, manager)
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
         for start in range(0, len(todo), chunk):
@@ -316,20 +332,26 @@ def main() -> int:
                         payload = {get_field_path(list(path)): value for path, value in updates.items()}
                         snap.reference.update(payload, option=LastUpdateOption(snap.update_time))
                         written += 1
-                    if unresolved(gaps, updates) == 0:
+                    state = outcome(gaps, updates)
+                    if state == "complete":
                         done_now.add(sid)
+                        results[sid] = "written" if updates else "complete(no change)"
                     else:
-                        failed += 1
-                        logger.warning("Partially filled %s; it will be retried on --resume", sid)
+                        results[sid] = f"skipped: {state}, {unresolved(gaps, updates)} gap(s) left" + (" (partial write kept)" if updates else "")
                 except AllProvidersCoolingDown as exc:
                     stop = True
-                    logger.warning("Providers cooling down; stopping so the run can be resumed: %s", exc)
-                except Exception as exc:  # provider/validation errors never mark a doc done
-                    failed += 1
-                    logger.warning("Skipped %s: %s", sid, str(exc)[:200])
+                    results[sid] = f"skipped: providers cooling down ({str(exc)[:80]})"
+                except BaseException as exc:  # provider/validation/Firestore errors never mark a doc done
+                    results[sid] = f"skipped: {type(exc).__name__}: {str(exc)[:120]}"
             PROGRESS_FILE.write_text(json.dumps(sorted(done_now)), encoding="utf-8")
-    logger.info("Updated %d docs; failed/skipped %d; progress file %s", written, failed, PROGRESS_FILE)
-    return 0 if not failed else 1
+    for sid, _snap, _gaps in todo:
+        results.setdefault(sid, "skipped: not attempted (run stopped early)")
+    for sid, state in results.items():
+        if state.startswith("skipped"):
+            logger.warning("%s -> %s", sid, state)
+    counts = summarize(results)
+    logger.info("Of %d docs: %s; written %d; progress file %s", len(todo), counts, written, PROGRESS_FILE)
+    return 0 if counts.get("skipped", 0) == 0 else 1
 
 
 if __name__ == "__main__":
