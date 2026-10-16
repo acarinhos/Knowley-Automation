@@ -122,3 +122,16 @@ class ResetIndicesTests(unittest.TestCase):
 
         gaps = missing_fields({"weakest_distractor_index": None, "strongest_distractor_index": None, "option_difficulty_order": None, "translations": {}})
         self.assertEqual(gaps["root"], ["weakest_distractor_index", "strongest_distractor_index", "option_difficulty_order"])
+
+
+class DeactivateDefectsTests(unittest.TestCase):
+    def test_reason_priority_and_mismatch_exclusion(self):
+        from scripts.fix_question_defects import defect_reason, deactivation_update
+
+        self.assertEqual(defect_reason(["empty_or_tiny_option", "duplicate_options"]), "defect_duplicate_options")
+        self.assertEqual(defect_reason(["incomplete_explanation"]), "defect_incomplete_explanation")
+        self.assertEqual(defect_reason(["manual_review"]), "defect_manual_review")
+        self.assertIsNone(defect_reason(["locale_option_order_mismatch"]))
+        self.assertIsNone(defect_reason(["locale_option_order_mismatch", "empty_or_tiny_option"]))
+        self.assertIsNone(defect_reason([]))
+        self.assertEqual(deactivation_update("T", "defect_x"), {"is_active": False, "deactivated_reason": "defect_x", "deactivated_at": "T"})

@@ -345,6 +345,7 @@ def main() -> int:
     parser.add_argument("--export-pending", metavar="DIR", help="Write pending docs as chunk_NNN.json (read-only on Firestore).")
     parser.add_argument("--chunk-size", type=int, default=25)
     parser.add_argument("--import-results", metavar="DIR", help="Validate (and with --apply write) result_NNN.json files.")
+    parser.add_argument("--exclude-file", metavar="JSON", help="JSON list of doc ids to leave out (e.g. docs about to be deactivated).")
     parser.add_argument("--resume", action="store_true", help="Skip documents listed in the progress file.")
     args = parser.parse_args()
     if args.apply and args.project_id != "knowley-1":
@@ -372,6 +373,8 @@ def main() -> int:
     no_en = [sid for sid, snap, _ in todo if not usable_en(((snap.to_dict() or {}).get("translations") or {}).get(TARGET_LOCALE))]
     if no_en:
         logger.warning("%d docs have no usable en translation and are skipped (e.g. %s)", len(no_en), ", ".join(no_en[:3]))
+    excluded = set(json.loads(Path(args.exclude_file).read_text(encoding="utf-8"))) if args.exclude_file else set()
+    todo = [t for t in todo if (t[1].to_dict() or {}).get("is_active") is not False and t[0] not in excluded]
     todo = [t for t in todo if t[0] not in set(no_en) and (t[2]["root"] or t[2]["locales"])]
     if args.limit > 0:
         todo = todo[: args.limit]

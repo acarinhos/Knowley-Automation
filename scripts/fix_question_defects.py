@@ -5,6 +5,7 @@ Modes (exactly one):
   --import-rewrites DIR      validate result_NNN.json and rewrite ONLY the defective option fields
   --export-retranslate DIR   read-only: chunks asking for the 4 options of broken NON-en locales to be re-translated from en
   --import-retranslate DIR   validate result_NNN.json and rewrite translations.<locale>.options (merge-only)
+  --deactivate-defects       is_active=false (reason defect_<type>) for still-defective ACTIVE questions (not order mismatches)
   --fix-order                reorder a locale's options to the `en` positions when that is unambiguous
   --deactivate-suspects      is_active=false (+ deactivated_reason/at) for local_backups/skipped_suspect_answers.json
   --reactivate FILE          undo --deactivate-suspects from its backup file
@@ -244,8 +245,23 @@ with all four letters per listed locale. Output valid JSON only. Records you can
 """
 
 
-def deactivation_update(now: Any) -> Dict[str, Any]:
-    return {"is_active": False, "deactivated_reason": "suspect_answer_key", "deactivated_at": now}
+def deactivation_update(now: Any, reason: str = "suspect_answer_key") -> Dict[str, Any]:
+    return {"is_active": False, "deactivated_reason": reason, "deactivated_at": now}
+
+
+DEFECT_PRIORITY = ("bad_correct_answer", "bad_distractor_index", "duplicate_options", "empty_or_tiny_option",
+                   "bad_option_keys", "empty_or_tiny_question", "incomplete_explanation")
+
+
+def defect_reason(defect_types: List[str]) -> Optional[str]:
+    """'defect_<type>' for the most serious type; None when the doc only has locale order mismatches (re-translate instead)."""
+    kinds = set(defect_types)
+    if "locale_option_order_mismatch" in kinds:
+        return None
+    for kind in DEFECT_PRIORITY:
+        if kind in kinds:
+            return f"defect_{kind}"
+    return "defect_manual_review" if kinds else None
 
 
 def summarize(states: Mapping[str, str]) -> Dict[str, int]:
@@ -339,6 +355,7 @@ def main() -> int:
     parser.add_argument("--import-rewrites", metavar="DIR")
     parser.add_argument("--export-retranslate", metavar="DIR")
     parser.add_argument("--import-retranslate", metavar="DIR")
+    parser.add_argument("--deactivate-defects", action="store_true")
     parser.add_argument("--fix-order", action="store_true")
     parser.add_argument("--deactivate-suspects", action="store_true")
     parser.add_argument("--reactivate", metavar="BACKUP_FILE")
@@ -347,7 +364,7 @@ def main() -> int:
     parser.add_argument("--chunk-size", type=int, default=20)
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
-    modes = [bool(args.export_rewrites), bool(args.import_rewrites), bool(args.export_retranslate), bool(args.import_retranslate), args.fix_order, args.deactivate_suspects, bool(args.reactivate)]
+    modes = [args.deactivate_defects, bool(args.export_rewrites), bool(args.import_rewrites), bool(args.export_retranslate), bool(args.import_retranslate), args.fix_order, args.deactivate_suspects, bool(args.reactivate)]
     if sum(modes) != 1:
         parser.error("choose exactly one mode")
     if args.apply and args.project_id != "knowley-1":
@@ -461,6 +478,37 @@ def main() -> int:
             plan.append((snap.id, snap, payload))
         _commit("order", plan, args.apply, states, "written")
         _report("Fix order", states, args.apply)
+        return 0
+
+    if args.deactivate_defects:
+        from scripts.audit_question_defects import detect
+
+        manual_file = BACKUP_DIR / "manual_review.json"
+        manual = {r["doc_id"] for r in json.loads(manual_file.read_text(encoding="utf-8"))} if manual_file.exists() else set()
+        plan, reasons = [], {}
+        for snap in db.collection("questions").stream():
+            data = snap.to_dict() or {}
+            kinds = [d["type"] for d in detect(data)]
+            if snap.id in manual and not kinds:
+                kinds = ["manual_review"]
+            reason = defect_reason(kinds)
+            if reason is None:
+                continue
+            if data.get("is_active") is False or f"deactivate_defects:{snap.id}" in done:
+                states[snap.id] = "skipped: already inactive"
+                continue
+            reasons[snap.id] = reason
+            plan.append((snap.id, snap, deactivation_update(firestore.SERVER_TIMESTAMP, reason)))
+        BACKUP_DIR.mkdir(exist_ok=True)
+        (BACKUP_DIR / "defect_deactivate_ids.json").write_text(json.dumps(sorted(reasons), indent=1), encoding="utf-8")
+        counts: Dict[str, int] = {}
+        for reason in reasons.values():
+            counts[reason] = counts.get(reason, 0) + 1
+        logger.info("To deactivate: %d docs %s", len(plan), counts)
+        for doc_id, reason in sorted(reasons.items()):
+            logger.info("  %s %s", doc_id[:12], reason)
+        _commit("deactivate_defects", plan, args.apply, states, "deactivated")
+        _report("Deactivate defects", states, args.apply)
         return 0
 
     if args.deactivate_suspects:
