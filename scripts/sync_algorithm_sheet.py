@@ -12,6 +12,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
+import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -119,6 +121,50 @@ def fetch_workbook(spreadsheet_id: str) -> Dict[str, Any]:
     }
 
 
+def _clean_number(value: Any) -> Any:
+    """xlsx exports write integers as '4.0'; the Sheets API returns '4' (formatted value)."""
+    text = str(value)
+    return text[:-2] if re.fullmatch(r"-?\d+\.0", text) else value
+
+
+def workbook_from_xlsx(xlsx_path: Path, sheets_meta: List[Dict[str, Any]], spreadsheet_id: str, title: str = "") -> Dict[str, Any]:
+    """Build the same payload as fetch_workbook from a Drive .xlsx export (use when the Sheets API is unavailable).
+
+    `sheets_meta` lists [{"sheetId", "title"}] in workbook order (xlsx sheet names are truncated and lose '/').
+    """
+    from scripts._xlsx_reader import read
+
+    book = list(read(str(xlsx_path)).values())
+    if len(book) != len(sheets_meta):
+        raise RuntimeError(f"xlsx has {len(book)} sheets but the metadata lists {len(sheets_meta)}")
+    snapshot_sheets: List[Dict[str, Any]] = []
+    for meta, values in zip(sheets_meta, book):
+        values = [[_clean_number(cell) for cell in row] for row in values]
+        if not values:
+            columns, rows = [], []
+        else:
+            columns = [str(value or "") for value in values[0]]
+            columns = [value or ("_row" if index == 0 else f"column_{index}") for index, value in enumerate(columns)]
+            rows = [
+                {column: (row[index] if index < len(row) else "") for index, column in enumerate(columns)}
+                for row in values[1:]
+                if any(str(value).strip() for value in row)
+            ]
+        snapshot_sheets.append({"title": meta["title"], "sheet_id": meta["sheetId"], "columns": columns, "rows": rows})
+    first_title = snapshot_sheets[0]["title"] if snapshot_sheets else ""
+    return {
+        "source": {
+            "spreadsheet_id": spreadsheet_id,
+            "title": title or "Knowley Kategorizasyon Algoritmaları",
+            "url": f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit",
+            "version": first_title.rsplit(" ", 1)[-1] if "v" in first_title else "unknown",
+            "locale": "tr_TR",
+            "fetched_at": datetime.now(timezone.utc).isoformat(),
+        },
+        "sheets": snapshot_sheets,
+    }
+
+
 def write_snapshot(payload: Dict[str, Any], output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     serialized = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
@@ -149,10 +195,18 @@ def main() -> None:
         "--spreadsheet-id",
         default=os.getenv("KNOWLEY_ALGORITHM_SHEET_ID", DEFAULT_SPREADSHEET_ID),
     )
+    parser.add_argument("--from-xlsx", type=Path, help="Drive .xlsx export to read instead of the Sheets API.")
+    parser.add_argument("--sheets-meta", type=Path, help="JSON list of {sheetId, title} in workbook order (required with --from-xlsx).")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
     try:
-        payload = fetch_workbook(args.spreadsheet_id)
+        if args.from_xlsx:
+            if not args.sheets_meta:
+                parser.error("--from-xlsx needs --sheets-meta")
+            sys.path.insert(0, str(ROOT_DIR))
+            payload = workbook_from_xlsx(args.from_xlsx, json.loads(args.sheets_meta.read_text(encoding="utf-8")), args.spreadsheet_id)
+        else:
+            payload = fetch_workbook(args.spreadsheet_id)
     except (RuntimeError, FileNotFoundError) as exc:
         parser.exit(2, f"Hata: {exc}\n")
     write_snapshot(payload, args.output)
