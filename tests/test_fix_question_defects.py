@@ -135,3 +135,14 @@ class DeactivateDefectsTests(unittest.TestCase):
         self.assertIsNone(defect_reason(["locale_option_order_mismatch", "empty_or_tiny_option"]))
         self.assertIsNone(defect_reason([]))
         self.assertEqual(deactivation_update("T", "defect_x"), {"is_active": False, "deactivated_reason": "defect_x", "deactivated_at": "T"})
+
+
+class ResolvePrefixTests(unittest.TestCase):
+    def test_resolve_prefixes(self):
+        from scripts.fix_question_defects import resolve_prefixes
+
+        ids = ["12f55f5eaa", "1f0f1e01bb", "1f0f2222cc"]
+        self.assertEqual(resolve_prefixes(["12f5", "1f0f1e"], ids), {"12f5": "12f55f5eaa", "1f0f1e": "1f0f1e01bb"})
+        for bad in (["1f0f"], ["zzzz"]):
+            with self.assertRaises(ValueError):
+                resolve_prefixes(bad, ids)

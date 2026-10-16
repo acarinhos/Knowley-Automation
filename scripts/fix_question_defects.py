@@ -6,6 +6,7 @@ Modes (exactly one):
   --export-retranslate DIR   read-only: chunks asking for the 4 options of broken NON-en locales to be re-translated from en
   --import-retranslate DIR   validate result_NNN.json and rewrite translations.<locale>.options (merge-only)
   --deactivate-defects       is_active=false (reason defect_<type>) for still-defective ACTIVE questions (not order mismatches)
+  --deactivate-ids A,B --reason TEXT   is_active=false for specific docs (id prefixes are resolved; ambiguous prefix stops)
   --fix-order                reorder a locale's options to the `en` positions when that is unambiguous
   --deactivate-suspects      is_active=false (+ deactivated_reason/at) for local_backups/skipped_suspect_answers.json
   --reactivate FILE          undo --deactivate-suspects from its backup file
@@ -245,6 +246,17 @@ with all four letters per listed locale. Output valid JSON only. Records you can
 """
 
 
+def resolve_prefixes(prefixes: List[str], all_ids: List[str]) -> Dict[str, str]:
+    """Prefix -> full doc id. ValueError if a prefix matches nothing or more than one document."""
+    resolved: Dict[str, str] = {}
+    for prefix in prefixes:
+        matches = [i for i in all_ids if i.startswith(prefix)]
+        if len(matches) != 1:
+            raise ValueError(f"prefix {prefix!r} matches {len(matches)} documents")
+        resolved[prefix] = matches[0]
+    return resolved
+
+
 def deactivation_update(now: Any, reason: str = "suspect_answer_key") -> Dict[str, Any]:
     return {"is_active": False, "deactivated_reason": reason, "deactivated_at": now}
 
@@ -355,6 +367,8 @@ def main() -> int:
     parser.add_argument("--import-rewrites", metavar="DIR")
     parser.add_argument("--export-retranslate", metavar="DIR")
     parser.add_argument("--import-retranslate", metavar="DIR")
+    parser.add_argument("--deactivate-ids", metavar="ID[,ID...]")
+    parser.add_argument("--reason")
     parser.add_argument("--deactivate-defects", action="store_true")
     parser.add_argument("--fix-order", action="store_true")
     parser.add_argument("--deactivate-suspects", action="store_true")
@@ -364,7 +378,7 @@ def main() -> int:
     parser.add_argument("--chunk-size", type=int, default=20)
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
-    modes = [args.deactivate_defects, bool(args.export_rewrites), bool(args.import_rewrites), bool(args.export_retranslate), bool(args.import_retranslate), args.fix_order, args.deactivate_suspects, bool(args.reactivate)]
+    modes = [bool(args.deactivate_ids), args.deactivate_defects, bool(args.export_rewrites), bool(args.import_rewrites), bool(args.export_retranslate), bool(args.import_retranslate), args.fix_order, args.deactivate_suspects, bool(args.reactivate)]
     if sum(modes) != 1:
         parser.error("choose exactly one mode")
     if args.apply and args.project_id != "knowley-1":
@@ -480,6 +494,27 @@ def main() -> int:
             plan.append((snap.id, snap, payload))
         _commit("order", plan, args.apply, states, "written")
         _report("Fix order", states, args.apply)
+        return 0
+
+    if args.deactivate_ids:
+        if not args.reason or not args.reason.strip():
+            parser.error("--deactivate-ids requires --reason")
+        prefixes = [x.strip() for x in args.deactivate_ids.split(",") if x.strip()]
+        all_ids = [snap.id for snap in db.collection("questions").select([]).stream()]
+        try:
+            full = resolve_prefixes(prefixes, all_ids)
+        except ValueError as exc:
+            raise SystemExit(f"Stopping: {exc}")
+        plan = []
+        for prefix, doc_id in full.items():
+            snap = db.collection("questions").document(doc_id).get()
+            if (snap.to_dict() or {}).get("is_active") is False:
+                states[doc_id] = "skipped: already inactive"
+            else:
+                plan.append((doc_id, snap, deactivation_update(firestore.SERVER_TIMESTAMP, args.reason.strip())))
+            logger.info("%s -> %s", prefix, doc_id)
+        _commit("deactivate_ids", plan, args.apply, states, "deactivated")
+        _report("Deactivate ids", states, args.apply)
         return 0
 
     if args.deactivate_defects:
