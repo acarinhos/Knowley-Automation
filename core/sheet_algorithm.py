@@ -413,6 +413,13 @@ class SheetAlgorithmRepository:
                 return list(item.get("languages") or [])
         return []
 
+    def question_languages(self, country: Optional[str]) -> List[str]:
+        """Languages every LOCAL question of `country` must carry: its Sheets languages plus English."""
+        languages = list(dict.fromkeys(self.languages_for_country(country)))
+        if "en" not in languages:
+            languages.append("en")
+        return languages
+
     def category_weights(
         self, pool: str = "154", country: Optional[str] = None
     ) -> Dict[str, int]:

@@ -640,6 +640,11 @@ class KnowleyTkinterApp(tk.Tk):
         tk.Label(self.country_select_frame, text="Profil", fg=TEXT_DIM, bg=PANEL_INNER, font=(FONT_FAMILY, 8, "bold")).pack(anchor="w", pady=(6, 2))
         self.combo_country = ttk.Combobox(self.country_select_frame, state="disabled", values=[])
         self.combo_country.pack(fill="x")
+        self.country_lang_lbl = tk.Label(self.country_select_frame, text="", fg=TEXT_DIM, bg=PANEL_INNER,
+                                         font=(FONT_FAMILY, 8), justify="left", wraplength=260)
+        self.country_lang_lbl.pack(anchor="w", pady=(4, 0))
+        self.combo_country.bind("<<ComboboxSelected>>", lambda _event: self._update_country_languages())
+        self._country_languages: Dict[str, List[str]] = {}
 
         # Gelişmiş Ayarlar (Collapsible Frame)
         adv_card = tk.Frame(card, bg=PANEL_INNER, highlightbackground=PANEL_BORDER, highlightthickness=1, padx=12, pady=10)
@@ -1031,9 +1036,17 @@ class KnowleyTkinterApp(tk.Tk):
         ival = int(float(value))
         self.combo_pct_lbl.config(text=f"%{ival}")
 
+    def _update_country_languages(self) -> None:
+        """Local questions always use the country's Sheets languages + English; the language choice is not editable."""
+        languages = list(self._country_languages.get(self.combo_country.get(), []))
+        if "en" not in languages:
+            languages.append("en")
+        self.country_lang_lbl.config(text="Yerel soru dilleri (otomatik): " + ", ".join(languages))
+
     def _toggle_country_profile(self) -> None:
         enabled = self.var_cp_enabled.get()
         if enabled:
+            self._update_country_languages()
             self.country_select_frame.pack(fill="x", pady=(6, 0))
             self.combo_country.config(state="readonly")
         else:
@@ -1403,8 +1416,10 @@ class KnowleyTkinterApp(tk.Tk):
 
         country_names = [c["name"] for c in data.get("countries", [])]
         self.combo_country.config(values=country_names)
+        self._country_languages = {c["name"]: list(c.get("languages") or []) for c in data.get("countries", [])}
         if country_names:
             self.combo_country.current(0)
+            self._update_country_languages()
 
         self._on_mode_change()
         self._render_providers(data.get("providers", {}))

@@ -889,8 +889,11 @@ def generate_question_with_fallback(
         lang for lang in (languages or SUPPORTED_LANGUAGE_CODES)
         if lang in COUNTRY_LANGUAGE_CODES
     ))
-    if not requested_languages:
-        requested_languages = ["en"] if final_scope == "local" else list(SUPPORTED_LANGUAGE_CODES)
+    if final_scope == "local":
+        # Country languages (Sheets) + en, regardless of the caller's selection; en-only when the country is unknown.
+        requested_languages = repository.question_languages(final_country) if final_country else ["en"]
+    elif not requested_languages:
+        requested_languages = list(SUPPORTED_LANGUAGE_CODES)
     source_language = "en" if "en" in requested_languages else requested_languages[0]
 
     # 3. Zorluk dengelemesi (4-4-2 kuralı ve 1-10 puan dengesi)
