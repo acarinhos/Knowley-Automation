@@ -76,7 +76,7 @@ class TestTimerCalculator(unittest.TestCase):
                     question="Türkiye Cumhuriyeti hangi yılda ilan edilmiştir?",  # 48 chars
                     options=Options(A="1923", B="1920", C="1919", D="1924"),     # 16 chars -> Total: 64 chars
                     explanation="Cumhuriyet 29 Ekim 1923'te ilan edilmiştir.",
-                    filter_tag="history"
+                    filter_tag="history", simplified_question="Sade soru", clarified_options={"A": "A", "B": "B", "C": "C", "D": "D"}
                 )
             }
         )

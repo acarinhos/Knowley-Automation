@@ -102,7 +102,7 @@ class TestAsymmetricQuestionModel(unittest.TestCase):
             difficulty_profile=diff_prof,
             correct_answer="A",
             translations={
-                "tr": {"question": "Q?", "options": {"A": "1", "B": "2", "C": "3", "D": "4"}, "explanation": "E", "filter_tag": "T"}
+                "tr": {"question": "Q?", "options": {"A": "1", "B": "2", "C": "3", "D": "4"}, "explanation": "E", "filter_tag": "T", "simplified_question": "Sade soru", "clarified_options": {"A": "A", "B": "B", "C": "C", "D": "D"}}
             }
         )
         q = populate_question_meta(q, "Tarih")
@@ -140,7 +140,7 @@ class TestAsymmetricQuestionModel(unittest.TestCase):
             difficulty_profile=diff_prof,
             correct_answer="B",
             translations={
-                "tr": {"question": "Q?", "options": {"A": "1", "B": "2", "C": "3", "D": "4"}, "explanation": "E", "filter_tag": "T"}
+                "tr": {"question": "Q?", "options": {"A": "1", "B": "2", "C": "3", "D": "4"}, "explanation": "E", "filter_tag": "T", "simplified_question": "Sade soru", "clarified_options": {"A": "A", "B": "B", "C": "C", "D": "D"}}
             }
         )
         q = populate_question_meta(q, "Tarih")

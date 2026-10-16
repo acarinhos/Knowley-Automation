@@ -101,7 +101,7 @@ class TestTriviaAntiBureaucracyStandards(unittest.TestCase):
         self.assertIn("EVRENSEL \"KÜLTÜREL TANINIRLIK & TRIVIA\" STANDARTI", prompt)
         self.assertIn(SELF_VERIFICATION_RULE, prompt)
         self.assertIn("aynı kuralları eksiksiz uygula", prompt)
-        self.assertLess(len(prompt), 12_000)
+        self.assertLess(len(prompt), 30_000)  # prompt carries the 1.1.0 skill-field rules
 
     def _create_sample_question(self, question_text: str, explanation: str = "Açıklama", option_a: str = "Cevap A") -> GeneratedQuestion:
         """Test için örnek GeneratedQuestion nesnesi üretir."""
@@ -109,7 +109,7 @@ class TestTriviaAntiBureaucracyStandards(unittest.TestCase):
             question=question_text,
             options=Options(A=option_a, B="Seçenek B", C="Seçenek C", D="Seçenek D"),
             explanation=explanation,
-            filter_tag="Test"
+            filter_tag="Test", simplified_question="Sade soru", clarified_options={"A": "A", "B": "B", "C": "C", "D": "D"}
         )
         return GeneratedQuestion(
             categories=["Tarih"],

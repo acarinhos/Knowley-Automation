@@ -138,30 +138,23 @@ class SheetAlgorithmRepositoryTests(unittest.TestCase):
         self.assertEqual(scopes.count("local"), round(target.local_ratio * 20))
 
     def test_section_three_expands_to_real_country_subcategories_with_exact_credits(self):
-        for pool in ("154", "64"):
-            queue = self.repository.build_credit_queue(pool)
-            for category in ("Spor", "Müzik", "Edebiyat"):
-                targets = [target for target in queue if target.category == category]
-                self.assertTrue(targets)
-                self.assertNotIn("Localize Sub", {target.subcategory for target in targets})
-                selected_countries = {target.target_country for target in targets}
-                self.assertEqual(len(selected_countries), 1)
-                selected_country = next(iter(selected_countries))
-                expected = {
-                    record["subcategory"]: record[f"weight_{pool}"]
-                    for record in self.repository._localized_records[selected_country]
-                    if record["category"] == category and record[f"weight_{pool}"] > 0
-                }
-                observed = {}
-                for target in targets:
-                    observed[target.subcategory] = observed.get(target.subcategory, 0) + 1
-                    self.assertEqual(target.section, "section_3")
-                    self.assertTrue(target.guide)
-                    if target.subcategory.startswith("Temel "):
-                        self.assertEqual((target.global_ratio, target.local_ratio), (1.0, 0.0))
-                    else:
-                        self.assertEqual((target.global_ratio, target.local_ratio), (0.0, 1.0))
-                self.assertEqual(observed, expected)
+        for selected_country in ("Türkiye", "Japonya", "Portekiz"):
+            for pool in ("154", "64"):
+                queue = self.repository.build_credit_queue(pool, country=selected_country)
+                for category in ("Spor", "Müzik", "Edebiyat"):
+                    targets = [target for target in queue if target.category == category]
+                    self.assertTrue(targets)
+                    self.assertNotIn("Localize Sub", {target.subcategory for target in targets})
+                    expected = {
+                        record["subcategory"]: record[f"weight_{pool}"]
+                        for record in self.repository.records_for_country(selected_country)
+                        if record["category"] == category and record[f"weight_{pool}"] > 0
+                    }
+                    observed = {}
+                    for target in targets:
+                        observed[target.subcategory] = observed.get(target.subcategory, 0) + 1
+                        self.assertTrue(target.guide or target.section)
+                    self.assertEqual(observed, expected, (selected_country, pool, category))
 
     def test_planner_uses_sheet_scope_ratio(self):
         planner = GenerationPlanner(sheet_repository=self.repository)

@@ -108,31 +108,31 @@ class TestOptionBalancer(unittest.TestCase):
                     question="Türkiye'nin başkenti neresidir?",
                     options=Options(A="Ankara", B="İstanbul", C="İzmir", D="Bursa"),
                     explanation="Türkiye'nin başkenti Ankara'dır.",
-                    filter_tag="geography_capitals"
+                    filter_tag="geography_capitals", simplified_question="Sade soru", clarified_options={"A": "A", "B": "B", "C": "C", "D": "D"}
                 ),
                 "en": LocalizedContent(
                     question="What is the capital of Turkey?",
                     options=Options(A="Ankara", B="Istanbul", C="Izmir", D="Bursa"),
                     explanation="The capital of Turkey is Ankara.",
-                    filter_tag="geography_capitals"
+                    filter_tag="geography_capitals", simplified_question="Sade soru", clarified_options={"A": "A", "B": "B", "C": "C", "D": "D"}
                 ),
                 "es": LocalizedContent(
                     question="¿Cuál es la capital de Turquía?",
                     options=Options(A="Ankara", B="Estambul", C="Esmirna", D="Bursa"),
                     explanation="La capital de Turquía es Ankara.",
-                    filter_tag="geography_capitals"
+                    filter_tag="geography_capitals", simplified_question="Sade soru", clarified_options={"A": "A", "B": "B", "C": "C", "D": "D"}
                 ),
                 "pt": LocalizedContent(
                     question="Qual é a capital da Turquia?",
                     options=Options(A="Ancara", B="Istambul", C="Esmirna", D="Bursa"),
                     explanation="A capital da Turquia é Ancara.",
-                    filter_tag="geography_capitals"
+                    filter_tag="geography_capitals", simplified_question="Sade soru", clarified_options={"A": "A", "B": "B", "C": "C", "D": "D"}
                 ),
                 "de": LocalizedContent(
                     question="Was ist die Hauptstadt der Türkei?",
                     options=Options(A="Ankara", B="Istanbul", C="Izmir", D="Bursa"),
                     explanation="Die Hauptstadt der Türkei ist Ankara.",
-                    filter_tag="geography_capitals"
+                    filter_tag="geography_capitals", simplified_question="Sade soru", clarified_options={"A": "A", "B": "B", "C": "C", "D": "D"}
                 )
             }
         )

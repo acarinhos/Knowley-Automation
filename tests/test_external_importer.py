@@ -9,6 +9,8 @@ from core.external_importer import (
     parse_source_text,
     validate_and_transform,
 )
+from core.sheet_algorithm import get_sheet_algorithm_repository
+from core.translation_service import SUPPORTED_LANGUAGE_CODES
 from database.db_manager import save_question_to_firestore
 
 
@@ -86,7 +88,9 @@ class ExternalImporterTests(unittest.TestCase):
 
     def test_full_schema_translation_uses_all_supported_languages(self):
         class TranslationManager:
-            def generate_trivia(self, _system, _prompt):
+            def generate_trivia(self, _system, _prompt, response_schema=None):
+                # Answer exactly the languages the importer asked for (scope/country are chosen by the planner).
+                languages = response_schema["properties"]["translations"]["properties"]
                 return {
                     "_provider": "fixture",
                     "translations": {
@@ -95,8 +99,10 @@ class ExternalImporterTests(unittest.TestCase):
                             "options": {"A": f"{lang} A", "B": f"{lang} B", "C": f"{lang} C", "D": f"{lang} D"},
                             "explanation": f"{lang} açıklama",
                             "filter_tag": f"{lang} etiket",
+                            "simplified_question": f"{lang} sade",
+                            "clarified_options": {k: f"{lang} net {k}" for k in "ABCD"},
                         }
-                        for lang in ("tr", "en", "es", "pt", "de")
+                        for lang in languages
                     },
                 }
 
@@ -105,9 +111,15 @@ class ExternalImporterTests(unittest.TestCase):
         )
         self.assertEqual(report.accepted_count, 1)
         question = report.accepted[0]
-        self.assertEqual(question["supported_languages"], ["tr", "en", "es", "pt", "de"])
-        self.assertEqual(set(question["translations"]), {"tr", "en", "es", "pt", "de"})
-        self.assertEqual(question["translations"]["tr"]["question"], self.sample()["question"])
+        if question["scope"] == "local":  # local: the country's Sheets languages + en
+            expected = set(get_sheet_algorithm_repository().question_languages(question["target_country"]))
+        else:
+            expected = set(SUPPORTED_LANGUAGE_CODES)
+        self.assertEqual(set(question["translations"]), expected)
+        self.assertEqual(set(question["supported_languages"]), expected)
+        self.assertIn("en", expected)
+        if "tr" in expected:
+            self.assertEqual(question["translations"]["tr"]["question"], self.sample()["question"])
         self.assertEqual(question["generation_provider"], "EXTERNAL_IMPORT_FIXTURE")
         for field in ("created_at", "shuffle_key", "difficulty_meta", "difficulty_profile", "algorithm_source", "algorithm_version"):
             self.assertIn(field, question)
