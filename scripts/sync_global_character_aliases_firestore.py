@@ -84,6 +84,7 @@ def backup(db: Any) -> Path:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--delete-orphans", action="store_true", help="Also delete characters/* docs that are not in the catalogue (backed up first; refused when users/*/characters references them).")
     parser.add_argument("--project-id", required=True, help="Expected Firebase project id.")
     args = parser.parse_args()
 
@@ -111,6 +112,22 @@ def main() -> int:
         if update:
             updates.append((ref, update, current))
 
+    orphans = []
+    if args.delete_orphans:
+        catalogue_ids = {c.id for c in load_global_character_catalog()}
+        orphan_ids = {snap.id for snap in db.collection("characters").stream()} - catalogue_ids
+        referenced = {snap.id for snap in db.collection_group("characters").stream() if snap.reference.path.startswith("users/")} & orphan_ids
+        for orphan_id in sorted(orphan_ids):
+            snap = db.collection("characters").document(orphan_id).get()
+            data = snap.to_dict() or {}
+            if orphan_id in referenced:
+                print(f"  orphan {orphan_id}: REFERENCED under users/*/characters, will NOT be deleted")
+            elif data.get("character_type") != "global" or data.get("is_active") is not False:
+                print(f"  orphan {orphan_id}: not an inactive global character, will NOT be deleted")
+            else:
+                orphans.append(snap)
+                print(f"  orphan {orphan_id} ({data.get('name')!r}) can be deleted")
+        print(f"Orphans: {len(orphan_ids)} found, {len(orphans)} deletable")
     fields = {}
     for _ref, update, _cur in updates:
         for key in update:
@@ -124,6 +141,9 @@ def main() -> int:
         return 0
 
     print(f"Backup written: {backup(db)}")
+    for snap in orphans:
+        snap.reference.delete()
+        print(f"Deleted orphan {snap.id}")
     operations = [(ref, "create", dict(expected, is_active=False, created_at=firestore.SERVER_TIMESTAMP)) for ref, expected in missing]
     operations += [(ref, "update", update) for ref, update, _cur in updates]
     for start in range(0, len(operations), 500):

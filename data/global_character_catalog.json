@@ -25598,10 +25598,10 @@
           "skill_slot": 1,
           "skill_id": "sk_gl_astronomi_gunes_sistemi_johannes_kepler_l1",
           "name": "Elips Rotası",
-          "source_description": "Süreye bağlı puan çarpanını katlar",
-          "source_sheet_text": "Elips Rotası: Süreye bağlı puan çarpanını katlar",
-          "action_type": "manual_review",
-          "action_value": null,
+          "source_description": "İlk 5 saniyede cevaplanırsa soru puanını 2x yapar",
+          "source_sheet_text": "Elips Rotası: İlk 5 saniyede cevaplanırsa soru puanını 2x yapar",
+          "action_type": "score_multiplier",
+          "action_value": 2.0,
           "duration_seconds": null,
           "daily_limits": {
             "lvl1": 3,
@@ -25611,18 +25611,19 @@
           "cooldown_questions": 0,
           "effects": [
             {
-              "type": "manual_review",
+              "type": "score_multiplier",
               "trigger": "on_activate",
               "params": {
-                "source_text": "Elips Rotası: Süreye bağlı puan çarpanını katlar"
+                "multiplier": 2.0,
+                "applies_to": "question_score"
               },
-              "conditions": {},
-              "review_required": true,
-              "review_note": "Source prose does not define a complete, executable effect contract.",
+              "conditions": {
+                "answer_within_seconds": 5
+              },
               "order": 1
             }
           ],
-          "implementation_status": "review_required"
+          "implementation_status": "catalog_only"
         },
         {
           "skill_slot": 2,
@@ -29321,8 +29322,8 @@
     },
     {
       "schema_version": "1.0.0",
-      "id": "gl_biyoloji_insan_fizyolojisi_usain_bolt",
-      "name": "Sinau Tbol",
+      "id": "gl_biyoloji_insan_fizyolojisi_walter_cannon",
+      "name": "Trelaw Onnanc",
       "title": "Human Physiology Expert",
       "role": "Global character in the Biology category, focusing on Human Physiology.",
       "category_id": "biyoloji",
@@ -29337,177 +29338,177 @@
       "is_active": false,
       "translations": {
         "en": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Human Physiology Expert",
           "role": "Global character in the Biology category, focusing on Human Physiology."
         },
         "de-DE": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Experte für Humanphysiologie",
           "role": "Globaler Charakter in der Kategorie Biologie mit Schwerpunkt auf Humanphysiologie."
         },
         "ar": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "خبير في فسيولوجيا الإنسان",
           "role": "شخصية عالمية في فئة علم الأحياء، تركز على فسيولوجيا الإنسان."
         },
         "bn-BD": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "মানব শারীরবিদ্যা বিশেষজ্ঞ",
           "role": "জীববিদ্যা বিভাগের বৈশ্বিক চরিত্র, মানব শারীরবিদ্যার উপর ফোকাস করে।"
         },
         "da-DK": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Ekspert i human fysiologi",
           "role": "Global karakter i Biologi-kategorien med fokus på human fysiologi."
         },
         "id": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Ahli Fisiologi Manusia",
           "role": "Karakter global dalam kategori Biologi, berfokus pada Fisiologi Manusia."
         },
         "fa-IR": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "متخصص فیزیولوژی انسانی",
           "role": "شخصیت جهانی در دسته زیست شناسی، با تمرکز بر فیزیولوژی انسانی."
         },
         "nl-NL": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Expert in menselijke fysiologie",
           "role": "Wereldwijd personage in de categorie Biologie, gericht op menselijke fysiologie."
         },
         "fil": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Eksperto sa Pisyolohiya ng Tao",
           "role": "Pandaigdigang karakter sa kategoryang Biology, na nakatutok sa Pisyolohiya ng Tao."
         },
         "fi-FI": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Ihmisen fysiologian asiantuntija",
           "role": "Globaali hahmo Biologia-kategoriassa, joka keskittyy ihmisen fysiologiaan."
         },
         "fr-FR": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Expert en physiologie humaine",
           "role": "Personnage mondial de la catégorie Biologie, se concentrant sur la physiologie humaine."
         },
         "hi-IN": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "मानव शरीर विज्ञान विशेषज्ञ",
           "role": "जीव विज्ञान श्रेणी में वैश्विक चरित्र, जो मानव शरीर विज्ञान पर केंद्रित है।"
         },
         "ja-JP": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "人間生理学の専門家",
           "role": "生物学カテゴリのグローバルキャラクターで、人間生理学に焦点を当てています。"
         },
         "ko-KR": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "인체 생리학 전문가",
           "role": "생물학 카테고리의 글로벌 캐릭터로, 인체 생리학에 중점을 둡니다."
         },
         "pl-PL": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Ekspert ds. fizjologii człowieka",
           "role": "Globalna postać w kategorii Biologia, skupiająca się na fizjologii człowieka."
         },
         "hu-HU": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Emberi élettan szakértő",
           "role": "Globális karakter a Biológia kategóriában, az emberi élettanra fókuszálva."
         },
         "ms-MY": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Pakar Fisiologi Manusia",
           "role": "Karakter global dalam kategori Biologi, memfokuskan kepada Fisiologi Manusia."
         },
         "no-NO": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Ekspert på humanfysiologi",
           "role": "Global karakter i Biologi-kategorien, med fokus på humanfysiologi."
         },
         "pt-BR": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Especialista em Fisiologia Humana",
           "role": "Personagem global na categoria Biologia, com foco em Fisiologia Humana."
         },
         "ro": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Expert în Fiziologie Umană",
           "role": "Personaj global din categoria Biologie, concentrat pe Fiziologie Umană."
         },
         "ru-RU": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Эксперт по физиологии человека",
           "role": "Глобальный персонаж в категории «Биология», специализирующийся на физиологии человека."
         },
         "th": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "ผู้เชี่ยวชาญด้านสรีรวิทยาของมนุษย์",
           "role": "ตัวละครระดับโลกในหมวดชีววิทยา เน้นเรื่องสรีรวิทยาของมนุษย์"
         },
         "tr-TR": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "İnsan Fizyolojisi Uzmanı",
           "role": "Biyoloji kategorisinde, İnsan Fizyolojisi alanına odaklanan küresel karakter."
         },
         "uk": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Експерт з фізіології людини",
           "role": "Глобальний персонаж у категорії «Біологія», що спеціалізується на фізіології людини."
         },
         "ur": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "انسانی فزیالوجی کے ماہر",
           "role": "حیاتیات کے زمرے میں عالمی کردار، جو انسانی فزیالوجی پر مرکوز ہے۔"
         },
         "vi": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Chuyên gia Sinh lý học Con người",
           "role": "Nhân vật toàn cầu trong danh mục Sinh học, tập trung vào Sinh lý học Con người."
         },
         "el-GR": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Ειδικός στην Ανθρώpινη Φυσιολογία",
           "role": "Παγκόσμιος χαρακτήρας στην κατηγορία Βιολογία, με έμφαση στην Ανθρώπινη Φυσιολογία."
         },
         "cs-CZ": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Odborník na lidskou fyziologii",
           "role": "Globální postava v kategorii Biologie, zaměřená na lidskou fyziologii."
         },
         "zh-CN": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "人体生理学专家",
           "role": "生物学类别的全球角色，专注于人体生理学。"
         },
         "zh-TW": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "人體生理學專家",
           "role": "生物學類別的全球角色，專注於人體生理學。"
         },
         "iw-IL": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "מוחה בפיזיולוגיה של האדם",
           "role": "דמות גלובלית בקטגוריית ביולוגיה, המתמקדת בפיזיולוגיה של האדם."
         },
         "es-419": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Experto en Fisiología Humana",
           "role": "Personaje global en la categoría de Biología, enfocado en Fisiología Humana."
         },
         "es-ES": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Experto en Fisiología Humana",
           "role": "Personaje global en la categoría de Biología, enfocado en Fisiología Humana."
         },
         "sv-SE": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Expert på humanfysiologi",
           "role": "Global karaktär i biologikategorin med fokus på humanfysiologi."
         },
         "it-IT": {
-          "name": "Sinau Tbol",
+          "name": "Trelaw Onnanc",
           "title": "Esperto di fisiologia umana",
           "role": "Personaggio globale nella categoria Biologia, incentrato sulla fisiologia umana."
         }
@@ -29515,10 +29516,10 @@
       "skills": [
         {
           "skill_slot": 1,
-          "skill_id": "sk_gl_biyoloji_insan_fizyolojisi_usain_bolt_l1",
-          "name": "Yıldırım Deparı",
+          "skill_id": "sk_gl_biyoloji_insan_fizyolojisi_walter_cannon_l1",
+          "name": "Homeostaz Dengesi",
           "source_description": "İlk 3 saniyede cevaplanırsa 2x puan verir",
-          "source_sheet_text": "Yıldırım Deparı: İlk 3 saniyede cevaplanırsa 2x puan verir",
+          "source_sheet_text": "Homeostaz Dengesi: İlk 3 saniyede cevaplanırsa 2x puan verir",
           "action_type": "score_multiplier",
           "action_value": 2.0,
           "duration_seconds": null,
@@ -29546,10 +29547,10 @@
         },
         {
           "skill_slot": 2,
-          "skill_id": "sk_gl_biyoloji_insan_fizyolojisi_usain_bolt_l2",
-          "name": "Son 100 Metre",
-          "source_description": "Yanlış 2 seçeneği geride bırakır",
-          "source_sheet_text": "Son 100 Metre: Yanlış 2 seçeneği geride bırakır",
+          "skill_id": "sk_gl_biyoloji_insan_fizyolojisi_walter_cannon_l2",
+          "name": "Savaş ya da Kaç",
+          "source_description": "Yanlış 2 seçeneği anında eler",
+          "source_sheet_text": "Savaş ya da Kaç: Yanlış 2 seçeneği anında eler",
           "action_type": "eliminate_to_two_options",
           "action_value": null,
           "duration_seconds": null,
@@ -29574,10 +29575,10 @@
         },
         {
           "skill_slot": 3,
-          "skill_id": "sk_gl_biyoloji_insan_fizyolojisi_usain_bolt_l3",
-          "name": "Dünya Rekoru",
+          "skill_id": "sk_gl_biyoloji_insan_fizyolojisi_walter_cannon_l3",
+          "name": "Beden Bilgeliği",
           "source_description": "Soruyu doğrudan doğru kabul ettirir",
-          "source_sheet_text": "Dünya Rekoru: Soruyu doğrudan doğru kabul ettirir",
+          "source_sheet_text": "Beden Bilgeliği: Soruyu doğrudan doğru kabul ettirir",
           "action_type": "auto_correct",
           "action_value": null,
           "duration_seconds": null,

@@ -116,6 +116,7 @@ def main() -> int:
             return "".join(parts)
         return TOKEN.sub(replace, name)
 
+    existing = json.loads(OUTPUT.read_text(encoding="utf-8"))["characters"] if OUTPUT.exists() else {}
     aliases: dict[str, dict[str, str]] = {}
     used: set[str] = set()
     from scripts.build_global_character_catalog import slug_id  # noqa: PLC0415
@@ -129,6 +130,9 @@ def main() -> int:
             alt = anagram(fold(token), model, taken | {fold(t) for t in TOKEN.findall(alias)}, 1)
             alias = alias.replace(TOKEN.search(alias).group(), recase(token, alt), 1)
             taken.add(alt)
+        previous = existing.get(raw_id)
+        if previous and previous["original"] == name:  # keep reviewed/published aliases stable
+            alias = previous["alias"]
         used.add(alias)
         if raw_id.endswith("terminator_t_800"):
             alias = alias.replace("T-800", "T-008")
