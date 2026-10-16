@@ -402,9 +402,11 @@ def main() -> int:
         from scripts.audit_question_defects import detect
 
         records, manual = [], []
+        closing_file = BACKUP_DIR / "defect_deactivate_ids.json"  # docs about to be deactivated are not re-translated
+        closing = set(json.loads(closing_file.read_text(encoding="utf-8"))) if closing_file.exists() else set()
         for snap in db.collection("questions").stream():
             data = snap.to_dict() or {}
-            record = retranslate_record(snap.id, data)
+            record = retranslate_record(snap.id, data) if snap.id not in closing else None
             if record:
                 records.append(record)
             defects = detect(data)
