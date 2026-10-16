@@ -1,5 +1,7 @@
 # SAT panel hook for ui_tkinter.py
 
+The hook is NOT in this repo's `ui_tkinter.py`; apply the two guarded additions below manually.
+
 Same two edits work in the worktree and the larger root `ui_tkinter.py` (both build an action bar
 whose `self.form_error_lbl` the button is packed next to; without it the button floats top-right).
 
