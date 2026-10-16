@@ -24,6 +24,11 @@ def doc_id(q: SATQuestion) -> str:
     return hashlib.sha256(f"{norm(q.stem)}\n{norm(q.passage)}".encode()).hexdigest()
 
 
+def build_doc(q: SATQuestion, session_id: str) -> dict:
+    """The exact Firestore document written for a question (shared with --save-plan)."""
+    return {**q.model_dump(), "session_id": session_id}
+
+
 def get_db():
     import firebase_admin
     from firebase_admin import credentials, firestore
@@ -54,6 +59,6 @@ def save_questions(questions: Iterable[SATQuestion], dry_run: bool = True, sessi
         if ref.get().exists:
             counts["skipped"] += 1
             continue
-        ref.set({**q.model_dump(), "session_id": session_id})
+        ref.set(build_doc(q, session_id))
         counts["written"] += 1
     return counts

@@ -23,7 +23,10 @@ def main(argv=None) -> int:
     ap.add_argument("--audit", action="store_true", help="offline re-check of the accepted questions in --session (no LLM)")
     ap.add_argument("--drop-failed", action="store_true", help="with --audit: remove failing questions (backup <file>.bak)")
     ap.add_argument("--balance", action="store_true", help="rebalance the accepted questions in --session: key length bias, then key letters")
-    ap.add_argument("--dry-run", action="store_true", help="with --balance: no LLM calls, no writes")
+    ap.add_argument("--dry-run", action="store_true", help="with --balance/--clean: no LLM calls, no writes")
+    ap.add_argument("--clean", action="store_true", help="mechanical formatting clean-up of --session (backup <file>.pre_clean.bak)")
+    ap.add_argument("--dedupe-topics", action="store_true", help="with --clean: regenerate later items of near-duplicate scenario pairs")
+    ap.add_argument("--save-plan", action="store_true", help="print what --save would write to Firestore for --session (read-only, writes nothing)")
     ap.add_argument("--output-dir", help="directory holding the session files (default: sat_engine/output)")
     a = ap.parse_args(argv)
     sid = a.session or (f"seed{a.seed}-{'-'.join(('rw', 'math') if a.section == 'both' else (a.section,))}" if a.seed is not None else None)
@@ -33,6 +36,24 @@ def main(argv=None) -> int:
             ap.error("--audit needs --session or --seed")
         r = audit_session(sid, Path(a.output_dir) if a.output_dir else OUTPUT_DIR, drop_failed=a.drop_failed)
         print(f"audit {sid}: {r['failed']}/{r['total']} failed {r['by_check']}; dropped {r['dropped']}")
+        return 0
+    if a.clean:
+        if not sid:
+            ap.error("--clean needs --session or --seed")
+        od = Path(a.output_dir) if a.output_dir else OUTPUT_DIR
+        if a.dedupe_topics:
+            from .pipeline.dedupe import dedupe_session, format_report as fmt
+            logging.basicConfig(level=logging.WARNING, handlers=[logging.FileHandler(od / "clean_debug.log", encoding="utf-8")])
+            print(fmt(dedupe_session(sid, od, dry_run=a.dry_run, workers=min(a.workers, 3), progress=lambda m: print(m, flush=True))))
+        else:
+            from .pipeline.clean import clean_session, format_report as fmt
+            print(fmt(clean_session(sid, od, dry_run=a.dry_run)))
+        return 0
+    if a.save_plan:
+        if not sid:
+            ap.error("--save-plan needs --session or --seed")
+        from .saveplan import save_plan
+        print(save_plan(sid, Path(a.output_dir) if a.output_dir else OUTPUT_DIR))
         return 0
     if a.balance:
         if not sid:
