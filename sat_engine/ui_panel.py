@@ -1,11 +1,13 @@
 """Tkinter panel to start/monitor SAT generation runs as a subprocess (python -m sat_engine ...)."""
 from __future__ import annotations
 
+import csv
 import json
 import os
 import random
 import subprocess
 import sys
+import threading
 import time
 import tkinter as tk
 from pathlib import Path
@@ -75,25 +77,57 @@ def parse_progress(d):
 def _pid_alive(pid):
     try:
         if os.name == "nt":
-            out = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/NH"], capture_output=True, text=True, creationflags=NO_WINDOW).stdout
-            return f" {pid} " in out
+            out = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"], capture_output=True, text=True,
+                                 creationflags=NO_WINDOW, timeout=10).stdout
+            return any(len(r) > 1 and r[1] == str(pid) for r in csv.reader(out.splitlines()))
         os.kill(pid, 0)
         return True
-    except OSError:
+    except (OSError, subprocess.SubprocessError):
         return False
 
 
-def is_running(progress_path=PROGRESS, pidfile=PIDFILE, now=None):
-    """True if the panel's pid is alive or progress.json was touched in the last 90 s (any writer)."""
+def read_pid(pidfile=PIDFILE):
     try:
-        if _pid_alive(int(Path(pidfile).read_text().strip())):
-            return True
+        return int(Path(pidfile).read_text().strip())
     except (OSError, ValueError):
-        pass
+        return None
+
+
+def is_running(progress_path=PROGRESS, pidfile=PIDFILE, now=None):
+    """pid file present -> pid liveness decides (stale progress.json is ignored); else progress.json fresher than 90 s (CLI run elsewhere)."""
+    pid = read_pid(pidfile)
+    if pid is not None:
+        return _pid_alive(pid)
     try:
         return (now or time.time()) - Path(progress_path).stat().st_mtime < FRESH_S
     except OSError:
         return False
+
+
+def parse_args(section, seed, workers, limit):
+    """Validate UI strings -> (section, seed|None, workers 1..32, limit|None); ValueError with a friendly message."""
+    try:
+        w = min(32, max(1, int(workers.strip() or 10)))
+        lim = int(limit) if limit.strip() else None
+        sd = int(seed) if seed.strip() else None
+    except ValueError:
+        raise ValueError("Seed / worker / limit sayı olmalı.") from None
+    if lim is not None and lim < 1:
+        raise ValueError("Limit en az 1 olmalı.")
+    if sd is not None and sd < 0:
+        raise ValueError("Seed negatif olamaz.")
+    return SECTIONS[section], sd, w, lim
+
+
+def tail_text(path, nbytes=16384):
+    """Last nbytes of a file as text (seek from the end), '' if unreadable."""
+    try:
+        with open(path, "rb") as fh:
+            fh.seek(0, os.SEEK_END)
+            fh.seek(max(0, fh.tell() - nbytes))
+            return fh.read().decode("utf-8", "replace")
+    except OSError:
+        return ""
 
 
 def load_progress(path=PROGRESS):
@@ -103,11 +137,11 @@ def load_progress(path=PROGRESS):
         return None
 
 
-def kill_tree(proc):
+def kill_tree(pid):
     if os.name == "nt":
-        subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], capture_output=True, creationflags=NO_WINDOW)
+        subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True, creationflags=NO_WINDOW)
     else:
-        proc.terminate()
+        os.kill(pid, 15)
 
 
 # ---- GUI ----
@@ -120,6 +154,11 @@ class SatPanel(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         self.proc = None
+        self.console = CONSOLE
+        self._job = None
+        self._ext = False  # cached: a run (ours from a previous session, or foreign) is alive
+        self._ext_pid = None  # adopted orphan pid (pid file)
+        self._probe_busy = False
         self._log_pos = 0
         self.section = tk.StringVar(value="İkisi")
         self.seed = tk.StringVar()
@@ -129,7 +168,8 @@ class SatPanel(ttk.Frame):
         self.save = tk.BooleanVar(value=False)
         self.status = tk.StringVar(value="Hazır")
         self._build()
-        self.after(500, self._tick)
+        self._probe()
+        self._job = self.after(500, self._tick)
 
     def _build(self):
         f = tk.Frame(self, bg=PANEL, padx=14, pady=12)
@@ -178,13 +218,26 @@ class SatPanel(ttk.Frame):
 
     def _args(self):
         try:
-            w = int(self.workers.get() or 10)
-            lim = int(self.limit.get()) if self.limit.get().strip() else None
-            seed = int(self.seed.get()) if self.seed.get().strip() else None
-        except ValueError:
-            messagebox.showerror("SAT", "Seed / worker / limit sayı olmalı.", parent=self)
+            return parse_args(self.section.get(), self.seed.get(), self.workers.get(), self.limit.get())
+        except ValueError as e:
+            messagebox.showerror("SAT", str(e), parent=self)
             return None
-        return SECTIONS[self.section.get()], seed, w, lim
+
+    def _probe(self):
+        """Pid/progress check on a worker thread; the UI only reads the cached result."""
+        if self._probe_busy:
+            return
+        self._probe_busy = True
+
+        def work():
+            try:
+                pid = read_pid()
+                self._ext_pid = pid if pid is not None and _pid_alive(pid) else None
+                self._ext = self._ext_pid is not None or (pid is None and is_running())
+            finally:
+                self._probe_busy = False
+
+        threading.Thread(target=work, daemon=True).start()
 
     def _hint(self):
         seed = self.seed.get().strip()
@@ -193,7 +246,14 @@ class SatPanel(ttk.Frame):
 
     def _spawn(self, cmd, env):
         OUT.mkdir(parents=True, exist_ok=True)
-        with open(CONSOLE, "wb") as o, open(CONSOLE_ERR, "wb") as e:
+        ts = time.strftime("%Y%m%d_%H%M%S")
+        try:
+            o, e = open(CONSOLE, "wb"), open(CONSOLE_ERR, "wb")
+            self.console = CONSOLE
+        except OSError:  # held by another writer: never truncate, use a fresh file
+            o, e = open(OUT / f"console_{ts}.log", "wb"), open(OUT / f"console_{ts}.err", "wb")
+            self.console = Path(o.name)
+        with o, e:
             self.proc = subprocess.Popen(cmd, cwd=ROOT, env=env, stdout=o, stderr=e, stdin=subprocess.DEVNULL, creationflags=NO_WINDOW)
         PIDFILE.write_text(str(self.proc.pid))
         self._log_pos = 0
@@ -227,14 +287,20 @@ class SatPanel(ttk.Frame):
         self._spawn(build_command(sec, seed, extra=(flag,)), build_env())
 
     def _busy(self):
-        if (self.proc and self.proc.poll() is None) or is_running():
+        if (self.proc and self.proc.poll() is None) or self._ext:
             messagebox.showwarning("SAT", "Zaten çalışan bir oturum var.", parent=self)
             return True
         return False
 
+    def _live_pid(self):
+        if self.proc and self.proc.poll() is None:
+            return self.proc.pid
+        return self._ext_pid
+
     def stop(self):
-        if self.proc and self.proc.poll() is None and messagebox.askyesno("SAT", "Üretim durdurulsun mu?", parent=self):
-            kill_tree(self.proc)
+        pid = self._live_pid()
+        if pid and messagebox.askyesno("SAT", "Üretim durdurulsun mu?", parent=self):
+            kill_tree(pid)
 
     def open_out(self):
         OUT.mkdir(parents=True, exist_ok=True)
@@ -242,22 +308,35 @@ class SatPanel(ttk.Frame):
 
     def confirm_close(self):
         """True = ok to close the window (run left going, stopped, or none)."""
-        if self.proc and self.proc.poll() is None:
+        if self._live_pid():
             ans = messagebox.askyesnocancel("SAT", "Üretim sürüyor. Arka planda devam etsin mi?\nEvet: devam, Hayır: durdur, İptal: kapatma.", parent=self)
             if ans is None:
                 return False
             if ans is False:
-                kill_tree(self.proc)
+                kill_tree(self._live_pid())
         return True
 
+    def destroy(self):
+        if self._job:
+            try:
+                self.after_cancel(self._job)
+            except tk.TclError:
+                pass
+            self._job = None
+        super().destroy()
+
     def _tick(self):
+        self._job = None
         try:
+            if not self.winfo_exists():
+                return
+            self._probe()
             p = parse_progress(load_progress())
             self.pb["value"] = p["percent"]
             for k, l in self.lbl.items():
                 l.config(text=p[k] + (f"  (geçen {p['elapsed']})" if k == "eta" else ""))
-            if CONSOLE.exists() and CONSOLE.stat().st_size != self._log_pos:
-                with open(CONSOLE, "rb") as fh:
+            if self.console.exists() and self.console.stat().st_size != self._log_pos:
+                with open(self.console, "rb") as fh:
                     fh.seek(self._log_pos)
                     chunk = fh.read(65536)
                     self._log_pos = fh.tell()
@@ -265,19 +344,23 @@ class SatPanel(ttk.Frame):
                 self.log.insert("end", chunk.decode("utf-8", "replace"))
                 self.log.see("end")
                 self.log.config(state="disabled")
-            running = bool(self.proc and self.proc.poll() is None)
+            own = bool(self.proc and self.proc.poll() is None)
+            running = own or self._ext
             for b in self.btns:
                 b.config(state="disabled" if running else "normal")
             self.stop_btn.config(state="normal" if running else "disabled")
-            if self.proc and not running:
+            if self.proc and not own:
                 rc, self.proc = self.proc.returncode, None
                 PIDFILE.unlink(missing_ok=True)
                 self.status.set(f"Bitti (kod {rc})")
-                tail = CONSOLE.read_text(encoding="utf-8", errors="replace").splitlines()[-12:] if CONSOLE.exists() else []
+                tail = tail_text(self.console).splitlines()[-12:]
                 summ = [x for x in tail if "accepted" in x or "INCOMPLETE" in x] or tail[-3:]
                 messagebox.showinfo("SAT özet", "\n".join(summ) or f"Çıkış kodu {rc}", parent=self)
-        finally:
-            self.after(2000, self._tick)
+            elif self._ext_pid:
+                self.status.set(f"Önceki oturumdan çalışan üretim (pid {self._ext_pid})")
+            self._job = self.after(2000, self._tick)
+        except tk.TclError:
+            pass
 
 
 def install(app, bar=None):

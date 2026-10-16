@@ -46,7 +46,7 @@ from ui_server import JobManager, firebase_question_audit, firebase_summary
 
 try:  # optional SAT generation panel
     from sat_engine.ui_panel import install as install_sat_panel
-except ImportError:
+except Exception:
     install_sat_panel = None
 
 # Renk Paleti (Knowley Dark Modern Theme)
@@ -258,7 +258,10 @@ class KnowleyTkinterApp(tk.Tk):
         self._configure_styles()
         self._build_ui()
         if install_sat_panel:
-            install_sat_panel(self)
+            try:
+                install_sat_panel(self)
+            except Exception:
+                logging.getLogger(__name__).exception("SAT panel could not be installed")
         self.bind_all("<MouseWheel>", self._scroll_panel_under_pointer, add="+")
         self.bind_all("<Button-4>", self._scroll_panel_under_pointer, add="+")
         self.bind_all("<Button-5>", self._scroll_panel_under_pointer, add="+")
