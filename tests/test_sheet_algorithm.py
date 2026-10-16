@@ -191,6 +191,28 @@ class SheetAlgorithmRepositoryTests(unittest.TestCase):
         self.assertEqual(self.repository.country_code("Portekiz", "local"), "PT")
         self.assertTrue(self.repository.records_for_country("Portekiz"))
 
+    def test_portugal_localize_sub_credits_are_read(self):
+        records = self.repository._localized_records["Portekiz"]
+        subs = {c: [r["subcategory"] for r in records if r["category"] == c] for c in ("Edebiyat", "Spor", "Müzik")}
+        self.assertIn("Fado", subs["Müzik"])
+        self.assertIn("Futbol (Liga Portugal)", subs["Spor"])
+        self.assertIn("Camões & Keşifler Çağı Edebiyatı", subs["Edebiyat"])
+        for category, expected in (("Edebiyat", (7, 2)), ("Spor", (10, 6)), ("Müzik", (10, 6))):
+            got = (sum(r["weight_154"] for r in records if r["category"] == category),
+                   sum(r["weight_64"] for r in records if r["category"] == category))
+            self.assertEqual(got, expected, category)
+
+    def test_portugal_planner_picks_portuguese_local_subcategories(self):
+        planner = GenerationPlanner(sheet_repository=self.repository)
+        plan = planner.create_plan("Müzik", "Fado", force_scope="local", force_country="Portekiz")
+        self.assertEqual((plan.scope, plan.target_country), ("local", "Portekiz"))
+
+    def test_every_country_profile_queue_has_exact_pool_totals(self):
+        for item in self.repository.country_profiles():
+            for pool in ("154", "64"):
+                queue = self.repository.build_credit_queue(pool, country=item["name"])
+                self.assertEqual(len(queue), int(pool), f"{item['name']} {pool}")
+
     def test_basic_mode_only_selects_base_subcategories(self):
         for category in self.repository.basic_category_weights():
             chosen = self.repository.choose_subcategory(

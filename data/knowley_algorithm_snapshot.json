@@ -5,7 +5,7 @@
     "url": "https://docs.google.com/spreadsheets/d/1LI36wvw4TIWHBHAPgJ2lWyWz6nkj_Hmwp3eN83aD8rs/edit",
     "version": "v1.0.5",
     "locale": "tr_TR",
-    "fetched_at": "2026-10-16T16:03:23.568236+00:00"
+    "fetched_at": "2026-10-16T16:54:56.872048+00:00"
   },
   "sheets": [
     {
@@ -6710,6 +6710,142 @@
           "Ülke / Bölge": "",
           "Ana Kategori": "",
           "Alt Kategori (Sub)": "Mariachi & Ranchera",
+          "154 Kredi Havuzu Payı": "1",
+          "64 Kredi Havuzu Payı": "0",
+          "Temel Kategoriler": ""
+        },
+        {
+          "Ülke / Bölge": "32. Portekiz",
+          "Ana Kategori": "Edebiyat",
+          "Alt Kategori (Sub)": "Temel Edebiyat",
+          "154 Kredi Havuzu Payı": "3",
+          "64 Kredi Havuzu Payı": "1",
+          "Temel Kategoriler": "1"
+        },
+        {
+          "Ülke / Bölge": "",
+          "Ana Kategori": "",
+          "Alt Kategori (Sub)": "Camões & Keşifler Çağı Edebiyatı",
+          "154 Kredi Havuzu Payı": "1",
+          "64 Kredi Havuzu Payı": "1",
+          "Temel Kategoriler": ""
+        },
+        {
+          "Ülke / Bölge": "",
+          "Ana Kategori": "",
+          "Alt Kategori (Sub)": "Fernando Pessoa & Modernizm",
+          "154 Kredi Havuzu Payı": "1",
+          "64 Kredi Havuzu Payı": "0",
+          "Temel Kategoriler": ""
+        },
+        {
+          "Ülke / Bölge": "",
+          "Ana Kategori": "",
+          "Alt Kategori (Sub)": "Saramago & Çağdaş Roman",
+          "154 Kredi Havuzu Payı": "1",
+          "64 Kredi Havuzu Payı": "0",
+          "Temel Kategoriler": ""
+        },
+        {
+          "Ülke / Bölge": "",
+          "Ana Kategori": "",
+          "Alt Kategori (Sub)": "Portekiz Şiiri & Saudade",
+          "154 Kredi Havuzu Payı": "1",
+          "64 Kredi Havuzu Payı": "0",
+          "Temel Kategoriler": ""
+        },
+        {
+          "Ülke / Bölge": "",
+          "Ana Kategori": "Spor",
+          "Alt Kategori (Sub)": "Temel Spor",
+          "154 Kredi Havuzu Payı": "3",
+          "64 Kredi Havuzu Payı": "2",
+          "Temel Kategoriler": "1"
+        },
+        {
+          "Ülke / Bölge": "",
+          "Ana Kategori": "",
+          "Alt Kategori (Sub)": "Futbol (Liga Portugal)",
+          "154 Kredi Havuzu Payı": "2",
+          "64 Kredi Havuzu Payı": "2",
+          "Temel Kategoriler": ""
+        },
+        {
+          "Ülke / Bölge": "",
+          "Ana Kategori": "",
+          "Alt Kategori (Sub)": "Futsal & Paten Hokeyi",
+          "154 Kredi Havuzu Payı": "2",
+          "64 Kredi Havuzu Payı": "1",
+          "Temel Kategoriler": ""
+        },
+        {
+          "Ülke / Bölge": "",
+          "Ana Kategori": "",
+          "Alt Kategori (Sub)": "Atletizm & Maraton",
+          "154 Kredi Havuzu Payı": "1",
+          "64 Kredi Havuzu Payı": "1",
+          "Temel Kategoriler": ""
+        },
+        {
+          "Ülke / Bölge": "",
+          "Ana Kategori": "",
+          "Alt Kategori (Sub)": "Motor Sporları",
+          "154 Kredi Havuzu Payı": "1",
+          "64 Kredi Havuzu Payı": "0",
+          "Temel Kategoriler": ""
+        },
+        {
+          "Ülke / Bölge": "",
+          "Ana Kategori": "",
+          "Alt Kategori (Sub)": "Sörf & Deniz Sporları",
+          "154 Kredi Havuzu Payı": "1",
+          "64 Kredi Havuzu Payı": "0",
+          "Temel Kategoriler": ""
+        },
+        {
+          "Ülke / Bölge": "",
+          "Ana Kategori": "Müzik",
+          "Alt Kategori (Sub)": "Temel Müzik",
+          "154 Kredi Havuzu Payı": "3",
+          "64 Kredi Havuzu Payı": "2",
+          "Temel Kategoriler": "1"
+        },
+        {
+          "Ülke / Bölge": "",
+          "Ana Kategori": "",
+          "Alt Kategori (Sub)": "Fado",
+          "154 Kredi Havuzu Payı": "2",
+          "64 Kredi Havuzu Payı": "2",
+          "Temel Kategoriler": ""
+        },
+        {
+          "Ülke / Bölge": "",
+          "Ana Kategori": "",
+          "Alt Kategori (Sub)": "Pop & Pimba",
+          "154 Kredi Havuzu Payı": "2",
+          "64 Kredi Havuzu Payı": "1",
+          "Temel Kategoriler": ""
+        },
+        {
+          "Ülke / Bölge": "",
+          "Ana Kategori": "",
+          "Alt Kategori (Sub)": "Rock & Alternatif",
+          "154 Kredi Havuzu Payı": "1",
+          "64 Kredi Havuzu Payı": "1",
+          "Temel Kategoriler": ""
+        },
+        {
+          "Ülke / Bölge": "",
+          "Ana Kategori": "",
+          "Alt Kategori (Sub)": "Hip-Hop & Urban",
+          "154 Kredi Havuzu Payı": "1",
+          "64 Kredi Havuzu Payı": "0",
+          "Temel Kategoriler": ""
+        },
+        {
+          "Ülke / Bölge": "",
+          "Ana Kategori": "",
+          "Alt Kategori (Sub)": "Halk Müziği & Cante",
           "154 Kredi Havuzu Payı": "1",
           "64 Kredi Havuzu Payı": "0",
           "Temel Kategoriler": ""
