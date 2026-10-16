@@ -133,7 +133,7 @@ def test_balance_session_rewrites_then_balances_and_backs_up(monkeypatch, tmp_pa
     monkeypatch.setattr(llm, "default_order", lambda: ["groq", "gemini", "claude"])
     r = balance.balance_session("seed1-rw", tmp_path, checker=OriginalityChecker(refs=[]), progress=lambda m: None)
     assert r["length_biased"] == 4 and r["length_fixed"] == 4 and r["changed_items"] == 4
-    assert calls and all(c[0] == ["gemini"] and c[1] == ["groq"] for c in calls)  # non-claude, != generator
+    assert calls and all(c[0] == ["groq", "gemini"] and not c[1] for c in calls)  # every non-claude provider, generator not excluded
     assert (tmp_path / "seed1-rw.json.pre_balance.bak").is_file()
     new = [SATQuestion.model_validate(x) for x in json.loads(p.read_text(encoding="utf-8")).values()]
     assert not any(balance.key_is_longest(q.options, q.correct_answer) for q in new)
@@ -180,3 +180,36 @@ def test_run_session_balances_new_items_only(monkeypatch, tmp_path):
     snap = open(r["output"], encoding="utf-8").read()
     session.run_session(**{**kw, "checker": OriginalityChecker(refs=[])})  # resume: nothing generated, nothing reshuffled
     assert open(r["output"], encoding="utf-8").read() == snap
+
+
+def test_length_metrics_and_candidates():
+    good = item(0)
+    bad = item(1)
+    bad.options = {"A": "the long detailed correct answer here", "B": "short b", "C": "short c", "D": "short d"}
+    num = item(2, section="math")
+    num.options = {"A": "1", "B": "22", "C": "333", "D": "4444"}
+    qs = {"0": good, "1": bad, "2": num}
+    st = balance.length_stats(qs.values())
+    assert st["rw"]["mcq"] == 2 and st["rw"]["longest"] == 1 and st["rw"]["within"] == 1 and st["math"]["nonnumeric"] == 0
+    assert balance.length_candidates(qs) == ["1"]  # numeric items are never rewritten
+    assert balance.in_band(good.options, "A") and not balance.length_ok(bad.options, "A")
+
+
+def test_rewrite_retries_with_other_provider_and_backup_not_overwritten(monkeypatch, tmp_path):
+    p = _biased_session(tmp_path, 1)
+    seen = []
+    base = rewriter(True)
+
+    def f(prompt, system=None, schema=None, providers=None, images=None, exclude=None):
+        if "Rewrite ONLY" in prompt:
+            seen.append(list(exclude))
+            if len(seen) == 1:  # first attempt fails (e.g. every provider rate limited)
+                raise llm.LLMError("all providers failed: gemini: 429")
+            llm._last.info = {"provider": "gemini"}
+        return base(prompt, system, schema, providers, images, exclude)
+    monkeypatch.setattr(llm, "generate_json", f)
+    monkeypatch.setattr(llm, "default_order", lambda: ["gemini", "groq"])
+    (tmp_path / "seed1-rw.json.pre_balance.bak").write_text("old")
+    r = balance.balance_session("seed1-rw", tmp_path, checker=OriginalityChecker(refs=[]), progress=lambda m: None)
+    assert r["length_fixed"] == 1 and seen == [[], []]
+    assert (tmp_path / "seed1-rw.json.pre_balance2.bak").is_file() and (tmp_path / "seed1-rw.json.pre_balance.bak").read_text() == "old"

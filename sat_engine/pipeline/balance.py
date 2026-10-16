@@ -40,6 +40,65 @@ def needs_length_fix(q) -> bool:
 
 
 # ---------------------------------------------------------------- (a) length bias
+BAND = 0.20            # key length must be within +-20% of the mean distractor length ...
+BAND_TARGET = 0.80     # ... for at least this share of (non-numeric) mcq per section
+LONGEST_TARGET = 0.35  # key strictly longest in at most this share of mcq per section (chance level 25%)
+STOP_MARGIN = 0.03     # the rewrite loop aims this far inside the targets so the verified result stays inside them
+TRIES = 3              # rewrite attempts per item, each avoiding providers already used for that item
+
+
+def ratio(options, key) -> float:
+    k, o = _lens(options, key)
+    return k / max(1.0, sum(o) / 3)
+
+
+def strictly_longest(options, key) -> bool:
+    k, o = _lens(options, key)
+    return k > max(o)
+
+
+def in_band(options, key) -> bool:
+    return abs(ratio(options, key) - 1) <= BAND
+
+
+def length_ok(options, key) -> bool:
+    """Acceptance test for a rewritten item: inside the band and the key is not the single longest option."""
+    return in_band(options, key) and not strictly_longest(options, key)
+
+
+def length_stats(qs) -> dict:
+    """Per section over ALL mcq: key strictly longest; within-band share over non-numeric mcq (numeric option length carries no cue)."""
+    out = {}
+    for q in qs:
+        if q.answer_type != "mcq":
+            continue
+        s = out.setdefault(q.section, {"mcq": 0, "longest": 0, "nonnumeric": 0, "within": 0})
+        s["mcq"] += 1
+        s["longest"] += strictly_longest(q.options, q.correct_answer)
+        if not numeric_options(q.options):
+            s["nonnumeric"] += 1
+            s["within"] += in_band(q.options, q.correct_answer)
+    for s in out.values():
+        s["longest_share"] = round(s["longest"] / s["mcq"], 3)
+        s["within_share"] = round(s["within"] / max(1, s["nonnumeric"]), 3)
+    return out
+
+
+def length_candidates(qs: dict, margin: float = STOP_MARGIN, skip=()) -> list:
+    """Items worth rewriting, worst first; only sections still outside their (margin-tightened) targets contribute."""
+    st = length_stats(qs.values())
+    need_long = {s for s, v in st.items() if v["longest_share"] > LONGEST_TARGET - margin}
+    need_band = {s for s, v in st.items() if v["within_share"] < BAND_TARGET + margin}
+    c = []
+    for i, q in qs.items():
+        if q.answer_type != "mcq" or i in skip or numeric_options(q.options):
+            continue
+        k = q.correct_answer
+        if (q.section in need_long and strictly_longest(q.options, k)) or (q.section in need_band and not in_band(q.options, k)):
+            c.append((-abs(ratio(q.options, k) - 1), i))
+    return [i for _, i in sorted(c)]
+
+
 def _strip_rules(expl: str) -> str:
     return re.sub(r"\s*Distractor rules:.*$", "", expl, flags=re.S)
 
@@ -49,21 +108,22 @@ def _prompt(q) -> str:
     opts = "".join(f"{a}. {v}\n" for a, v in q.options.items())
     return (f"{('Passage: ' + q.passage + chr(10)) if q.passage else ''}Question: {q.stem}\nOptions:\n{opts}"
             f"Correct option: {q.correct_answer} ({k} characters)\nExplanation: {_strip_rules(q.explanation)}\n\n"
-            "The correct option is a giveaway because it is longer than the wrong options. Rewrite ONLY the three wrong options "
-            f"(distractors) so each has about the same length as the correct option ({k} characters, +-15%), the same grammatical "
-            "form, specificity and level of detail. Keep what makes each distractor wrong (same error type) and keep every "
+            "The length of the correct option does not match the wrong options, which is a test-taking giveaway. Rewrite ONLY the "
+            "three wrong options (distractors): enrich or lengthen short distractors with equally specific, same-type detail "
+            f"(never shorten or touch the correct option) so each is {int(k * .9)}-{int(k * 1.15) + 1} characters (the correct option has {k}), "
+            "with the same grammatical form, specificity and level of detail. Make the longest distractor slightly longer than the "
+            "correct option. Keep what makes each distractor wrong (same error type) and keep every "
             "distractor clearly wrong, never arguable or correct. Do not change the correct option, the stem or the passage; "
             "distractors must stay distinct from each other. Keep numeric/algebraic values of math distractors meaningful. "
             "Also rewrite the explanation so every statement about a wrong option matches its new text; keep the letter labels "
             'and the reasoning for the correct option. JSON: {"options": {<letter>: "new text" for each wrong option only}, "explanation": "..."}')
 
 
-def rewrite_distractors(q, providers=None):
-    """One LLM rewrite (non-claude, != generator when possible); returns a modified copy or raises ValueError."""
-    gen = q.meta.provider
-    pool = [p for p in (providers or llm.default_order()) if p != "claude"]
-    prov = [p for p in pool if p != gen] or pool
-    d = llm.generate_json(_prompt(q), system=SYSTEM, providers=prov, exclude=[gen] if gen and gen != "external" else [])
+def rewrite_distractors(q, providers=None, exclude=()):
+    """One LLM rewrite via the health-routed provider layer: ANY provider incl. the generator (a 429 falls to the next one),
+    `claude` excluded; `exclude` = providers already used for this item. Returns a modified copy or raises ValueError."""
+    prov = [p for p in (providers or llm.default_order()) if p != "claude"]
+    d = llm.generate_json(_prompt(q), system=SYSTEM, providers=prov, exclude=[e for e in exclude if e])
     new = d.get("options")
     if not isinstance(new, dict):
         raise ValueError("no options in rewrite")
@@ -79,19 +139,21 @@ def rewrite_distractors(q, providers=None):
     expl = str(d.get("explanation") or "").strip()
     if len(expl) < 20:
         raise ValueError("no explanation in rewrite")
-    if key_is_longest(opts, q.correct_answer):
+    if not length_ok(opts, q.correct_answer):
         raise ValueError("rewrite still biased")
     c = q.model_copy(deep=True)
     c.options, c.explanation = opts, expl
     return SATQuestion.model_validate(c.model_dump())
 
 
-def fix_length(q, chk, providers=None, tries=2):
-    """Returns (new_q or None, reason). New item passed verify.verify and the originality checker."""
-    why = "no attempt"
+def fix_length(q, chk, providers=None, tries=TRIES):
+    """Returns (new_q or None, reason). Rewrite -> per-option verify (judge != generator, hard) -> originality.
+    Each retry avoids providers already used for this item."""
+    why, used = "no attempt", []
     for _ in range(tries):
         try:
-            c = rewrite_distractors(q, providers)
+            c = rewrite_distractors(q, providers, exclude=used)
+            used.append((getattr(llm._last, "info", None) or {}).get("provider"))
             ok, why = verify.verify(c, providers)
             if ok and not chk.check(c)[0]:
                 ok, why = False, "originality"
@@ -242,30 +304,39 @@ def balance_session(sid: str, output_dir: Path = OUTPUT_DIR, dry_run: bool = Fal
     snap = read_store(out)
     qs = {i: SATQuestion.model_validate(d) for i, d in snap.items()}
     chk = checker or originality.OriginalityChecker()
-    todo = [i for i, q in qs.items() if needs_length_fix(q)]
-    rep = {"session_id": sid, "dry_run": dry_run, "total": len(qs), "length_biased": len(todo), "length_fixed": 0,
-           "length_failed": {}, "before": key_stats(qs.values())}
+    rep = {"session_id": sid, "dry_run": dry_run, "total": len(qs), "length_biased": len(length_candidates(qs, margin=0)),
+           "length_fixed": 0, "length_failed": {}, "before": key_stats(qs.values()), "length_before": length_stats(qs.values())}
     changed: set = set()
+    tried: set = set()
     if not dry_run:
         with ThreadPoolExecutor(max_workers=max(1, workers)) as ex:
-            for i, (new, why) in zip(todo, ex.map(lambda i: fix_length(qs[i], chk, providers), todo)):
-                if new is not None:
-                    qs[i] = new
-                    changed.add(i)
-                    rep["length_fixed"] += 1
-                else:
-                    rep["length_failed"][why[:60]] = rep["length_failed"].get(why[:60], 0) + 1
-                progress(f"length item {i}: {'rewritten' if new is not None else 'kept original'}")
+            while True:  # batches, worst offenders first, re-evaluated after each: stop once every section meets the targets
+                batch = length_candidates(qs, skip=tried)[:max(1, workers)]
+                if not batch:
+                    break
+                tried.update(batch)
+                for i, (new, why) in zip(batch, ex.map(lambda i: fix_length(qs[i], chk, providers), batch)):
+                    if new is not None:
+                        qs[i] = new
+                        changed.add(i)
+                        rep["length_fixed"] += 1
+                    else:
+                        rep["length_failed"][why[:60]] = rep["length_failed"].get(why[:60], 0) + 1
+                    progress(f"length item {i}: {'rewritten' if new is not None else 'kept original'}")
     before = {i: (q.correct_answer, q.explanation) for i, q in qs.items()}
     rep["position"] = balance_positions(qs, seed=seed)
     changed |= {i for i, q in qs.items() if before[i] != (q.correct_answer, q.explanation)}
     rep["changed_items"] = len(changed)
     rep["after"] = key_stats(qs.values())
+    rep["length_after"] = length_stats(qs.values())
     if dry_run:
         return rep
     with file_lock(out):
         cur = read_store(out)
-        shutil.copy2(out, str(out) + ".pre_balance.bak")
+        n = 1  # never overwrite an earlier backup: .pre_balance.bak, .pre_balance2.bak, ...
+        while Path(f"{out}.pre_balance{n if n > 1 else ''}.bak").exists():
+            n += 1
+        shutil.copy2(out, f"{out}.pre_balance{n if n > 1 else ''}.bak")
         rep["applied"] = 0
         for i in changed:
             if cur.get(i) == snap.get(i):  # skip items modified by someone else since the snapshot
@@ -283,4 +354,5 @@ def format_report(r: dict) -> str:
             f"unfixable(reference) {p['unfixable_reference']}, unfixable(explanation) {p['unfixable_explanation']}; "
             f"items changed {r['changed_items']}\n  keys before {r['before']['overall']} after {r['after']['overall']}"
             f"\n  per section after {r['after']['sections']}"
+            + "".join(f"\n  length[{k}] longest {v['longest']}/{v['mcq']} within20 {v['within']}/{v['nonnumeric']}" for k, v in r.get("length_after", {}).items())
             + (f"\n  audit {r['audit']['failed']}/{r['audit']['total']} failed {r['audit']['by_check']}" if "audit" in r else ""))

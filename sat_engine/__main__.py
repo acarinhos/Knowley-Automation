@@ -39,7 +39,7 @@ def main(argv=None) -> int:
             ap.error("--balance needs --session or --seed")
         from .pipeline.balance import balance_session, format_report
         logging.basicConfig(level=logging.WARNING, handlers=[logging.FileHandler(OUTPUT_DIR / "balance_debug.log", encoding="utf-8")])
-        print(format_report(balance_session(sid, Path(a.output_dir) if a.output_dir else OUTPUT_DIR, dry_run=a.dry_run,
+        print(format_report(balance_session(sid, Path(a.output_dir) if a.output_dir else OUTPUT_DIR, dry_run=a.dry_run, workers=min(a.workers, 3),
                                             progress=lambda m: print(m, flush=True))))
         return 0
     if a.list_open or a.import_path:

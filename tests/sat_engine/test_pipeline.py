@@ -221,9 +221,10 @@ def test_quota_error_is_not_retried_and_logged(monkeypatch, caplog):
         raise Quota("quota exceeded. Please retry in 10h56m12.6s")
     monkeypatch.setattr(llm, "PROVIDERS", {**llm.PROVIDERS, "gemini": boom, "groq": lambda *a: '{"a": 1}'})
     monkeypatch.setattr(llm, "_cooldown", {})
-    assert llm.generate_json("x") == {"a": 1} and len(calls) == 1
+    order = ["gemini", "groq"]  # pinned: default_order() may add the real claude CLI
+    assert llm.generate_json("x", providers=order) == {"a": 1} and len(calls) == 1
     assert "provider gemini" in caplog.text and "Quota" in caplog.text
-    llm.generate_json("x")
+    llm.generate_json("x", providers=order)
     assert len(calls) == 1  # cooled down
 
 
