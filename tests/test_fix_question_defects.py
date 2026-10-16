@@ -64,6 +64,44 @@ class MiscTests(unittest.TestCase):
         self.assertEqual(summarize({"a": "written", "b": "skipped: x", "c": "skipped: y"}), {"written": 1, "skipped": 2})
 
 
+
+class RetranslateTests(unittest.TestCase):
+    def two_locale(self, de_options):
+        d = doc({"A": "Paris", "B": "Rome", "C": "Madrid", "D": "Berlin"})
+        d["translations"]["de"] = {"question": "Q?", "options": de_options}
+        return d
+
+    def test_targets_only_broken_non_en_locales_when_en_is_clean(self):
+        from scripts.fix_question_defects import retranslate_record, retranslate_targets
+
+        broken = self.two_locale({"A": "Paris", "B": "Paris", "C": "Madrid", "D": "Berlin"})
+        self.assertEqual(retranslate_targets(broken), ["de"])
+        self.assertEqual(retranslate_record("d", broken)["locales"]["de"]["options"]["B"], "Paris")
+        self.assertEqual(retranslate_targets(self.two_locale({"A": "Paris", "B": "Rom", "C": "Madrid", "D": "Berlin"})), [])
+        en_broken = doc(DUP)
+        en_broken["translations"]["de"] = {"options": {"A": "x1", "B": "x1", "C": "y2", "D": "z3"}}
+        self.assertEqual(retranslate_targets(en_broken), [])
+
+    def test_validate_retranslation(self):
+        from scripts.fix_question_defects import validate_retranslation
+
+        broken = self.two_locale({"A": "Paris", "B": "Paris", "C": "Madrid", "D": "Berlin"})
+        good = {"de": {"A": "Paris", "B": "Rom", "C": "Madrid", "D": "Berlin"}}
+        self.assertEqual(len(validate_retranslation(broken, good)), 4)
+        for bad in ({"de": {**good["de"], "B": "Paris"}}, {"de": {"A": "x"}}, {"fr": good["de"]}, {"de": {**good["de"], "C": ""}}):
+            with self.assertRaises(ValueError):
+                validate_retranslation(broken, bad)
+
+    def test_digit_mismatch_rejected(self):
+        from scripts.fix_question_defects import validate_retranslation
+
+        d = doc({"A": "30", "B": "35", "C": "33", "D": "36"})
+        d["translations"]["tr"] = {"options": {"A": "33", "B": "35", "C": "33", "D": "36"}}
+        with self.assertRaises(ValueError):
+            validate_retranslation(d, {"tr": {"A": "30", "B": "35", "C": "34", "D": "36"}})
+        self.assertEqual(len(validate_retranslation(d, {"tr": {"A": "30", "B": "35", "C": "33", "D": "36"}})), 4)
+
+
 if __name__ == "__main__":
     unittest.main()
 

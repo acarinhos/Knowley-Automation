@@ -122,6 +122,8 @@ def suspect_list(directory: Path) -> List[Dict[str, Any]]:
 
 
 def main() -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # Windows cp1254 consoles crash on non-Latin text
     from dotenv import load_dotenv
 
     load_dotenv(ROOT / ".env")

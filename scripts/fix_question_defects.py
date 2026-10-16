@@ -3,6 +3,8 @@
 Modes (exactly one):
   --export-rewrites DIR      read-only: chunk_NNN.json + README_prompt.md for sub-agents (20 docs per chunk)
   --import-rewrites DIR      validate result_NNN.json and rewrite ONLY the defective option fields
+  --export-retranslate DIR   read-only: chunks asking for the 4 options of broken NON-en locales to be re-translated from en
+  --import-retranslate DIR   validate result_NNN.json and rewrite translations.<locale>.options (merge-only)
   --fix-order                reorder a locale's options to the `en` positions when that is unambiguous
   --deactivate-suspects      is_active=false (+ deactivated_reason/at) for local_backups/skipped_suspect_answers.json
   --reactivate FILE          undo --deactivate-suspects from its backup file
@@ -163,6 +165,85 @@ def plan_reorder(data: Mapping[str, Any]) -> Dict[str, Dict[str, Any]]:
     return out
 
 
+def retranslate_targets(data: Mapping[str, Any]) -> List[str]:
+    """Non-en locales whose options are broken (duplicates, empty/tiny, shifted vs en) while `en` is clean."""
+    if "en" in defective_options(data):
+        return []
+    broken = {loc for loc in defective_options(data) if loc != "en"} | set(plan_reorder(data))
+    translations = data.get("translations") or {}
+    en_keys = [norm((translations.get("en") or {}).get("options", {}).get(l)) for l in LETTERS]
+    if len(set(en_keys)) == 4:  # en is distinct, so any repeat in another locale (even numbers) is corruption
+        for loc, content in translations.items():
+            opts = content.get("options") if isinstance(content, Mapping) else None
+            if loc != "en" and isinstance(opts, Mapping) and set(opts) == set(LETTERS):
+                keys = [norm(opts[l]) for l in LETTERS]
+                if len(set(keys)) < 4:
+                    broken.add(loc)
+    return sorted(broken)
+
+
+def retranslate_record(doc_id: str, data: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
+    locales = retranslate_targets(data)
+    if not locales:
+        return None
+    tr = data["translations"]
+    return {
+        "doc_id": doc_id, "correct_answer": data.get("correct_answer"),
+        "en": {"question": tr["en"].get("question"), "options": {k: tr["en"]["options"][k] for k in LETTERS}},
+        "locales": {loc: {"question": tr[loc].get("question"), "options": {k: tr[loc]["options"].get(k) for k in LETTERS}} for loc in locales},
+    }
+
+
+def _digits(text: Any) -> str:
+    return "".join(c for c in str(text or "") if c.isdigit())
+
+
+def validate_retranslation(data: Mapping[str, Any], result: Mapping[str, Mapping[str, str]]) -> Dict[tuple, Any]:
+    """Field-path -> new option text for whole-locale option re-translations; ValueError when unsafe."""
+    allowed = retranslate_targets(data)
+    en = data["translations"]["en"]["options"]
+    updates: Dict[tuple, Any] = {}
+    for loc, options in result.items():
+        if loc not in allowed:
+            raise ValueError(f"{loc}: not a broken non-en locale")
+        if set(options) != set(LETTERS):
+            raise ValueError(f"{loc}: needs exactly A-D")
+        texts = {k: str(options[k] or "").strip() for k in LETTERS}
+        if any(len(norm(t)) < 1 for t in texts.values()) or len({norm(t) for t in texts.values()}) != 4:
+            raise ValueError(f"{loc}: options empty or not distinct")
+        for letter in LETTERS:
+            if _digits(en[letter]) != _digits(texts[letter]):
+                raise ValueError(f"{loc}.{letter}: digits differ from en ({en[letter]!r} vs {texts[letter]!r})")
+        probe = {"correct_answer": data.get("correct_answer"), "translations": {"en": data["translations"]["en"], loc: {"options": texts}}}
+        if defective_options(probe).get(loc) or plan_reorder(probe).get(loc):
+            raise ValueError(f"{loc}: defect remains after re-translation")
+        updates.update({("translations", loc, "options", k): v for k, v in texts.items()})
+    return updates
+
+
+def manual_review_record(doc_id: str, data: Mapping[str, Any], defects: List[Mapping[str, str]]) -> Dict[str, Any]:
+    en = (data.get("translations") or {}).get("en") or {}
+    return {"doc_id": doc_id, "version": data.get("dbVersion") or data.get("version"), "question": en.get("question"),
+            "options": en.get("options"), "correct_answer": data.get("correct_answer"), "explanation": en.get("explanation"),
+            "defects": [f"{d['type']}: {d['detail']}" for d in defects]}
+
+
+RETRANSLATE_README = """# Task for the sub-agent
+
+`chunk_NNN.json` lists questions whose options are broken in some NON-English locales (duplicates, empty/too short,
+or shifted relative to English). Each record has `doc_id`, `correct_answer`, `en` (question + options A-D, the reference)
+and `locales` -> `{locale: {question, options}}` with the current, broken text.
+
+For EVERY listed locale translate the four English options A-D into that locale's language:
+- Same meaning and SAME ORDER as English: translated A is English A, and so on. The correct answer letter stays the same.
+- The four options must be different from each other; keep numbers/digits exactly as in English; proper names may stay.
+- Match the style of the locale's question text; do not add explanations.
+
+Save `result_NNN.json` (same NNN) as one JSON object: `{ "<doc_id>": { "<locale>": { "A": "...", "B": "...", "C": "...", "D": "..." } } }`
+with all four letters per listed locale. Output valid JSON only. Records you cannot do reliably may be omitted.
+"""
+
+
 def deactivation_update(now: Any) -> Dict[str, Any]:
     return {"is_active": False, "deactivated_reason": "suspect_answer_key", "deactivated_at": now}
 
@@ -256,6 +337,8 @@ def main() -> int:
     parser.add_argument("--project-id")
     parser.add_argument("--export-rewrites", metavar="DIR")
     parser.add_argument("--import-rewrites", metavar="DIR")
+    parser.add_argument("--export-retranslate", metavar="DIR")
+    parser.add_argument("--import-retranslate", metavar="DIR")
     parser.add_argument("--fix-order", action="store_true")
     parser.add_argument("--deactivate-suspects", action="store_true")
     parser.add_argument("--reactivate", metavar="BACKUP_FILE")
@@ -264,12 +347,14 @@ def main() -> int:
     parser.add_argument("--chunk-size", type=int, default=20)
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
-    modes = [bool(args.export_rewrites), bool(args.import_rewrites), args.fix_order, args.deactivate_suspects, bool(args.reactivate)]
+    modes = [bool(args.export_rewrites), bool(args.import_rewrites), bool(args.export_retranslate), bool(args.import_retranslate), args.fix_order, args.deactivate_suspects, bool(args.reactivate)]
     if sum(modes) != 1:
         parser.error("choose exactly one mode")
     if args.apply and args.project_id != "knowley-1":
         parser.error("--apply requires --project-id knowley-1")
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
     from dotenv import load_dotenv
 
@@ -294,6 +379,45 @@ def main() -> int:
         records.sort(key=lambda r: ("en" not in r["locales"], r["doc_id"]))
         chunks = write_chunks(records, Path(args.export_rewrites), max(1, args.chunk_size))
         logger.info("Exported %d docs into %d chunk(s) in %s", len(records), chunks, args.export_rewrites)
+        return 0
+
+    if args.export_retranslate:
+        from scripts.audit_question_defects import detect
+
+        records, manual = [], []
+        for snap in db.collection("questions").stream():
+            data = snap.to_dict() or {}
+            record = retranslate_record(snap.id, data)
+            if record:
+                records.append(record)
+            defects = detect(data)
+            if "en" in defective_options(data) or any(d["type"] == "incomplete_explanation" for d in defects):
+                manual.append(manual_review_record(snap.id, data, defects))
+        directory = Path(args.export_retranslate)
+        chunks = write_chunks(records, directory, max(1, args.chunk_size))
+        (directory / "README_prompt.md").write_text(RETRANSLATE_README, encoding="utf-8")
+        BACKUP_DIR.mkdir(exist_ok=True)
+        (BACKUP_DIR / "manual_review.json").write_text(json.dumps(manual, ensure_ascii=False, indent=1), encoding="utf-8")
+        logger.info("Exported %d docs into %d chunk(s); %d doc(s) need manual review (local_backups/manual_review.json)",
+                    len(records), chunks, len(manual))
+        return 0
+
+    if args.import_retranslate:
+        plan = []
+        for doc_id, result in sorted(read_results(Path(args.import_retranslate)).items()):
+            if f"retranslate:{doc_id}" in done:
+                states[doc_id] = "skipped: already done"
+                continue
+            snap = db.collection("questions").document(doc_id).get()
+            if not snap.exists:
+                states[doc_id] = "skipped: document not found"
+                continue
+            try:
+                plan.append((doc_id, snap, validate_retranslation(snap.to_dict() or {}, result)))
+            except ValueError as exc:
+                states[doc_id] = f"skipped: invalid ({str(exc)[:140]})"
+        _commit("retranslate", plan, args.apply, states, "written")
+        _report("Retranslate import", states, args.apply)
         return 0
 
     if args.import_rewrites:
