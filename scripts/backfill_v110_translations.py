@@ -54,32 +54,12 @@ logger = logging.getLogger("FirestoreTranslationBackfill")
 # Reuse already stored base-language translations when adding the requested
 # regional locale keys. This keeps the backfill resumable and avoids repeating
 # equivalent translations for locales differing only by region.
+# Canonical short code -> older regional key that may hold the same translation.
 LEGACY_LOCALE_SOURCES = {
-    "de-DE": "de",
-    "bn-BD": "bn",
-    "da-DK": "da",
-    "fa-IR": "fa",
-    "nl-NL": "nl",
-    "fi-FI": "fi",
-    "fr-FR": "fr",
-    "hi-IN": "hi",
-    "ja-JP": "ja",
-    "ko-KR": "ko",
-    "pl-PL": "pl",
-    "hu-HU": "hu",
-    "ms-MY": "ms",
-    "no-NO": "nb",
-    "pt-BR": "pt",
-    "ru-RU": "ru",
-    "tr-TR": "tr",
-    "el-GR": "el",
-    "cs-CZ": "cs",
-    "zh-CN": "zh-Hans",
-    "zh-TW": "zh-Hant",
-    "iw-IL": "he",
-    "es-ES": "es",
-    "sv-SE": "sv",
-    "it-IT": "it",
+    "de": "de-DE", "bn": "bn-BD", "da": "da-DK", "fa": "fa-IR", "nl": "nl-NL", "fi": "fi-FI", "fr": "fr-FR",
+    "hi": "hi-IN", "ja": "ja-JP", "ko": "ko-KR", "pl": "pl-PL", "hu": "hu-HU", "ms": "ms-MY", "no": "nb",
+    "pt": "pt-BR", "ru": "ru-RU", "tr": "tr-TR", "el": "el-GR", "cs": "cs-CZ", "zh": "zh-Hans",
+    "zh-TW": "zh-Hant", "he": "iw-IL", "es": "es-ES", "sv": "sv-SE", "it": "it-IT", "es-LA": "es-419",
 }
 
 

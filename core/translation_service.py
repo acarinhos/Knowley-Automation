@@ -26,40 +26,40 @@ logger = logging.getLogger("QuestionTranslation")
 
 _LANGUAGE_NAMES = {
     "İngilizce": ("en", "English"),
-    "Almanca": ("de-DE", "German"),
+    "Almanca": ("de", "German"),
     "Arapça": ("ar", "Arabic"),
-    "Bengalce": ("bn-BD", "Bengali (Bangladesh)"),
-    "Danca": ("da-DK", "Danish"),
+    "Bengalce": ("bn", "Bengali (Bangladesh)"),
+    "Danca": ("da", "Danish"),
     "Endonezce": ("id", "Indonesian"),
-    "Farsça": ("fa-IR", "Persian"),
-    "Felemenkçe": ("nl-NL", "Dutch"),
+    "Farsça": ("fa", "Persian"),
+    "Felemenkçe": ("nl", "Dutch"),
     "Filipince": ("fil", "Filipino"),
-    "Fince": ("fi-FI", "Finnish"),
-    "Fransızca": ("fr-FR", "French"),
-    "Hintçe": ("hi-IN", "Hindi"),
-    "Japonca": ("ja-JP", "Japanese"),
-    "Korece": ("ko-KR", "Korean"),
-    "Lehçe": ("pl-PL", "Polish"),
-    "Macarca": ("hu-HU", "Hungarian"),
-    "Malayca": ("ms-MY", "Malay (Malaysia)"),
-    "Norveççe": ("no-NO", "Norwegian"),
-    "Portekizce": ("pt-BR", "Portuguese (Brazil)"),
+    "Fince": ("fi", "Finnish"),
+    "Fransızca": ("fr", "French"),
+    "Hintçe": ("hi", "Hindi"),
+    "Japonca": ("ja", "Japanese"),
+    "Korece": ("ko", "Korean"),
+    "Lehçe": ("pl", "Polish"),
+    "Macarca": ("hu", "Hungarian"),
+    "Malayca": ("ms", "Malay (Malaysia)"),
+    "Norveççe": ("no", "Norwegian"),
+    "Portekizce": ("pt", "Portuguese (Brazil)"),
     "Rumence": ("ro", "Romanian"),
-    "Rusça": ("ru-RU", "Russian"),
+    "Rusça": ("ru", "Russian"),
     "Tayca": ("th", "Thai"),
-    "Türkçe": ("tr-TR", "Turkish"),
+    "Türkçe": ("tr", "Turkish"),
     "Ukraynaca": ("uk", "Ukrainian"),
     "Urduca": ("ur", "Urdu"),
     "Vietnamca": ("vi", "Vietnamese"),
-    "Yunanca": ("el-GR", "Greek"),
-    "Çekçe": ("cs-CZ", "Czech"),
-    "Çince (Mandarin)": ("zh-CN", "Chinese (Simplified)"),
+    "Yunanca": ("el", "Greek"),
+    "Çekçe": ("cs", "Czech"),
+    "Çince (Mandarin)": ("zh", "Chinese (Simplified)"),
     "Çince (Geleneksel)": ("zh-TW", "Chinese (Traditional)"),
-    "İbranice": ("iw-IL", "Hebrew"),
-    "İspanyolca (Latin Amerika)": ("es-419", "Spanish (Latin America)"),
-    "İspanyolca": ("es-ES", "Spanish (Spain)"),
-    "İsveççe": ("sv-SE", "Swedish"),
-    "İtalyanca": ("it-IT", "Italian"),
+    "İbranice": ("he", "Hebrew"),
+    "İspanyolca (Latin Amerika)": ("es-LA", "Spanish (Latin America)"),
+    "İspanyolca": ("es", "Spanish (Spain)"),
+    "İsveççe": ("sv", "Swedish"),
+    "İtalyanca": ("it", "Italian"),
 }
 
 
@@ -73,6 +73,7 @@ def _language_key(value: Any) -> str:
 LANGUAGE_NAME_TO_CODE = {
     _language_key(name): code for name, (code, _english_name) in _LANGUAGE_NAMES.items()
 }
+LANGUAGE_NAME_TO_CODE[_language_key("Romence")] = "ro"  # Sheets spelling variant of Rumence
 LANGUAGE_CODE_TO_NAME = {
     code: english_name for code, english_name in _LANGUAGE_NAMES.values()
 }
@@ -85,34 +86,24 @@ _AZURE_REQUEST_USAGE: deque[tuple[float, int]] = deque()
 _AZURE_USAGE_LOCK = Lock()
 _AZURE_COOLDOWN_UNTIL = 0.0
 _AZURE_DISABLED_REASON = ""
+# Canonical (short) code -> Azure code, only where they differ.
 AZURE_LANGUAGE_ALIASES = {
-    "de-DE": "de",
-    "bn-BD": "bn",
-    "da-DK": "da",
-    "fa-IR": "fa",
-    "nl-NL": "nl",
-    "fi-FI": "fi",
-    "fr-FR": "fr",
-    "hi-IN": "hi",
-    "ja-JP": "ja",
-    "ko-KR": "ko",
-    "pl-PL": "pl",
-    "hu-HU": "hu",
-    "ms-MY": "ms",
-    "no-NO": "nb",
-    "pt-BR": "pt",
-    "ru-RU": "ru",
-    "tr-TR": "tr",
-    "el-GR": "el",
-    "cs-CZ": "cs",
-    "zh-CN": "zh-Hans",
+    "no": "nb",
+    "zh": "zh-Hans",
     "zh-TW": "zh-Hant",
-    "iw-IL": "he",
-    "es-419": "es",
-    "es-ES": "es",
-    "sv-SE": "sv",
-    "it-IT": "it",
+    "es-LA": "es",
 }
+# Legacy / regional spellings seen in stored data -> canonical short code (Latin-American Spanish is `es-LA`).
+LANGUAGE_CODE_ALIASES = {
+    **{old: new for old, new in {'de-DE': 'de', 'bn-BD': 'bn', 'da-DK': 'da', 'fa-IR': 'fa', 'nl-NL': 'nl', 'fi-FI': 'fi', 'fr-FR': 'fr', 'hi-IN': 'hi', 'ja-JP': 'ja', 'ko-KR': 'ko', 'pl-PL': 'pl', 'hu-HU': 'hu', 'ms-MY': 'ms', 'no-NO': 'no', 'pt-BR': 'pt', 'ru-RU': 'ru', 'tr-TR': 'tr', 'el-GR': 'el', 'cs-CZ': 'cs', 'zh-CN': 'zh', 'iw-IL': 'he', 'es-419': 'es-LA', 'es-ES': 'es', 'sv-SE': 'sv', 'it-IT': 'it'}.items()},
+    "nb": "no", "he": "he", "iw": "he", "zh-Hans": "zh", "zh-Hant": "zh-TW", "es-419": "es-LA",
+}
+
+
+def canonical_language_code(code: Any) -> str:
+    """Short canonical language code for a stored/Sheets code; unknown codes are returned unchanged."""
+    text = str(code or "").strip()
+    return LANGUAGE_CODE_ALIASES.get(text, text)
 
 
 def azure_character_budget_per_minute() -> int:
@@ -152,7 +143,7 @@ def language_codes_from_sheet(value: Any, country_code: Any = None) -> list[str]
     for label in re.split(r"\s*,\s*", str(value).strip()):
         code = LANGUAGE_NAME_TO_CODE.get(_language_key(label))
         if _language_key(label) == _language_key("İspanyolca"):
-            code = "es-419" if normalized_country == "LATAM" else "es-ES"
+            code = "es-LA" if normalized_country == "LATAM" else "es"
         if code and code not in codes:
             codes.append(code)
     if "en" not in codes:

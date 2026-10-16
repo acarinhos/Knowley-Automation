@@ -19,45 +19,46 @@ def doc():
 class LanguageRuleTests(unittest.TestCase):
     def test_question_languages_are_country_languages_plus_en(self):
         repo = get_sheet_algorithm_repository()
-        self.assertEqual(repo.question_languages("Türkiye"), ["tr-TR", "en"])
+        self.assertEqual(repo.question_languages("Türkiye"), ["tr", "en"])
         self.assertEqual(repo.question_languages("ABD"), ["en"])
-        self.assertEqual(repo.question_languages("Kanada"), ["en", "fr-FR"])
+        self.assertEqual(repo.question_languages("Kanada"), ["en", "fr"])
         self.assertEqual(repo.question_languages("Nowhere"), ["en"])
 
     def test_code_equivalents(self):
-        for a, b in (("tr", "tr-TR"), ("zh-Hans", "zh-CN"), ("he", "iw-IL"), ("nb", "no-NO"), ("fa", "fa-IR"), ("fr", "fr-FR")):
+        for a, b in (("tr", "tr-TR"), ("zh-Hans", "zh-CN"), ("he", "iw-IL"), ("nb", "no-NO"), ("fa", "fa-IR"), ("fr", "fr"), ("es-419", "es-LA")):
             self.assertEqual(canon(a), canon(b))
         self.assertNotEqual(canon("es-419"), canon("es-ES"))
+        self.assertEqual(canon("zh-Hant"), "zh-TW")
 
     def test_missing_languages_uses_equivalent_keys_and_ignores_extras(self):
         d = doc()
         d["translations"]["fr"] = dict(FR)  # stored as `fr`, Sheets says fr-FR
         d["translations"]["de"] = dict(FR)  # extra language is fine
-        self.assertEqual(missing_languages(d, ["en", "fr-FR"]), [])
-        self.assertEqual(missing_languages(doc(), ["en", "fr-FR"]), ["fr-FR"])
+        self.assertEqual(missing_languages(d, ["en", "fr"]), [])
+        self.assertEqual(missing_languages(doc(), ["en", "fr"]), ["fr"])
 
 
 class BackfillTests(unittest.TestCase):
     def test_export_record(self):
-        rec = export_record("d1", doc(), "Fransa", ["fr-FR"])
-        self.assertEqual((rec["source_language"], rec["missing_languages"]), ("en", ["fr-FR"]))
-        self.assertIsNone(export_record("d2", {"translations": {}}, "Fransa", ["fr-FR"]))
+        rec = export_record("d1", doc(), "Fransa", ["fr"])
+        self.assertEqual((rec["source_language"], rec["missing_languages"]), ("en", ["fr"]))
+        self.assertIsNone(export_record("d2", {"translations": {}}, "Fransa", ["fr"]))
 
     def test_plan_update_adds_language_merge_only(self):
-        updates = plan_update(doc(), ["fr-FR"], {"fr-FR": FR})
-        self.assertEqual(updates[("translations", "fr-FR", "question")], "Q fr?")
-        self.assertEqual(updates[("translations", "fr-FR", "options", "B")], "foB")
-        self.assertIs(updates[("translations", "fr-FR", "binary_fallback", "is_true")], False)
-        self.assertEqual(updates[("supported_languages",)], ["en", "fr-FR"])
+        updates = plan_update(doc(), ["fr"], {"fr": FR})
+        self.assertEqual(updates[("translations", "fr", "question")], "Q fr?")
+        self.assertEqual(updates[("translations", "fr", "options", "B")], "foB")
+        self.assertIs(updates[("translations", "fr", "binary_fallback", "is_true")], False)
+        self.assertEqual(updates[("supported_languages",)], ["en", "fr"])
         self.assertFalse([k for k in updates if k[:2] == ("translations", "en")])
 
     def test_plan_update_never_overwrites_existing_fields(self):
         d = doc()
-        d["translations"]["fr-FR"] = {"question": "keep me", "options": {"A": "a", "B": "", "C": "", "D": ""}}
-        updates = plan_update(d, ["fr-FR"], {"fr-FR": FR})
-        self.assertNotIn(("translations", "fr-FR", "question"), updates)
-        self.assertNotIn(("translations", "fr-FR", "options", "A"), updates)
-        self.assertIn(("translations", "fr-FR", "options", "B"), updates)
+        d["translations"]["fr"] = {"question": "keep me", "options": {"A": "a", "B": "", "C": "", "D": ""}}
+        updates = plan_update(d, ["fr"], {"fr": FR})
+        self.assertNotIn(("translations", "fr", "question"), updates)
+        self.assertNotIn(("translations", "fr", "options", "A"), updates)
+        self.assertIn(("translations", "fr", "options", "B"), updates)
 
     def test_validation_rejects_bad_results(self):
         bad_cases = [
@@ -70,7 +71,7 @@ class BackfillTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 validate_language(SRC, bad)
         with self.assertRaises(ValueError):
-            plan_update(doc(), ["fr-FR"], {"de-DE": FR})  # not a missing language
+            plan_update(doc(), ["fr"], {"de-DE": FR})  # not a missing language
         self.assertEqual(validate_language(SRC, FR)["binary_fallback"]["is_true"], False)
 
 

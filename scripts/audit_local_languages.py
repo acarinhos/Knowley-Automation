@@ -16,14 +16,7 @@ from typing import Any, Dict, List, Mapping, Optional
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "local_backups" / "local_language_gaps.json"
 
-# Equivalent codes seen in Sheets vs stored translations -> canonical Sheets form.
-ALIASES = {
-    "tr": "tr-TR", "de": "de-DE", "fr": "fr-FR", "it": "it-IT", "es": "es-ES", "ru": "ru-RU", "ja": "ja-JP",
-    "ko": "ko-KR", "pl": "pl-PL", "hu": "hu-HU", "ms": "ms-MY", "pt": "pt-BR", "el": "el-GR", "cs": "cs-CZ",
-    "sv": "sv-SE", "da": "da-DK", "fi": "fi-FI", "nl": "nl-NL", "hi": "hi-IN", "bn": "bn-BD", "fa": "fa-IR",
-    "he": "iw-IL", "iw": "iw-IL", "nb": "no-NO", "no": "no-NO", "zh-hans": "zh-CN", "zh-hant": "zh-TW",
-    "zh": "zh-CN",
-}
+from core.translation_service import canonical_language_code
 
 
 # Legacy English country names stored on old questions -> Sheets country name.
@@ -47,8 +40,7 @@ def resolve_country(data: Mapping[str, Any], repository: Any, fallback: Any) -> 
 
 
 def canon(code: Any) -> str:
-    text = str(code or "").strip()
-    return ALIASES.get(text.lower(), text if "-" not in text else f"{text.split('-')[0].lower()}-{text.split('-')[1]}")
+    return canonical_language_code(code)
 
 
 def usable(content: Any) -> bool:
