@@ -1,0 +1,12 @@
+matplotlib
+beautifulsoup4
+lxml
+pymupdf
+pypdf
+pydantic>=2
+python-dotenv
+firebase-admin
+google-genai
+groq
+cohere
+requests
