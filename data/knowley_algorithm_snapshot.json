@@ -5,7 +5,7 @@
     "url": "https://docs.google.com/spreadsheets/d/1LI36wvw4TIWHBHAPgJ2lWyWz6nkj_Hmwp3eN83aD8rs/edit",
     "version": "v1.0.5",
     "locale": "tr_TR",
-    "fetched_at": "2026-10-16T16:54:56.872048+00:00"
+    "fetched_at": "2026-10-16T17:03:26.190525+00:00"
   },
   "sheets": [
     {
@@ -34197,6 +34197,24 @@
         },
         {
           "Ana Kategori": "",
+          "Alt Kategori (Sub)": "Kripto Dünyası & Şirketler",
+          "154 Kredi Havuzu Payı": "1",
+          "64 Kredi Havuzu Payı": "0",
+          "Temel Kategoriler": "",
+          "GL - LO Dengesi / Öge": "%70 GL / %30 LO",
+          "Odak & Kapsam Kılavuzu": "Blokzincir, kripto para birimleri, madencilik; Fortune 500 devleri / Ülkenin büyük holding ve markaları."
+        },
+        {
+          "Ana Kategori": "Edebiyat",
+          "Alt Kategori (Sub)": "Temel Edebiyat",
+          "154 Kredi Havuzu Payı": "3",
+          "64 Kredi Havuzu Payı": "1",
+          "Temel Kategoriler": "1",
+          "GL - LO Dengesi / Öge": "%100 GL / %0 LO",
+          "Odak & Kapsam Kılavuzu": "Dünya klasikleri, evrensel edebi türler (roman, şiir, tiyatro, deneme), edebi dönemler ve temel söz sanatları."
+        },
+        {
+          "Ana Kategori": "",
           "Alt Kategori (Sub)": "Camões & Keşifler Çağı Edebiyatı",
           "154 Kredi Havuzu Payı": "1",
           "64 Kredi Havuzu Payı": "1",
@@ -34205,7 +34223,7 @@
           "Odak & Kapsam Kılavuzu": "Luís de Camões'in Os Lusíadas destanı, Vasco da Gama seferleri, Gil Vicente tiyatrosu ve Keşifler Çağı yazarları."
         },
         {
-          "Ana Kategori": "Edebiyat",
+          "Ana Kategori": "",
           "Alt Kategori (Sub)": "Fernando Pessoa & Modernizm",
           "154 Kredi Havuzu Payı": "1",
           "64 Kredi Havuzu Payı": "0",
@@ -34230,24 +34248,6 @@
           "Temel Kategoriler": "",
           "GL - LO Dengesi / Öge": "%0 GL / %100 LO",
           "Odak & Kapsam Kılavuzu": "Saudade kavramı, Sophia de Mello Breyner, Eugénio de Andrade ve modern Portekiz şiiri."
-        },
-        {
-          "Ana Kategori": "",
-          "Alt Kategori (Sub)": "Büyülü Gerçekçilik",
-          "154 Kredi Havuzu Payı": "1",
-          "64 Kredi Havuzu Payı": "0",
-          "Temel Kategoriler": "",
-          "GL - LO Dengesi / Öge": "%0 GL / %100 LO",
-          "Odak & Kapsam Kılavuzu": "Yüzyıllık Yalnızlık ekolü, Jorge Luis Borges'in labirentleri, Isabel Allende ve gerçekle düşün kaynaşması."
-        },
-        {
-          "Ana Kategori": "",
-          "Alt Kategori (Sub)": "Çağdaş Latin Amerika Kurgusu",
-          "154 Kredi Havuzu Payı": "1",
-          "64 Kredi Havuzu Payı": "0",
-          "Temel Kategoriler": "",
-          "GL - LO Dengesi / Öge": "%0 GL / %100 LO",
-          "Odak & Kapsam Kılavuzu": "Roberto Bolaño (2666), Mariana Enriquez ve modern kent şiddeti, hafıza ve distopyayı işleyen yeni nesil kurgu."
         },
         {
           "Ana Kategori": "Psikoloji",
@@ -34621,9 +34621,9 @@
         {
           "Ana Kategori": "TOPLAM",
           "Alt Kategori (Sub)": "21 Ana Kategori (104 Satır)",
-          "154 Kredi Havuzu Payı": "152",
-          "64 Kredi Havuzu Payı": "63",
-          "Temel Kategoriler": "20",
+          "154 Kredi Havuzu Payı": "154",
+          "64 Kredi Havuzu Payı": "64",
+          "Temel Kategoriler": "21",
           "GL - LO Dengesi / Öge": "—",
           "Odak & Kapsam Kılavuzu": "—"
         }
