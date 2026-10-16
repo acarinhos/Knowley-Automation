@@ -157,7 +157,7 @@ class GeneratedQuestion(BaseModel):
     logical_order: Optional[List[int]] = Field(default=None, description="A-D seçenek indekslerinin anlamlı kronolojik/mantıksal sırası; anlamlı değilse null")
     option_difficulty_order: Optional[List[int]] = Field(default=None, description="A-D indekslerinin hedef kitle için en kolay tanınandan en zor tanınana sıralaması; sıralama güvenilir değilse null")
     binary_fallback: Optional[BinaryFallback] = Field(default=None, description="Seçili kaynak dilde Doğru/Yanlış biçimi")
-    community_distribution: Optional[List[int]] = Field(default=None, description="Gerçek oyuncu oylarından sunucu tarafında hesaplanır; üretimde null bırakılır")
+    community_distribution: Optional[List[int]] = Field(default=None, description="Modelden istenmez; kayıt sırasında simüle edilir (community_distribution_meta.source=simulated), gerçek oylar gelince değişir")
     base_points: int = Field(default=100, ge=0, description="Yetenek puan çarpanlarının uygulandığı taban soru puanı")
     difficulty: Optional[Literal["Kolay", "Orta", "Zor"]] = Field(default=None, description="Soru kapsamı için yetenek koşullarında kullanılan zorluk etiketi")
     duration_local: int = Field(default=15, description="Yerel soru süresi (saniye)")

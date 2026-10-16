@@ -140,7 +140,7 @@ def build_tables(catalog: dict[str, Any]) -> dict[str, tuple[list[str], list[lis
         ["keyword", "string|null", "translations.{locale}.keyword", "Question authoring + translation", "Exact localized phrase from the question stem.", "show_keyword"],
         ["logical_order", "array<int>|null", "questions root", "Question authoring", "Permutation of canonical 0..3 indices; option-balancing remaps it.", "sort_options"],
         ["binary_fallback", "map|null", "translations.{locale}.binary_fallback", "Question authoring + translation", "{statement: localized string, is_true: boolean}.", "binary_convert"],
-        ["community_distribution", "array<int>|null", "questions root/runtime", "Live vote aggregation", "Four percentages summing to 100; never generated statically.", "show_community_distribution"],
+        ["community_distribution", "array<int>|null", "questions root/runtime", "Simulated at save time, replaced by live vote aggregation", "Four percentages summing to 100; simulated until real votes exist (community_distribution_meta.source).", "show_community_distribution"],
         ["base_points", "integer", "questions root", "Question default", "Default 100; score abilities multiply or add to this value.", "score_multiplier, score_bonus_percent"],
         ["difficulty", "Kolay|Orta|Zor|null", "questions root", "Question authoring", "Global uses difficulty_global; local uses difficulty_local.", "difficulty-conditioned effects"],
         ["target_country_code", "string", "questions root", "Question persistence", "GL for global; exact region code from country list for local.", "scope guard"],

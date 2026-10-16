@@ -201,11 +201,11 @@ RULES: dict[str, dict[str, Any]] = {
         "validation": "Model output exists and does not expose the answer key directly.",
     },
     "show_community_distribution": {
-        "q": ["questions/{question_id}.community_distribution (nullable; generated as null)"],
+        "q": ["questions/{question_id}.community_distribution (simulated at save time; meta.source=simulated)"],
         "match": ["match.live_vote_aggregate_by_option"],
         "services": ["live_vote_aggregation (collection/schema not present in this repo)"], "authority": "server_authoritative",
-        "behavior": "Show per-option community vote percentages for the active question; calculate from live votes when the cached field is null.",
-        "validation": "Require a minimum vote sample, normalize percentages to 100, and never synthesize missing votes.",
+        "behavior": "Show per-option community vote percentages for the active question; prefer live votes once they exist, otherwise use the cached (simulated) field.",
+        "validation": "Require a minimum vote sample, normalize percentages to 100, and simulated until real votes exist (community_distribution_meta.source).",
     },
     "show_correct_option_letter": {
         "q": ["questions/{question_id}.correct_answer"], "match": [], "services": [], "authority": "client_with_server_validation",
