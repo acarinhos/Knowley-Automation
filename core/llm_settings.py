@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
 
@@ -41,7 +42,15 @@ def load_selection(path: Path = SETTINGS_FILE) -> List[str]:
 
 def save_selection(selection: Iterable[str], path: Path = SETTINGS_FILE) -> List[str]:
     chosen = validate_selection(selection)
-    path.write_text(json.dumps({"providers": chosen}, indent=2) + "\n", encoding="utf-8")
+    # atomic: write a temp file in the same folder, then replace (a crash never leaves a half-written file)
+    handle = tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, suffix=".tmp", delete=False)
+    try:
+        with handle:
+            handle.write(json.dumps({"providers": chosen}, indent=2) + "\n")
+        os.replace(handle.name, path)
+    except BaseException:
+        Path(handle.name).unlink(missing_ok=True)
+        raise
     return chosen
 
 
@@ -58,8 +67,9 @@ def key_status(environ: Optional[Dict[str, str]] = None) -> Dict[str, bool]:
 def apply_selection(selection: Iterable[str]) -> List[str]:
     """Use `selection` for every new LLM manager in this process (env var + reset of the shared manager)."""
     chosen = validate_selection(selection)
-    os.environ["LLM_ALLOWED_PROVIDERS"] = ",".join(chosen)
     from core import llm_manager  # local import: keeps the pure helpers importable without provider SDKs
 
-    llm_manager._global_llm_manager = None
+    with llm_manager._global_llm_manager_lock:  # env write and manager reset are one step for get_llm_manager()
+        os.environ["LLM_ALLOWED_PROVIDERS"] = ",".join(chosen)
+        llm_manager._global_llm_manager = None
     return chosen

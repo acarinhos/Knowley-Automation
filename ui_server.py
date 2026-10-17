@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional
 from urllib.parse import parse_qs, unquote, urlparse
 
 from core.llm_manager import MultiLLMManager
-from core.llm_settings import apply_selection, load_selection, save_selection
+from core.llm_settings import apply_selection, load_selection, save_selection, validate_selection
 from core.generator import QUESTION_SCHEMA_VERSION
 from core.sheet_algorithm import get_sheet_algorithm_repository
 from core.translation_service import LANGUAGE_CODE_TO_SHEET_NAME, SUPPORTED_LANGUAGE_CODES
@@ -50,41 +50,50 @@ def mock_env_if(active: bool, values: Dict[str, str]):
                 os.environ[key] = value
 
 
+NO_KEY_MESSAGES = (
+    "LLM_ALLOWED_PROVIDERS içinde kullanılabilir bir sağlayıcı anahtarı yok",  # core/llm_manager.py
+    "Hiçbir LLM API anahtarı bulunamadı!",
+)
+ACTIVE_JOB_STATUSES = {"starting", "running", "stopping"}
+
+
 class JobManager:
     def __init__(self) -> None:
         self.lock = threading.Lock()
         self.jobs: Dict[str, Dict[str, Any]] = {}
         self.repository = get_sheet_algorithm_repository()
-        self.llm_error = ""
-        self.llm_manager: Optional[MultiLLMManager] = None
-        self._build_llm_manager(load_selection())
+        self.selection = load_selection()
+        self.llm_manager, self.llm_error = self._make_manager(self.selection)
 
-    def _build_llm_manager(self, selection: Any, persist: bool = False) -> None:
-        """Create a fresh manager that honours the selection (LLM_ALLOWED_PROVIDERS).
-
-        The env var is changed process-wide only when `persist` is set (user action / job start), so merely
-        importing this module does not alter the environment of unrelated code."""
-        self.selection = list(selection)
-        if persist:
-            apply_selection(selection)
+    @staticmethod
+    def _make_manager(selection: Any) -> tuple:
+        """(manager, "") or (None, reason) for a selection. The env var is set only while constructing."""
         try:
-            with mock_env_if(not persist, {"LLM_ALLOWED_PROVIDERS": ",".join(selection)}):
-                self.llm_manager = MultiLLMManager()
-            self.llm_error = ""
+            with mock_env_if(True, {"LLM_ALLOWED_PROVIDERS": ",".join(selection)}):
+                return MultiLLMManager(), ""
         except ValueError as exc:
-            if "API anahtarı" not in str(exc) and "sağlayıcı anahtarı" not in str(exc):
+            if str(exc) not in NO_KEY_MESSAGES:
                 raise
-            self.llm_manager = None
-            self.llm_error = str(exc)
+            return None, str(exc)
 
     def set_providers(self, selection: Any) -> list:
-        """Validate, persist and apply a new provider selection. ValueError when empty/unknown."""
-        chosen = save_selection(selection)
-        self._build_llm_manager(chosen, persist=True)
-        return chosen
+        """Validate, build, persist and apply a provider selection (all or nothing).
+
+        ValueError: empty/unknown selection or no API key for any selected provider (nothing changes).
+        RuntimeError: a job is running; the change is rejected and can be repeated when it has finished."""
+        chosen = validate_selection(selection)
+        with self.lock:
+            if any(job["status"] in ACTIVE_JOB_STATUSES for job in self.jobs.values()):
+                raise RuntimeError("Aktif iş varken sağlayıcı seçimi değiştirilemez; iş bitince uygulanır.")
+            manager, error = self._make_manager(chosen)
+            if manager is None:
+                raise ValueError(error)
+            saved = save_selection(chosen)  # only after the manager could be built
+            apply_selection(saved)
+            self.selection, self.llm_manager, self.llm_error = saved, manager, ""
+        return saved
 
     def start(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        apply_selection(self.selection)  # new jobs (generation, translation, imports) use this provider list
         if self.llm_manager is None:
             raise RuntimeError(self.llm_error or "Soru üretimi için .env içinde en az bir LLM API anahtarı gerekli.")
         with self.lock:
@@ -125,6 +134,10 @@ class JobManager:
             "stop_event": threading.Event(),
         }
         with self.lock:
+            if any(item["status"] in ACTIVE_JOB_STATUSES for item in self.jobs.values()):
+                raise RuntimeError("Aynı anda yalnızca bir üretim işi çalıştırılabilir.")
+            # the job really starts now: new jobs (generation, translation, imports) use the selected providers
+            apply_selection(self.selection)
             self.jobs[job_id] = job
 
         def on_event(event: Dict[str, Any]) -> None:

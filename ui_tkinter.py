@@ -1471,22 +1471,28 @@ class KnowleyTkinterApp(tk.Tk):
 
     def _show_llm_selection(self, error: str = "") -> None:
         chosen = [name for name in LLM_PROVIDERS if self.llm_vars[name].get()]
+        keys = llm_key_status()
+        inactive = [name for name in chosen if not keys.get(name)]
+        active = [name for name in chosen if keys.get(name)]
         if error:
             self.llm_select_lbl.config(text=error, fg=RED)
         elif self.manager.llm_error:
             self.llm_select_lbl.config(text=self.manager.llm_error, fg=ORANGE)
         else:
-            self.llm_select_lbl.config(text="Etkin: " + ", ".join(chosen) + " · yeni işler bu listeyle çalışır", fg=MUTED)
+            text = "Etkin: " + (", ".join(active) or "—") + " · yeni işler bu listeyle çalışır"
+            if inactive:
+                text += "\nEtkin değil (API anahtarı yok): " + ", ".join(inactive)
+            self.llm_select_lbl.config(text=text, fg=ORANGE if inactive else MUTED)
 
     def _on_llm_selection_changed(self) -> None:
         """Validate (at least one provider), persist and apply the selection for new jobs."""
         chosen = [name for name in LLM_PROVIDERS if self.llm_vars[name].get()]
         try:
             applied = self.manager.set_providers(chosen)
-        except ValueError as exc:
-            saved = load_llm_selection()  # revert the checkboxes to the last valid selection
+        except (ValueError, OSError, RuntimeError) as exc:
+            current = set(self.manager.selection)  # revert the checkboxes to the last applied selection
             for name in LLM_PROVIDERS:
-                self.llm_vars[name].set(name in saved)
+                self.llm_vars[name].set(name in current)
             self._show_llm_selection(str(exc))
             return
         for name in LLM_PROVIDERS:
