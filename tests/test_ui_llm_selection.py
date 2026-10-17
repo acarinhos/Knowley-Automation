@@ -1,3 +1,4 @@
+import os
 import tkinter
 import unittest
 from unittest.mock import patch
@@ -18,6 +19,13 @@ def _app():
 
 
 class LlmSelectionUiTests(unittest.TestCase):
+    def setUp(self):
+        # JobManager applies LLM_ALLOWED_PROVIDERS process-wide; keep other tests unaffected.
+        env = patch.dict(os.environ)
+        env.start()
+        self.addCleanup(env.stop)
+        self.addCleanup(lambda: setattr(__import__("core.llm_manager", fromlist=["x"]), "_global_llm_manager", None))
+
     def test_default_checkboxes_and_empty_selection_is_rejected(self):
         app = _app()
         try:
@@ -29,6 +37,14 @@ class LlmSelectionUiTests(unittest.TestCase):
                 app._on_llm_selection_changed()  # rejected before anything is saved
             self.assertEqual({k for k, v in app.llm_vars.items() if v.get()}, {"gemini", "groq"})
             self.assertIn("En az bir", app.llm_select_lbl.cget("text"))
+        finally:
+            app.destroy()
+
+    def test_building_the_app_does_not_change_the_process_environment(self):
+        os.environ.pop("LLM_ALLOWED_PROVIDERS", None)
+        app = _app()
+        try:
+            self.assertNotIn("LLM_ALLOWED_PROVIDERS", os.environ)
         finally:
             app.destroy()
 

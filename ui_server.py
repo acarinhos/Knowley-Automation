@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import mimetypes
 import os
@@ -31,6 +32,24 @@ ROOT_DIR = Path(__file__).resolve().parent
 UI_DIR = ROOT_DIR / "ui"
 
 
+@contextlib.contextmanager
+def mock_env_if(active: bool, values: Dict[str, str]):
+    """Temporarily set environment variables (restored afterwards) when `active`."""
+    if not active:
+        yield
+        return
+    saved = {key: os.environ.get(key) for key in values}
+    os.environ.update(values)
+    try:
+        yield
+    finally:
+        for key, value in saved.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
 class JobManager:
     def __init__(self) -> None:
         self.lock = threading.Lock()
@@ -40,11 +59,17 @@ class JobManager:
         self.llm_manager: Optional[MultiLLMManager] = None
         self._build_llm_manager(load_selection())
 
-    def _build_llm_manager(self, selection: Any) -> None:
-        """Apply the provider selection (LLM_ALLOWED_PROVIDERS) and create a fresh manager for new jobs."""
-        apply_selection(selection)
+    def _build_llm_manager(self, selection: Any, persist: bool = False) -> None:
+        """Create a fresh manager that honours the selection (LLM_ALLOWED_PROVIDERS).
+
+        The env var is changed process-wide only when `persist` is set (user action / job start), so merely
+        importing this module does not alter the environment of unrelated code."""
+        self.selection = list(selection)
+        if persist:
+            apply_selection(selection)
         try:
-            self.llm_manager = MultiLLMManager()
+            with mock_env_if(not persist, {"LLM_ALLOWED_PROVIDERS": ",".join(selection)}):
+                self.llm_manager = MultiLLMManager()
             self.llm_error = ""
         except ValueError as exc:
             if "API anahtarı" not in str(exc) and "sağlayıcı anahtarı" not in str(exc):
@@ -55,10 +80,11 @@ class JobManager:
     def set_providers(self, selection: Any) -> list:
         """Validate, persist and apply a new provider selection. ValueError when empty/unknown."""
         chosen = save_selection(selection)
-        self._build_llm_manager(chosen)
+        self._build_llm_manager(chosen, persist=True)
         return chosen
 
     def start(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        apply_selection(self.selection)  # new jobs (generation, translation, imports) use this provider list
         if self.llm_manager is None:
             raise RuntimeError(self.llm_error or "Soru üretimi için .env içinde en az bir LLM API anahtarı gerekli.")
         with self.lock:
