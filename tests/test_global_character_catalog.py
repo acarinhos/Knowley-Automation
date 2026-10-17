@@ -9,7 +9,7 @@ from core.character_catalog import CHARACTER_LOCALES, load_global_character_cata
 from scripts.build_global_character_catalog import rename_text, slug_id
 from scripts.export_global_character_runtime_map import RULES
 from scripts.sync_global_character_aliases_firestore import FALSE_POSITIVES, original_name_hits, planned_update
-from scripts.generate_global_character_aliases import KEEP, TOKEN, fold
+from scripts.generate_global_character_aliases import BLOCKED, KEEP, TOKEN, fold, max_run
 
 DATA = Path(__file__).resolve().parents[1] / "data"
 SOURCE: list = []
@@ -23,6 +23,16 @@ def setUpModule():
     ALIASES = json.loads((DATA / "global_character_aliases.json").read_text(encoding="utf-8"))
     CHARACTERS = load_global_character_catalog()
 
+
+
+def levenshtein(a: str, b: str) -> int:
+    previous = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        current = [i]
+        for j, cb in enumerate(b, 1):
+            current.append(min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + (ca != cb)))
+        previous = current
+    return previous[-1]
 
 
 def visible_texts(character):
@@ -47,6 +57,7 @@ class AliasTests(unittest.TestCase):
 
     def test_aliases_are_unique_anagrams_that_differ_from_the_original(self):
         seen = set()
+        tokens_checked = [0, 0]
         for cid, entry in ALIASES["characters"].items():
             original, alias = entry["original"], entry["alias"]
             self.assertNotEqual(original, alias, cid)
@@ -56,12 +67,19 @@ class AliasTests(unittest.TestCase):
             self.assertEqual(len(o_tokens), len(a_tokens), cid)
             for o, a in zip(o_tokens, a_tokens):
                 fo, fa = fold(o), fold(a)
-                self.assertEqual(sorted(fo), sorted(fa), f"{o} -> {a}")
-                if fo not in KEEP and len(fo) >= 3:
-                    self.assertNotEqual(fo, fa, f"{o} unchanged")
-                    ratio = sum(c in "aeiouy" for c in fa) / len(fa)
-                    self.assertTrue(0.15 <= ratio <= 0.75, f"{a} unpronounceable ratio")
-                    self.assertIsNone(re.search(r"[^aeiouy]{4}|[aeiouy]{4}", fa), a)
+                self.assertEqual(sorted(fo), sorted(fa), f"{o} -> {a}")  # same letters
+                if fo in KEEP or len(fo) < 4:
+                    continue
+                self.assertNotEqual(fo, fa, f"{o} unchanged")
+                similarity = 1 - levenshtein(fo, fa) / len(fo)
+                self.assertGreaterEqual(similarity, 0.5, f"{o} -> {a} is too far from the original")
+                self.assertLessEqual(max_run(fa, False), max(2, max_run(fo, False)), f"{a}: consonant pile-up")
+                self.assertLessEqual(max_run(fa, True), max(2, max_run(fo, True)), f"{a}: vowel pile-up")
+                self.assertIsNone(re.search(r"(.)\1\1", fa), a)
+                self.assertNotIn(fa, BLOCKED)
+                tokens_checked[0] += 1
+                tokens_checked[1] += fo[0] == fa[0]
+        self.assertGreaterEqual(tokens_checked[1] / tokens_checked[0], 0.9)  # first letter and rhythm are kept
 
     def test_catalog_uses_aliases_and_hides_original_names(self):
         for character in CHARACTERS:
@@ -125,7 +143,10 @@ class CatalogTests(unittest.TestCase):
     def test_shape(self):
         self.assertEqual(sum(len(c.skills) for c in CHARACTERS), 3 * len(CHARACTERS))
         self.assertTrue(all(set(CHARACTER_LOCALES) <= set(c.translations) for c in CHARACTERS))
-        self.assertTrue(all(not c.is_active and c.region_code == "GL" for c in CHARACTERS))
+        self.assertTrue(all(c.is_active and c.region_code == "GL" for c in CHARACTERS))
+        self.assertTrue(all(c.model_extra is None or "rarity" not in c.model_extra for c in CHARACTERS))
+        self.assertTrue(all(c.unlock_threshold == 50 and c.level_thresholds == {"lvl1": 50, "lvl2": 100, "lvl3": 200} for c in CHARACTERS))
+        self.assertEqual({c.avatar_url for c in CHARACTERS}, {"https://storage.googleapis.com/knowley-1-categories/characters/default_robot.png"})
 
     def test_every_effect_type_has_a_runtime_rule(self):
         used = {e.type for c in CHARACTERS for s in c.skills for e in s.effects}

@@ -144,7 +144,7 @@ def main() -> int:
     for snap in orphans:
         snap.reference.delete()
         print(f"Deleted orphan {snap.id}")
-    operations = [(ref, "create", dict(expected, is_active=False, created_at=firestore.SERVER_TIMESTAMP)) for ref, expected in missing]
+    operations = [(ref, "create", dict(expected, created_at=firestore.SERVER_TIMESTAMP)) for ref, expected in missing]
     operations += [(ref, "update", update) for ref, update, _cur in updates]
     for start in range(0, len(operations), 500):
         batch = db.batch()

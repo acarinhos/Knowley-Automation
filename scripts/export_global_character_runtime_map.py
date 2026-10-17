@@ -12,12 +12,14 @@ ROOT = Path(__file__).resolve().parents[1]
 CATALOG_PATH = ROOT / "data" / "global_character_catalog.json"
 
 PLAYER_READS = [
-    "users/{uid}/characters/{character_id}.is_unlocked",
-    "users/{uid}/characters/{character_id}.current_level",
+    "users/{uid}.categoryTotalScores.{category_name}",  # points_source: all-time category points
+    "characters/{character_id}.unlock_threshold",
+    "characters/{character_id}.level_thresholds",
+    # level_from_points: <50 locked, 50-99 lvl1, 100-199 lvl2, >=200 lvl3 (derived, never stored)
     "users/{uid}/characters/{character_id}.daily_uses.slot_{skill_slot}",
     "users/{uid}/characters/{character_id}.last_reset_date",
     "users/{uid}/characters/{character_id}.is_equipped",
-    "characters/{character_id}.skills[{skill_slot}].daily_limits.lvl{current_level}",
+    "characters/{character_id}.skills[{skill_slot}].daily_limits.lvl{level_from_points}",
     "characters/{character_id}.skills[{skill_slot}].cooldown_questions",
 ]
 BASE_Q = [

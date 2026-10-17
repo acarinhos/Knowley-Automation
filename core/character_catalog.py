@@ -10,16 +10,34 @@ from typing import Any, Iterable, Mapping, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from core.translation_service import SUPPORTED_LANGUAGE_CODES
+
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_CATALOG_PATH = ROOT_DIR / "data" / "global_character_catalog.json"
-CHARACTER_SCHEMA_VERSION = "1.0.0"
-CHARACTER_LOCALES = (
-    "en", "de-DE", "ar", "bn-BD", "da-DK", "id", "fa-IR", "nl-NL", "fil",
-    "fi-FI", "fr-FR", "hi-IN", "ja-JP", "ko-KR", "pl-PL", "hu-HU", "ms-MY",
-    "no-NO", "pt-BR", "ro", "ru-RU", "th", "tr-TR", "uk", "ur", "vi",
-    "el-GR", "cs-CZ", "zh-CN", "zh-TW", "iw-IL", "es-419", "es-ES", "sv-SE", "it-IT",
-)
+CHARACTER_SCHEMA_VERSION = "1.1.0"
+DEFAULT_BUCKET = "knowley-1-categories"
+DEFAULT_AVATAR_PATH = "characters/default_robot.png"
+UNLOCK_THRESHOLD = 50
+LEVEL_THRESHOLDS = {"lvl1": 50, "lvl2": 100, "lvl3": 200}  # category points needed for each skill level
+# Where the player's points for a character's category live (all-time total per category name).
+POINTS_SOURCE = "users/{uid}.categoryTotalScores.{category_name}"
+
+
+def default_avatar_url(bucket: str = DEFAULT_BUCKET) -> str:
+    """Public Storage URL of the shared robot avatar (same URL form as the category images)."""
+    return f"https://storage.googleapis.com/{bucket}/{DEFAULT_AVATAR_PATH}"
+
+
+def level_from_points(points: Any, thresholds: dict[str, int] | None = None) -> int:
+    """0 = locked (< lvl1), 1 = 50-99, 2 = 100-199, 3 = 200+ category points."""
+    limits = thresholds or LEVEL_THRESHOLDS
+    try:
+        value = float(points or 0)
+    except (TypeError, ValueError):
+        return 0
+    return sum(value >= limits[key] for key in ("lvl1", "lvl2", "lvl3"))
+CHARACTER_LOCALES = SUPPORTED_LANGUAGE_CODES  # short canonical codes shared with the questions
 
 
 class CharacterEffect(BaseModel):
@@ -60,10 +78,10 @@ class CharacterDocument(BaseModel):
     sub_category_name: str
     region_code: str = "GL"
     character_type: str = "global"
-    rarity: str = "unassigned"
     avatar_url: Optional[str] = None
     unlock_threshold: Optional[int] = None
-    is_active: bool = False
+    level_thresholds: dict[str, int] = Field(default_factory=dict)
+    is_active: bool = True
     translations: dict[str, dict[str, str]]
     skills: list[CharacterSkill]
 
@@ -133,7 +151,8 @@ def get_global_characters(
 
 
 def user_character_progression_template() -> dict[str, Any]:
-    """Safe initial state; server code must own unlocks, resets, and equipment."""
+    """Documentation of users/{uid}/characters/{character_id} only. The catalogue never creates these documents:
+    the app creates them on demand; unlock and level come from category points (see level_from_points)."""
     return {
         "is_unlocked": False,
         "current_level": 1,

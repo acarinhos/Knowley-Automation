@@ -13,13 +13,10 @@ SOURCE = ROOT / "data" / "global_character_source.json"
 LOCALIZED = ROOT / "data" / "global_character_locales.json"
 OUTPUT = ROOT / "data" / "global_character_catalog.json"
 ALIASES = ROOT / "data" / "global_character_aliases.json"
-CHARACTER_SCHEMA_VERSION = "1.0.0"
-CHARACTER_LOCALES = (
-    "en", "de-DE", "ar", "bn-BD", "da-DK", "id", "fa-IR", "nl-NL", "fil",
-    "fi-FI", "fr-FR", "hi-IN", "ja-JP", "ko-KR", "pl-PL", "hu-HU", "ms-MY",
-    "no-NO", "pt-BR", "ro", "ru-RU", "th", "tr-TR", "uk", "ur", "vi",
-    "el-GR", "cs-CZ", "zh-CN", "zh-TW", "iw-IL", "es-419", "es-ES", "sv-SE", "it-IT",
+from core.character_catalog import (  # noqa: E402
+    CHARACTER_LOCALES, CHARACTER_SCHEMA_VERSION, LEVEL_THRESHOLDS, UNLOCK_THRESHOLD, default_avatar_url,
 )
+from core.translation_service import canonical_language_code  # noqa: E402
 
 
 def clean(text: Any) -> str:
@@ -345,7 +342,10 @@ def value_from_effects(effects: list[dict[str, Any]]) -> float | None:
 
 def main() -> int:
     source_rows = json.loads(SOURCE.read_text(encoding="utf-8"))
-    locale_texts = json.loads(LOCALIZED.read_text(encoding="utf-8"))
+    locale_texts = {
+        text: {canonical_language_code(k): v for k, v in by_locale.items()}
+        for text, by_locale in json.loads(LOCALIZED.read_text(encoding="utf-8")).items()
+    }
     if not isinstance(locale_texts, dict):
         raise ValueError("Localized title/role mapping must be a JSON object.")
 
@@ -425,10 +425,10 @@ def main() -> int:
             "sub_category_name": subcategory,
             "region_code": "GL",
             "character_type": "global",
-            "rarity": "unassigned",
-            "avatar_url": None,
-            "unlock_threshold": None,
-            "is_active": False,
+            "avatar_url": default_avatar_url(),
+            "unlock_threshold": UNLOCK_THRESHOLD,
+            "level_thresholds": dict(LEVEL_THRESHOLDS),
+            "is_active": True,
             "translations": translations,
             "skills": skills,
             "source": {
