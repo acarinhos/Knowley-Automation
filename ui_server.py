@@ -118,7 +118,7 @@ class JobManager:
             generation_mode=gen_mode,
             combo_percent=int(payload.get("combo_percent", 40)),
             sleep_between_requests=float(payload.get("sleep_between_requests", 1.5)),
-            write_to_firestore=True,
+            write_to_firestore=bool(payload.get("write_to_firestore", True)),
         ).validate()
 
         job_id = uuid.uuid4().hex[:12]

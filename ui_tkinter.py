@@ -175,6 +175,23 @@ class ModernPill(tk.Canvas):
         )
 
 
+def produced_from_events(events: List[Dict[str, Any]]) -> int:
+    """Highest `produced` among saved (written to Firestore) and generated (dry run) events."""
+    values = [
+        e.get("produced") for e in events
+        if isinstance(e, dict) and e.get("event") in {"saved", "generated"} and isinstance(e.get("produced"), int)
+    ]
+    return max([0] + values)
+
+
+def firestore_writes_enabled(options: Dict[str, Any], events: List[Dict[str, Any]]) -> bool:
+    """False when the job runs without writing (options flag, or the started event says so)."""
+    started = next((e for e in events if isinstance(e, dict) and e.get("event") == "started"), None)
+    if started is not None and "firestore" in started:
+        return bool(started["firestore"])
+    return bool(options.get("write_to_firestore", True))
+
+
 class SmoothProgressBar(tk.Canvas):
     """Özel çizimli modern degrade tarzı ilerleme çubuğu."""
 
@@ -624,6 +641,12 @@ class KnowleyTkinterApp(tk.Tk):
         self.spin_count = ttk.Spinbox(count_frame, from_=1, to=10000, textvariable=self.var_count, width=15)
         self.spin_count.pack(fill="x")
 
+        # Firestore yazma anahtarı (kapalıyken yalnızca üretir, hiçbir şey kaydetmez)
+        self.var_write_fs = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            card, text="Firebase'e kaydet (kapalıysa yalnızca üretir, yazmaz)", variable=self.var_write_fs,
+        ).pack(anchor="w", pady=(0, 10))
+
         # Ülke Profili Kartı
         cp_card = tk.Frame(card, bg=PANEL_INNER, highlightbackground=PANEL_BORDER, highlightthickness=1, padx=12, pady=10)
         cp_card.pack(fill="x", pady=(0, 10))
@@ -932,6 +955,7 @@ class KnowleyTkinterApp(tk.Tk):
         self.event_text.tag_configure("started", foreground=CYAN, font=("Consolas", 9, "bold"))
         self.event_text.tag_configure("planning", foreground=PURPLE)
         self.event_text.tag_configure("saved", foreground=GREEN, font=("Consolas", 9, "bold"))
+        self.event_text.tag_configure("generated", foreground=ORANGE, font=("Consolas", 9, "bold"))
         self.event_text.tag_configure("retry", foreground=ORANGE)
         self.event_text.tag_configure("duplicate", foreground=MUTED)
         self.event_text.tag_configure("completed", foreground=GREEN, font=("Consolas", 9, "bold"))
@@ -1596,6 +1620,7 @@ class KnowleyTkinterApp(tk.Tk):
             "country": country_val or "",
             "combo_percent": int(self.scale_combo.get()),
             "languages": selected_langs,
+            "write_to_firestore": bool(self.var_write_fs.get()),
         }
 
     def _on_start_clicked(self) -> None:
@@ -1664,7 +1689,6 @@ class KnowleyTkinterApp(tk.Tk):
         events = job.get("events") or []
 
         total = options.get("question_count") or 0
-        saved_events = [e for e in events if isinstance(e, dict) and e.get("event") == "saved"]
 
         completed_count = summary.get("processed")
         if completed_count is None:
@@ -1675,9 +1699,9 @@ class KnowleyTkinterApp(tk.Tk):
         self.progress_bar.set_progress(pct)
         produced_live = summary.get("produced")
         if produced_live is None:
-            produced_values = [e.get("produced") for e in saved_events if isinstance(e.get("produced"), int)]
-            produced_live = max([0] + produced_values)
+            produced_live = produced_from_events(events)
         self.progress_count_lbl.config(text=f"{produced_live} / {total}")
+        writes = firestore_writes_enabled(options, events)
         self.progress_state_lbl.config(text=status.upper())
 
         if status in {"completed", "stopped", "failed"}:
@@ -1689,7 +1713,9 @@ class KnowleyTkinterApp(tk.Tk):
             if summary.get("provider_status"):
                 self._render_providers(summary["provider_status"])
         else:
-            self.activity_title_lbl.config(text="Üretim devam ediyor")
+            self.activity_title_lbl.config(
+                text="Üretim devam ediyor" if writes else "Üretim devam ediyor — Firestore'a YAZILMIYOR (deneme)"
+            )
             self.btn_start.config(state="disabled")
             self.btn_stop.pack(side="right", padx=(8, 0))
 
@@ -1707,6 +1733,7 @@ class KnowleyTkinterApp(tk.Tk):
             "started": "▶",
             "planning": "⌁",
             "saved": "✓",
+            "generated": "✎",
             "retry": "↻",
             "provider_unavailable": "!",
             "duplicate": "≋",
@@ -1728,11 +1755,13 @@ class KnowleyTkinterApp(tk.Tk):
                 msg = f"{ev.get('category')} › {ev.get('subcategory')}"
                 if ev.get("combo"):
                     msg += f" + {ev.get('secondary_category')}"
-            elif kind == "saved":
+            elif kind in {"saved", "generated"}:
                 q_text = ev.get("question", "")
                 if len(q_text) > 90:
                     q_text = q_text[:87] + "..."
                 msg = q_text or "Soru Firestore'a yazıldı."
+                if kind == "generated":
+                    msg += " [Firestore'a YAZILMADI]"
             elif kind == "retry":
                 msg = f"{ev.get('message', 'API yeniden deneniyor')} · {ev.get('wait_seconds', '')}s"
             elif kind == "provider_unavailable":

@@ -48,6 +48,15 @@ class LlmSelectionUiTests(unittest.TestCase):
         finally:
             app.destroy()
 
+    def test_payload_carries_the_firestore_write_flag(self):
+        app = _app()
+        try:
+            self.assertIs(app._collect_payload()["write_to_firestore"], True)
+            app.var_write_fs.set(False)
+            self.assertIs(app._collect_payload()["write_to_firestore"], False)
+        finally:
+            app.destroy()
+
     def test_local_country_shows_country_languages_plus_en(self):
         app = _app()
         try:
