@@ -18,6 +18,7 @@ from typing import Any, Dict, Optional
 from urllib.parse import parse_qs, unquote, urlparse
 
 from core.llm_manager import MultiLLMManager
+from core.llm_settings import apply_selection, load_selection, save_selection
 from core.generator import QUESTION_SCHEMA_VERSION
 from core.sheet_algorithm import get_sheet_algorithm_repository
 from core.translation_service import LANGUAGE_CODE_TO_SHEET_NAME, SUPPORTED_LANGUAGE_CODES
@@ -35,16 +36,31 @@ class JobManager:
         self.lock = threading.Lock()
         self.jobs: Dict[str, Dict[str, Any]] = {}
         self.repository = get_sheet_algorithm_repository()
+        self.llm_error = ""
+        self.llm_manager: Optional[MultiLLMManager] = None
+        self._build_llm_manager(load_selection())
+
+    def _build_llm_manager(self, selection: Any) -> None:
+        """Apply the provider selection (LLM_ALLOWED_PROVIDERS) and create a fresh manager for new jobs."""
+        apply_selection(selection)
         try:
             self.llm_manager = MultiLLMManager()
+            self.llm_error = ""
         except ValueError as exc:
-            if "Hiçbir LLM API anahtarı bulunamadı" not in str(exc):
+            if "API anahtarı" not in str(exc) and "sağlayıcı anahtarı" not in str(exc):
                 raise
             self.llm_manager = None
+            self.llm_error = str(exc)
+
+    def set_providers(self, selection: Any) -> list:
+        """Validate, persist and apply a new provider selection. ValueError when empty/unknown."""
+        chosen = save_selection(selection)
+        self._build_llm_manager(chosen)
+        return chosen
 
     def start(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         if self.llm_manager is None:
-            raise RuntimeError("Soru üretimi için .env içinde en az bir LLM API anahtarı gerekli.")
+            raise RuntimeError(self.llm_error or "Soru üretimi için .env içinde en az bir LLM API anahtarı gerekli.")
         with self.lock:
             active = next((job for job in self.jobs.values() if job["status"] in {"starting", "running"}), None)
             if active:

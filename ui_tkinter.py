@@ -42,6 +42,7 @@ from core.external_importer import (
     validate_and_transform,
 )
 from database.db_manager import init_firebase, save_question_to_firestore
+from core.llm_settings import PROVIDERS as LLM_PROVIDERS, key_status as llm_key_status, load_selection as load_llm_selection
 from ui_server import JobManager, firebase_question_audit, firebase_summary
 
 # Renk Paleti (Knowley Dark Modern Theme)
@@ -765,6 +766,25 @@ class KnowleyTkinterApp(tk.Tk):
         )
         self.btn_probe.pack(side="right")
 
+        # LLM sağlayıcı seçimi (LLM_ALLOWED_PROVIDERS ile uygulanır)
+        select_box = tk.Frame(prov_card, bg=PANEL_INNER, highlightbackground=PANEL_BORDER, highlightthickness=1, padx=10, pady=7)
+        select_box.pack(fill="x", pady=(0, 8))
+        tk.Label(select_box, text="LLM SAĞLAYICILARI", fg=MUTED, bg=PANEL_INNER, font=(FONT_FAMILY, 8, "bold")).pack(anchor="w")
+        self.llm_vars: Dict[str, tk.BooleanVar] = {}
+        keys = llm_key_status()
+        selected = set(load_llm_selection())
+        for name in LLM_PROVIDERS:
+            var = tk.BooleanVar(value=name in selected)
+            self.llm_vars[name] = var
+            label = name.capitalize() if keys.get(name) else f"{name.capitalize()} (API anahtarı yok)"
+            ttk.Checkbutton(
+                select_box, text=label, variable=var, command=self._on_llm_selection_changed,
+                state="normal" if keys.get(name) else "disabled",
+            ).pack(anchor="w", pady=1)
+        self.llm_select_lbl = tk.Label(select_box, text="", fg=MUTED, bg=PANEL_INNER, font=(FONT_FAMILY, 8), justify="left", wraplength=260)
+        self.llm_select_lbl.pack(anchor="w", pady=(4, 0))
+        self._show_llm_selection()
+
         # Sağlayıcı kartları listesi konteyneri
         self.providers_container = tk.Frame(prov_card, bg=PANEL_BG)
         self.providers_container.pack(fill="x", pady=(0, 6))
@@ -1226,7 +1246,7 @@ class KnowleyTkinterApp(tk.Tk):
         def worker() -> None:
             def progress(done: int, total: int) -> None:
                 if done == 1 or done == total or done % 10 == 0:
-                    self.after(0, lambda d=done, t=total: self.external_status_lbl.config(text=f"Tam şema + 5 dil: {d}/{t}", fg=ORANGE))
+                    self.after(0, lambda d=done, t=total: self.external_status_lbl.config(text=f"Çeviri (ülke dilleri + en): {d}/{t}", fg=ORANGE))
 
             report = validate_and_transform(
                 self.external_raw_records,
@@ -1308,7 +1328,7 @@ class KnowleyTkinterApp(tk.Tk):
                 repo = self.manager.repository
                 algo_summary = repo.summary()
                 countries = repo.country_profiles()
-                providers = self.manager.llm_manager.status(live=False)
+                providers = self.manager.llm_manager.status(live=False) if self.manager.llm_manager else {}
 
                 data = {
                     "algorithm": algo_summary,
@@ -1449,7 +1469,35 @@ class KnowleyTkinterApp(tk.Tk):
             self.fb_health_badge.config(text="ERİŞİLEMİYOR", fg=RED)
             self.fb_count_lbl.config(text="—")
 
+    def _show_llm_selection(self, error: str = "") -> None:
+        chosen = [name for name in LLM_PROVIDERS if self.llm_vars[name].get()]
+        if error:
+            self.llm_select_lbl.config(text=error, fg=RED)
+        elif self.manager.llm_error:
+            self.llm_select_lbl.config(text=self.manager.llm_error, fg=ORANGE)
+        else:
+            self.llm_select_lbl.config(text="Etkin: " + ", ".join(chosen) + " · yeni işler bu listeyle çalışır", fg=MUTED)
+
+    def _on_llm_selection_changed(self) -> None:
+        """Validate (at least one provider), persist and apply the selection for new jobs."""
+        chosen = [name for name in LLM_PROVIDERS if self.llm_vars[name].get()]
+        try:
+            applied = self.manager.set_providers(chosen)
+        except ValueError as exc:
+            saved = load_llm_selection()  # revert the checkboxes to the last valid selection
+            for name in LLM_PROVIDERS:
+                self.llm_vars[name].set(name in saved)
+            self._show_llm_selection(str(exc))
+            return
+        for name in LLM_PROVIDERS:
+            self.llm_vars[name].set(name in applied)
+        self._show_llm_selection()
+        self._probe_providers_async()
+
     def _probe_providers_async(self) -> None:
+        if self.manager.llm_manager is None:
+            self._render_providers({})
+            return
         self.btn_probe.config(text="…", state="disabled")
 
         def worker() -> None:

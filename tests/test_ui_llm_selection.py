@@ -1,0 +1,47 @@
+import tkinter
+import unittest
+from unittest.mock import patch
+
+import ui_tkinter
+
+
+def _app():
+    try:
+        with patch.object(ui_tkinter.KnowleyTkinterApp, "_load_initial_data", lambda self: None), \
+                patch("ui_tkinter.load_llm_selection", lambda: ["gemini", "groq"]), \
+                patch("ui_server.load_selection", lambda: ["gemini", "groq"]):
+            app = ui_tkinter.KnowleyTkinterApp()
+    except tkinter.TclError as exc:  # no display available
+        raise unittest.SkipTest(f"Tk unavailable: {exc}")
+    app.withdraw()
+    return app
+
+
+class LlmSelectionUiTests(unittest.TestCase):
+    def test_default_checkboxes_and_empty_selection_is_rejected(self):
+        app = _app()
+        try:
+            self.assertEqual({k: v.get() for k, v in app.llm_vars.items()},
+                             {"gemini": True, "groq": True, "cohere": False, "nvidia": False})
+            for var in app.llm_vars.values():
+                var.set(False)
+            with patch("ui_tkinter.load_llm_selection", lambda: ["gemini", "groq"]):
+                app._on_llm_selection_changed()  # rejected before anything is saved
+            self.assertEqual({k for k, v in app.llm_vars.items() if v.get()}, {"gemini", "groq"})
+            self.assertIn("En az bir", app.llm_select_lbl.cget("text"))
+        finally:
+            app.destroy()
+
+    def test_local_country_shows_country_languages_plus_en(self):
+        app = _app()
+        try:
+            app._country_languages = {"Portekiz": ["pt"]}
+            app.combo_country.set("Portekiz")
+            app._update_country_languages()
+            self.assertEqual(app.country_lang_lbl.cget("text"), "Yerel soru dilleri (otomatik): pt, en")
+        finally:
+            app.destroy()
+
+
+if __name__ == "__main__":
+    unittest.main()
