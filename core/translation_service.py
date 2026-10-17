@@ -597,7 +597,7 @@ def _llm_translate(
             missing.append(lang)
             continue
         if source["clarified_options"] and any(
-            not normalized["clarified_options"][letter] for letter in "ABCD"
+            not (normalized["clarified_options"] or {}).get(letter) for letter in "ABCD"
         ):
             missing.append(lang)
             continue
@@ -702,7 +702,7 @@ def _llm_translate_batch(
                 missing_by_source[index].append(lang)
                 continue
             if source["clarified_options"] and any(
-                not normalized["clarified_options"][letter] for letter in "ABCD"
+                not (normalized["clarified_options"] or {}).get(letter) for letter in "ABCD"
             ):
                 missing_by_source[index].append(lang)
                 continue
