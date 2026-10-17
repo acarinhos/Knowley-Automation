@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional
 from urllib.parse import parse_qs, unquote, urlparse
 
 from core.llm_manager import MultiLLMManager
-from core.llm_settings import apply_selection, load_selection, save_selection, validate_selection
+from core.llm_settings import apply_selection, load_models, load_selection, model_env, save_selection, validate_models, validate_selection
 from core.generator import QUESTION_SCHEMA_VERSION
 from core.sheet_algorithm import get_sheet_algorithm_repository
 from core.translation_service import LANGUAGE_CODE_TO_SHEET_NAME, SUPPORTED_LANGUAGE_CODES
@@ -63,20 +63,21 @@ class JobManager:
         self.jobs: Dict[str, Dict[str, Any]] = {}
         self.repository = get_sheet_algorithm_repository()
         self.selection = load_selection()
-        self.llm_manager, self.llm_error = self._make_manager(self.selection)
+        self.models = load_models()
+        self.llm_manager, self.llm_error = self._make_manager(self.selection, self.models)
 
     @staticmethod
-    def _make_manager(selection: Any) -> tuple:
-        """(manager, "") or (None, reason) for a selection. The env var is set only while constructing."""
+    def _make_manager(selection: Any, models: Any = None) -> tuple:
+        """(manager, "") or (None, reason) for a selection. The env vars are set only while constructing."""
         try:
-            with mock_env_if(True, {"LLM_ALLOWED_PROVIDERS": ",".join(selection)}):
+            with mock_env_if(True, model_env(selection, models)):
                 return MultiLLMManager(), ""
         except ValueError as exc:
             if str(exc) not in NO_KEY_MESSAGES:
                 raise
             return None, str(exc)
 
-    def set_providers(self, selection: Any) -> list:
+    def set_providers(self, selection: Any, models: Any = None) -> list:
         """Validate, build, persist and apply a provider selection (all or nothing).
 
         ValueError: empty/unknown selection or no API key for any selected provider (nothing changes).
@@ -85,11 +86,12 @@ class JobManager:
         with self.lock:
             if any(job["status"] in ACTIVE_JOB_STATUSES for job in self.jobs.values()):
                 raise RuntimeError("Aktif iş varken sağlayıcı seçimi değiştirilemez; iş bitince uygulanır.")
-            manager, error = self._make_manager(chosen)
+            manager, error = self._make_manager(chosen, models)
             if manager is None:
                 raise ValueError(error)
-            saved = save_selection(chosen)  # only after the manager could be built
-            apply_selection(saved)
+            saved = save_selection(chosen, models=models)  # only after the manager could be built
+            self.models = validate_models(models, saved)
+            apply_selection(saved, self.models)
             self.selection, self.llm_manager, self.llm_error = saved, manager, ""
         return saved
 
@@ -137,7 +139,7 @@ class JobManager:
             if any(item["status"] in ACTIVE_JOB_STATUSES for item in self.jobs.values()):
                 raise RuntimeError("Aynı anda yalnızca bir üretim işi çalıştırılabilir.")
             # the job really starts now: new jobs (generation, translation, imports) use the selected providers
-            apply_selection(self.selection)
+            apply_selection(self.selection, self.models)
             self.jobs[job_id] = job
 
         def on_event(event: Dict[str, Any]) -> None:

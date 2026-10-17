@@ -42,7 +42,10 @@ from core.external_importer import (
     validate_and_transform,
 )
 from database.db_manager import init_firebase, save_question_to_firestore
-from core.llm_settings import PROVIDERS as LLM_PROVIDERS, key_status as llm_key_status, load_selection as load_llm_selection
+from core.llm_settings import (
+    PROVIDERS as LLM_PROVIDERS, available_models as llm_available_models, key_status as llm_key_status,
+    load_models as load_llm_models, load_selection as load_llm_selection,
+)
 from ui_server import JobManager, firebase_question_audit, firebase_summary
 
 # Renk Paleti (Knowley Dark Modern Theme)
@@ -794,6 +797,8 @@ class KnowleyTkinterApp(tk.Tk):
         select_box.pack(fill="x", pady=(0, 8))
         tk.Label(select_box, text="LLM SAĞLAYICILARI", fg=MUTED, bg=PANEL_INNER, font=(FONT_FAMILY, 8, "bold")).pack(anchor="w")
         self.llm_vars: Dict[str, tk.BooleanVar] = {}
+        self.llm_model_vars: Dict[str, Dict[str, tk.BooleanVar]] = {}
+        self.llm_model_buttons: Dict[str, list] = {}
         keys = llm_key_status()
         selected = set(load_llm_selection())
         for name in LLM_PROVIDERS:
@@ -804,8 +809,18 @@ class KnowleyTkinterApp(tk.Tk):
                 select_box, text=label, variable=var, command=self._on_llm_selection_changed,
                 state="normal" if keys.get(name) else "disabled",
             ).pack(anchor="w", pady=1)
+            self.llm_model_vars[name] = {}
+            self.llm_model_buttons[name] = []
+            saved_models = set(self.manager.models.get(name) or llm_available_models(name))
+            for model in llm_available_models(name):
+                mvar = tk.BooleanVar(value=model in saved_models)
+                self.llm_model_vars[name][model] = mvar
+                button = ttk.Checkbutton(select_box, text="    " + model, variable=mvar, command=self._on_llm_selection_changed)
+                button.pack(anchor="w")
+                self.llm_model_buttons[name].append(button)
         self.llm_select_lbl = tk.Label(select_box, text="", fg=MUTED, bg=PANEL_INNER, font=(FONT_FAMILY, 8), justify="left", wraplength=260)
         self.llm_select_lbl.pack(anchor="w", pady=(4, 0))
+        self._refresh_llm_model_states()
         self._show_llm_selection()
 
         # Sağlayıcı kartları listesi konteyneri
@@ -1508,19 +1523,38 @@ class KnowleyTkinterApp(tk.Tk):
                 text += "\nEtkin değil (API anahtarı yok): " + ", ".join(inactive)
             self.llm_select_lbl.config(text=text, fg=ORANGE if inactive else MUTED)
 
+    def _refresh_llm_model_states(self) -> None:
+        """Model boxes follow their provider: disabled when the provider is off or has no API key."""
+        keys = llm_key_status()
+        for name, buttons in self.llm_model_buttons.items():
+            enabled = self.llm_vars[name].get() and keys.get(name)
+            for button in buttons:
+                button.config(state="normal" if enabled else "disabled")
+
+    def _chosen_llm_models(self) -> Dict[str, list]:
+        return {
+            name: [model for model, var in self.llm_model_vars[name].items() if var.get()]
+            for name in LLM_PROVIDERS if self.llm_vars[name].get()
+        }
+
     def _on_llm_selection_changed(self) -> None:
-        """Validate (at least one provider), persist and apply the selection for new jobs."""
+        """Validate (at least one provider and one model per provider), persist and apply for new jobs."""
         chosen = [name for name in LLM_PROVIDERS if self.llm_vars[name].get()]
         try:
-            applied = self.manager.set_providers(chosen)
+            applied = self.manager.set_providers(chosen, self._chosen_llm_models())
         except (ValueError, OSError, RuntimeError) as exc:
             current = set(self.manager.selection)  # revert the checkboxes to the last applied selection
             for name in LLM_PROVIDERS:
                 self.llm_vars[name].set(name in current)
+                active_models = set(self.manager.models.get(name) or llm_available_models(name))
+                for model, var in self.llm_model_vars[name].items():
+                    var.set(model in active_models)
+            self._refresh_llm_model_states()
             self._show_llm_selection(str(exc))
             return
         for name in LLM_PROVIDERS:
             self.llm_vars[name].set(name in applied)
+        self._refresh_llm_model_states()
         self._show_llm_selection()
         self._probe_providers_async()
 

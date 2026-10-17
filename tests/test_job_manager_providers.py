@@ -24,7 +24,8 @@ class ProviderTestCase(unittest.TestCase):
             patch("core.llm_manager.genai.Client"),
             patch("core.llm_manager.Groq", create=True),
             patch("ui_server.load_selection", lambda: ["gemini", "groq"]),
-            patch("ui_server.save_selection", lambda sel: llm_settings.save_selection(sel, self.settings)),
+            patch("ui_server.save_selection", lambda sel, models=None: llm_settings.save_selection(sel, self.settings, models)),
+            patch("ui_server.load_models", lambda: llm_settings.validate_models(None, ["gemini", "groq"])),
         ]
         for item in stack:
             item.start()
@@ -44,6 +45,18 @@ class SetProvidersTests(ProviderTestCase):
         self.assertEqual(os.environ["LLM_ALLOWED_PROVIDERS"], "groq")
         self.assertEqual(llm_settings.load_selection(self.settings), ["groq"])
         self.assertEqual(jm.selection, ["groq"])
+
+    def test_model_choice_is_validated_saved_and_applied(self):
+        jm = self.manager()
+        gemini = llm_settings.available_models("gemini")
+        with self.assertRaises(ValueError):
+            jm.set_providers(["gemini", "groq"], {"gemini": []})  # every enabled provider needs a model
+        self.assertFalse(self.settings.exists())
+        jm.set_providers(["gemini", "groq"], {"gemini": [gemini[1]]})
+        self.assertEqual(jm.llm_manager.gemini_models, [gemini[1]])
+        self.assertEqual(os.environ[llm_settings.MODEL_ENV["gemini"]], gemini[1])
+        self.assertEqual(llm_settings.load_models(self.settings)["gemini"], [gemini[1]])
+        self.assertEqual(jm.models["gemini"], [gemini[1]])
 
     def test_invalid_input_changes_neither_file_nor_env_nor_manager(self):
         jm = self.manager()

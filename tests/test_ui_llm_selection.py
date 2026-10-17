@@ -48,6 +48,22 @@ class LlmSelectionUiTests(unittest.TestCase):
         finally:
             app.destroy()
 
+    def test_model_boxes_default_to_all_and_follow_their_provider(self):
+        app = _app()
+        try:
+            self.assertTrue(all(v.get() for models in app.llm_model_vars.values() for v in models.values()))
+            self.assertEqual(set(app.llm_model_vars["groq"]), set(__import__("core.llm_settings", fromlist=["x"]).available_models("groq")))
+            states = {name: {str(b.cget("state")) for b in buttons} for name, buttons in app.llm_model_buttons.items()}
+            self.assertEqual(states["cohere"], {"disabled"})  # provider off -> its models are disabled
+            for name in app.llm_model_vars["gemini"]:
+                app.llm_model_vars["gemini"][name].set(False)
+            with patch("ui_tkinter.load_llm_selection", lambda: ["gemini", "groq"]):
+                app._on_llm_selection_changed()
+            self.assertTrue(all(v.get() for v in app.llm_model_vars["gemini"].values()))  # rejected -> reverted
+            self.assertIn("en az bir model", app.llm_select_lbl.cget("text").lower())
+        finally:
+            app.destroy()
+
     def test_payload_carries_the_firestore_write_flag(self):
         app = _app()
         try:
