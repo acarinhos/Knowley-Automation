@@ -151,6 +151,8 @@ def panel(tmp_path, monkeypatch):
     root.withdraw()
     for n in ("OUT",):
         monkeypatch.setattr(u, n, tmp_path)
+    monkeypatch.setattr(u, "PREFS", tmp_path / "ui_prefs.json")
+    monkeypatch.setattr(u.llm, "claude_ready", lambda: False)
     monkeypatch.setattr(u, "CONSOLE", tmp_path / "console.log")
     monkeypatch.setattr(u, "CONSOLE_ERR", tmp_path / "console.err")
     monkeypatch.setattr(u, "PIDFILE", tmp_path / "ui_run.pid")
@@ -231,3 +233,19 @@ def test_tick_cancelled_on_destroy_and_no_reschedule(panel):
     assert panel._job is None
     panel._tick()  # widget gone: must not raise nor reschedule
     assert panel._job is None
+
+
+def test_panel_providers_flow(panel):
+    panel.avail = ["gemini", "groq"]
+    panel._render_prov()
+    panel._move("groq", -1)
+    panel.models["groq"].set("m-x")
+    sel = panel._providers()
+    assert sel == (["groq", "gemini"], {"groq": "m-x"}) and u.load_prefs()["order"][:2] == ["groq", "gemini"]
+    panel._reset_prov()
+    assert panel.models["groq"].get() == panel.defaults["groq"] and panel._shown()[0] == "gemini"
+    for p in panel.enabled.values():
+        p.set(False)
+    with mock.patch.object(u.messagebox, "showerror") as se:
+        assert panel._providers() is None
+    se.assert_called_once()

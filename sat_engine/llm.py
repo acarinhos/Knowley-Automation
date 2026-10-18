@@ -45,6 +45,50 @@ def model_for(provider: str) -> str:
     return get_env(f"{provider.upper()}_MODEL", DEFAULT_MODELS[provider])
 
 
+KNOWN = DEFAULT_ORDER + ["claude"]
+
+
+def provider_available(name: str) -> bool:
+    return claude_ready() if name == "claude" else bool(get_env(KEY_ENV[name]))
+
+
+def model_env_name(provider: str) -> str:
+    return "SAT_CLAUDE_MODEL" if provider == "claude" else f"{provider.upper()}_MODEL"
+
+
+def parse_providers(spec: str) -> tuple[list[str], list[str]]:
+    """'gemini,groq' -> (ordered usable providers, warnings). Unknown name -> ValueError; unavailable ones are skipped with a warning."""
+    names = [x.strip().lower() for x in spec.split(",") if x.strip()]
+    bad = [n for n in names if n not in KNOWN]
+    if bad:
+        raise ValueError(f"bilinmeyen sağlayıcı: {', '.join(bad)} (geçerli: {', '.join(KNOWN)})")
+    out, warns = [], []
+    for n in dict.fromkeys(names):
+        if provider_available(n):
+            out.append(n)
+        else:
+            warns.append(f"{n}: kullanılamıyor ({'claude CLI hazır değil' if n == 'claude' else KEY_ENV[n] + ' yok'}), atlandı")
+    if not out:
+        raise ValueError("seçilen sağlayıcıların hiçbiri kullanılabilir değil")
+    return out, warns
+
+
+def valid_model(v: str) -> bool:
+    return bool(re.fullmatch(r"[\w.:/@+\-]+", v)) and not v.startswith("-")
+
+
+def parse_models(spec: str) -> dict[str, str]:
+    """'gemini=m1,groq=m2' -> {provider: model}; ValueError on unknown provider or malformed entry."""
+    res = {}
+    for part in (x for x in spec.split(",") if x.strip()):
+        k, sep, v = part.partition("=")
+        k, v = k.strip().lower(), v.strip()
+        if not sep or not valid_model(v) or k not in KNOWN:
+            raise ValueError(f"geçersiz --models girdisi: {part.strip()!r} (biçim: sağlayıcı=model; sağlayıcılar: {', '.join(KNOWN)}; model adı yalnızca harf/rakam/._:/@+- içerebilir, '-' ile başlayamaz)")
+        res[k] = v
+    return res
+
+
 def _key(provider: str) -> str:
     k = get_env(KEY_ENV[provider])
     if not k:
@@ -330,7 +374,9 @@ def _call_with_retry(name, prompt, system, images, json_mode, fast_fail=False) -
 
 def _run(prompt, system, images, providers, json_mode, accept: Callable[[str], object], exclude=()):
     errors, keyed = [], []
-    for name in providers or default_order():
+    if providers is not None and not list(providers):
+        raise ValueError("sağlayıcı listesi boş")
+    for name in default_order() if providers is None else providers:
         if name not in PROVIDERS:
             raise ValueError(f"unknown provider {name!r}")
         if name in KEY_ENV and not get_env(KEY_ENV[name]) and PROVIDERS[name].__module__ == __name__:

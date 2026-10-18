@@ -119,10 +119,15 @@ def _prompt(q) -> str:
             'and the reasoning for the correct option. JSON: {"options": {<letter>: "new text" for each wrong option only}, "explanation": "..."}')
 
 
+NO_PROV_MSG = "uzunluk düzeltmesi için claude dışında bir sağlayıcı seçin"
+
+
 def rewrite_distractors(q, providers=None, exclude=()):
     """One LLM rewrite via the health-routed provider layer: ANY provider incl. the generator (a 429 falls to the next one),
     `claude` excluded; `exclude` = providers already used for this item. Returns a modified copy or raises ValueError."""
-    prov = [p for p in (providers or llm.default_order()) if p != "claude"]
+    prov = [p for p in (llm.default_order() if providers is None else providers) if p != "claude"]
+    if not prov:
+        raise ValueError(NO_PROV_MSG)
     d = llm.generate_json(_prompt(q), system=SYSTEM, providers=prov, exclude=[e for e in exclude if e])
     new = d.get("options")
     if not isinstance(new, dict):
@@ -150,6 +155,8 @@ def fix_length(q, chk, providers=None, tries=TRIES):
     """Returns (new_q or None, reason). Rewrite -> per-option verify (judge != generator, hard) -> originality.
     Each retry avoids providers already used for this item."""
     why, used = "no attempt", []
+    if providers is not None and not [p for p in providers if p != "claude"]:
+        return None, NO_PROV_MSG
     for _ in range(tries):
         try:
             c = rewrite_distractors(q, providers, exclude=used)
