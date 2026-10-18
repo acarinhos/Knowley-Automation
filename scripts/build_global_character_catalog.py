@@ -14,7 +14,7 @@ LOCALIZED = ROOT / "data" / "global_character_locales.json"
 OUTPUT = ROOT / "data" / "global_character_catalog.json"
 ALIASES = ROOT / "data" / "global_character_aliases.json"
 from core.character_catalog import (  # noqa: E402
-    CHARACTER_LOCALES, CHARACTER_SCHEMA_VERSION, LEVEL_THRESHOLDS, UNLOCK_THRESHOLD, default_avatar_url,
+    CHARACTER_LOCALES, CHARACTER_SCHEMA_VERSION, LEVEL_THRESHOLDS, UNLOCK_THRESHOLD, level_avatar_urls,
 )
 from core.translation_service import canonical_language_code  # noqa: E402
 
@@ -425,7 +425,8 @@ def main() -> int:
             "sub_category_name": subcategory,
             "region_code": "GL",
             "character_type": "global",
-            "avatar_url": default_avatar_url(),
+            "avatar_url": level_avatar_urls(raw_id)["lvl1"],
+            "avatar_urls": level_avatar_urls(raw_id),
             "unlock_threshold": UNLOCK_THRESHOLD,
             "level_thresholds": dict(LEVEL_THRESHOLDS),
             "is_active": True,

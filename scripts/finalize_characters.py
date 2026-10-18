@@ -85,6 +85,16 @@ def plan_character_update(current: Mapping[str, Any], expected: Mapping[str, Any
     return update
 
 
+def is_final_document(after: Mapping[str, Any], expected: Mapping[str, Any]) -> bool:
+    """Post-write verification of the fields this script is responsible for."""
+    return (
+        after.get("is_active") is True
+        and "rarity" not in after
+        and after.get("avatar_url") == expected["avatar_url"]
+        and after.get("avatar_urls") == expected["avatar_urls"]
+    )
+
+
 def summarize(update: Mapping[str, Any]) -> List[str]:
     return sorted(update)
 
@@ -219,7 +229,7 @@ def main() -> int:
         if state != "written":
             continue
         after = db.collection("characters").document(doc_id).get().to_dict() or {}
-        if after.get("is_active") is True and "rarity" not in after and after.get("avatar_url") == catalogue[doc_id]["avatar_url"]                 and after.get("avatar_urls") == catalogue[doc_id]["avatar_urls"]:
+        if is_final_document(after, catalogue[doc_id]):
             verified += 1
         else:
             bad += 1

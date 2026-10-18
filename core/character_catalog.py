@@ -85,6 +85,7 @@ class CharacterDocument(BaseModel):
     region_code: str = "GL"
     character_type: str = "global"
     avatar_url: Optional[str] = None
+    avatar_urls: Optional[dict[str, str]] = None
     unlock_threshold: Optional[int] = None
     level_thresholds: dict[str, int] = Field(default_factory=dict)
     is_active: bool = True
@@ -173,6 +174,7 @@ def user_character_progression_template() -> dict[str, Any]:
 def firestore_character_document(character: CharacterDocument) -> dict[str, Any]:
     """Return a clean document payload without server-managed timestamps."""
     document = character.model_dump(mode="python")
+    document["schema_version"] = CHARACTER_SCHEMA_VERSION
     document["avatar_urls"] = level_avatar_urls(character.id)
     document["avatar_url"] = document["avatar_urls"]["lvl1"]  # robot stays the locked-state image only
     return document

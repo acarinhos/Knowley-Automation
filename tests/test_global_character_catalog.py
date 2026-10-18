@@ -146,7 +146,8 @@ class CatalogTests(unittest.TestCase):
         self.assertTrue(all(c.is_active and c.region_code == "GL" for c in CHARACTERS))
         self.assertTrue(all(c.model_extra is None or "rarity" not in c.model_extra for c in CHARACTERS))
         self.assertTrue(all(c.unlock_threshold == 50 and c.level_thresholds == {"lvl1": 50, "lvl2": 100, "lvl3": 200} for c in CHARACTERS))
-        self.assertEqual({c.avatar_url for c in CHARACTERS}, {"https://storage.googleapis.com/knowley-1-categories/characters/default_robot.png"})
+        self.assertTrue(all(c.avatar_url == c.avatar_urls["lvl1"] and c.avatar_url.endswith(f"/avatars/{c.id}/lvl1.png") for c in CHARACTERS))
+        self.assertTrue(all(c.schema_version == "1.2.0" for c in CHARACTERS))
 
     def test_every_effect_type_has_a_runtime_rule(self):
         used = {e.type for c in CHARACTERS for s in c.skills for e in s.effects}

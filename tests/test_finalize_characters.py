@@ -7,7 +7,7 @@ from core.character_catalog import (
     level_avatar_urls, level_from_points, load_global_character_catalog,
 )
 from core.translation_service import SUPPORTED_LANGUAGE_CODES
-from scripts.finalize_characters import DELETE, merge_skills, migrate_translations, plan_character_update
+from scripts.finalize_characters import DELETE, is_final_document, merge_skills, migrate_translations, plan_character_update
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -73,12 +73,23 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(update["avatar_url"], self.expected["avatar_urls"]["lvl1"])
         self.assertEqual(update["avatar_urls"], level_avatar_urls(self.expected["id"]))
         self.assertTrue(update["avatar_url"].endswith(f"/characters/avatars/{self.expected['id']}/lvl1.png"))
+        self.assertEqual(update["schema_version"], "1.2.0")
         self.assertEqual(update["name"], self.expected["name"])
         self.assertEqual(set(update["translations"]), set(CHARACTER_LOCALES))
         self.assertNotIn("id", update)  # ids never change
 
     def test_final_document_needs_nothing(self):
         self.assertEqual(plan_character_update(json.loads(json.dumps(self.expected)), self.expected), {})
+
+    def test_level_avatar_urls(self):
+        urls = level_avatar_urls("abc", "b")
+        self.assertEqual(urls, {l: f"https://storage.googleapis.com/b/characters/avatars/abc/{l}.png" for l in ("lvl1", "lvl2", "lvl3")})
+
+    def test_post_write_verification_checks_avatar_urls(self):
+        self.assertTrue(is_final_document(self.expected, self.expected))
+        self.assertFalse(is_final_document({**self.expected, "avatar_urls": {}}, self.expected))
+        self.assertFalse(is_final_document({**self.expected, "avatar_url": default_avatar_url()}, self.expected))
+        self.assertFalse(is_final_document({**self.expected, "rarity": "x"}, self.expected))
 
 
 class CatalogueConsistencyTests(unittest.TestCase):
