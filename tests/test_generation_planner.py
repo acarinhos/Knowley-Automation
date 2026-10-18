@@ -150,7 +150,7 @@ class TestGenerationPlanner(unittest.TestCase):
         self.assertIsInstance(plan, GenerationPlan)
         self.assertEqual(plan.scope, "global")
         self.assertEqual(plan.ratio_percent, 70)
-        self.assertEqual(plan.target_country, "ABD")
+        self.assertEqual(plan.target_country, "Global")  # global scope has no country
         self.assertEqual(plan.target_country_credit, 10)
         self.assertEqual(plan.category, "Sinema & Dizi")
         self.assertEqual(plan.subcategory, "Gişe")
@@ -186,7 +186,7 @@ class TestV102SchemaAndDifficulty(unittest.TestCase):
                     "question": "En yüksek gişe hasılatına sahip film hangisidir?",
                     "options": {"A": "Titanic", "B": "Avatar", "C": "Endgame", "D": "Star Wars"},
                     "explanation": "Avatar en yüksek hasılata sahiptir.",
-                    "filter_tag": "Gişe"
+                    "filter_tag": "Gişe", "simplified_question": "Sade soru", "clarified_options": {"A": "A", "B": "B", "C": "C", "D": "D"}
                 }
             }
         }

@@ -158,7 +158,7 @@ class GeneratedQuestion(BaseModel):
     logical_order: Optional[List[int]] = Field(default=None, description="A-D seçenek indekslerinin anlamlı kronolojik/mantıksal sırası; anlamlı değilse null")
     option_difficulty_order: Optional[List[int]] = Field(default=None, description="A-D indekslerinin hedef kitle için en kolay tanınandan en zor tanınana sıralaması; sıralama güvenilir değilse null")
     binary_fallback: Optional[BinaryFallback] = Field(default=None, description="Seçili kaynak dilde Doğru/Yanlış biçimi")
-    community_distribution: Optional[List[int]] = Field(default=None, description="Gerçek oyuncu oylarından sunucu tarafında hesaplanır; üretimde null bırakılır")
+    community_distribution: Optional[List[int]] = Field(default=None, description="Modelden istenmez; kayıt sırasında simüle edilir (community_distribution_meta.source=simulated), gerçek oylar gelince değişir")
     base_points: int = Field(default=100, ge=0, description="Yetenek puan çarpanlarının uygulandığı taban soru puanı")
     difficulty: Optional[Literal["Kolay", "Orta", "Zor"]] = Field(default=None, description="Soru kapsamı için yetenek koşullarında kullanılan zorluk etiketi")
     duration_local: int = Field(default=15, description="Yerel soru süresi (saniye)")
@@ -445,6 +445,26 @@ def validate_trivia_compliance(q: GeneratedQuestion) -> None:
                     f"yasaklı bürokratik terim tespit edildi: '{orig_kw}' (Metin: {raw_text[:60]}...)"
                 )
 
+def validate_skill_support_fields(q: GeneratedQuestion, source_language: str) -> None:
+    """Yetenekler (ipucu, anahtar kelime, tuzak notu, ikili format, eleme) için gereken alanlar eksikse yeniden üretimi tetikler."""
+    content = q.translations.get(source_language)
+    if content is None:
+        return
+    missing = [
+        name for name in ("hint", "keyword", "distractor_trap_note")
+        if not str(getattr(content, name, "") or "").strip()
+    ]
+    fallback = content.binary_fallback
+    if fallback is None or not str(fallback.statement or "").strip():
+        missing.append("binary_fallback")
+    weakest, strongest = q.weakest_distractor_index, q.strongest_distractor_index
+    correct = "ABCD".index(q.correct_answer)
+    if weakest is None or strongest is None or len({weakest, strongest, correct}) != 3:
+        missing.append("weakest/strongest_distractor_index")
+    if missing:
+        raise ValueError(f"Yetenek destek alanları eksik veya geçersiz: {', '.join(missing)}")
+
+
 def build_prompt(
     primary_category: str,
     target_subcategory: Optional[str] = None,
@@ -670,7 +690,7 @@ ZORUNLU KENDİ KENDİNİ DOĞRULAMA (SELF-VERIFICATION KURALI):
 "{SELF_VERIFICATION_RULE}"
 
 [KARAKTER YETENEKLERİ İÇİN SORU YARDIMCI ALANLARI]:
-- `weakest_distractor_index` ve `strongest_distractor_index` 0 tabanlı seçenek indeksidir: A=0, B=1, C=2, D=3. İkisi de doğru cevaptan farklı yanlış seçenekleri göstermelidir.
+- `weakest_distractor_index` ve `strongest_distractor_index` 0 tabanlı seçenek indeksidir: A=0, B=1, C=2, D=3. İkisi de doğru cevaptan farklı yanlış seçenekleri göstermelidir ve `weakest_distractor_index` ile `strongest_distractor_index` birbirinden FARKLI olmalıdır (üçü de farklı indeks).
 - `hint` cevabı doğrudan söylemeyen kısa, yararlı bir ipucu; `keyword` soru kökündeki gerçek kilit ifade; `distractor_trap_note` en güçlü yanlış seçeneğin neden yanlış olduğunu açıklar. Bunları HER hedef dilin çevirisinde doğal biçimde yaz.
 - `binary_fallback` her hedef dilde doğru/yanlış biçimine çevrilebilen tek bir önerme ve bu önermenin doğruluğunu gösteren `is_true` içerir.
 - `logical_order`, yalnızca seçeneklerin gerçekten sıralanabileceği sorularda A-D'nin 0 tabanlı indekslerinden oluşan tam bir permütasyondur; uygun değilse null.
@@ -909,8 +929,11 @@ def generate_question_with_fallback(
         lang for lang in (languages or SUPPORTED_LANGUAGE_CODES)
         if lang in COUNTRY_LANGUAGE_CODES
     ))
-    if not requested_languages:
-        requested_languages = ["en"] if final_scope == "local" else list(SUPPORTED_LANGUAGE_CODES)
+    if final_scope == "local":
+        # Country languages (Sheets) + en, regardless of the caller's selection; en-only when the country is unknown.
+        requested_languages = repository.question_languages(final_country) if final_country else ["en"]
+    elif not requested_languages:
+        requested_languages = list(SUPPORTED_LANGUAGE_CODES)
     source_language = "en" if "en" in requested_languages else requested_languages[0]
 
     # 3. Zorluk dengelemesi. Worker ayrılmış bir hedefi verdiyse aynı hedef,
@@ -973,6 +996,7 @@ def generate_question_with_fallback(
                 raise ValueError("Görsel soru için question_image_search_query üretilmedi.")
             # Anti-Bürokrasi ve Trivia uyumluluk doğrulaması (Python Guard)
             validate_trivia_compliance(candidate_q)
+            validate_skill_support_fields(candidate_q, source_language)
             source_content = candidate_q.translations[source_language].model_dump()
             translated_content, translation_provider = translate_localized_content(
                 source_content,

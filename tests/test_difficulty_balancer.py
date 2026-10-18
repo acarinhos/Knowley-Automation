@@ -159,7 +159,7 @@ class TestDifficultyBalancer(unittest.TestCase):
                     "question": "Yerçekimi ivmesi nedir?",
                     "options": {"A": "9.8 m/s²", "B": "5.0 m/s²", "C": "1.0 m/s²", "D": "12.2 m/s²"},
                     "explanation": "Açıklama",
-                    "filter_tag": "Mekanik"
+                    "filter_tag": "Mekanik", "simplified_question": "Sade soru", "clarified_options": {"A": "A", "B": "B", "C": "C", "D": "D"}
                 }
             }
         }

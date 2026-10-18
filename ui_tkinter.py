@@ -43,11 +43,15 @@ from core.external_importer import (
 )
 from database.db_manager import init_firebase, save_question_to_firestore
 from database.question_report import canonicalize_question_report_countries, question_report_country_label
-from ui_server import JobManager, firebase_question_audit, firebase_question_report, firebase_summary
 try:  # optional SAT generation panel
     from sat_engine.ui_panel import install as install_sat_panel
 except Exception:
     install_sat_panel = None
+from core.llm_settings import (
+    PROVIDERS as LLM_PROVIDERS, available_models as llm_available_models, key_status as llm_key_status,
+    load_models as load_llm_models, load_selection as load_llm_selection,
+)
+from ui_server import JobManager, firebase_question_audit, firebase_question_report, firebase_summary
 
 # Renk Paleti (Knowley Dark Modern Theme)
 BG_MAIN = "#070914"
@@ -177,6 +181,23 @@ class ModernPill(tk.Canvas):
             fill=self.pill_fg,
             font=self.font,
         )
+
+
+def produced_from_events(events: List[Dict[str, Any]]) -> int:
+    """Highest `produced` among saved (written to Firestore) and generated (dry run) events."""
+    values = [
+        e.get("produced") for e in events
+        if isinstance(e, dict) and e.get("event") in {"saved", "generated"} and isinstance(e.get("produced"), int)
+    ]
+    return max([0] + values)
+
+
+def firestore_writes_enabled(options: Dict[str, Any], events: List[Dict[str, Any]]) -> bool:
+    """False when the job runs without writing (options flag, or the started event says so)."""
+    started = next((e for e in events if isinstance(e, dict) and e.get("event") == "started"), None)
+    if started is not None and "firestore" in started:
+        return bool(started["firestore"])
+    return bool(options.get("write_to_firestore", True))
 
 
 class SmoothProgressBar(tk.Canvas):
@@ -731,6 +752,11 @@ class KnowleyTkinterApp(tk.Tk):
             justify="left",
         ).pack(anchor="w", pady=(2, 0))
         self.custom_config_card.pack_forget()
+        # Firestore yazma anahtarı (kapalıyken yalnızca üretir, hiçbir şey kaydetmez)
+        self.var_write_fs = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            card, text="Firebase'e kaydet (kapalıysa yalnızca üretir, yazmaz)", variable=self.var_write_fs,
+        ).pack(anchor="w", pady=(0, 10))
 
         # Ülke Profili Kartı
         cp_card = tk.Frame(card, bg=PANEL_INNER, highlightbackground=PANEL_BORDER, highlightthickness=1, padx=12, pady=10)
@@ -750,7 +776,11 @@ class KnowleyTkinterApp(tk.Tk):
         self.country_select_label.pack(anchor="w", pady=(6, 2))
         self.combo_country = ttk.Combobox(self.country_select_frame, state="disabled", values=[])
         self.combo_country.pack(fill="x")
-        self.combo_country.bind("<<ComboboxSelected>>", self._on_localized_country_selected)
+        self.country_lang_lbl = tk.Label(self.country_select_frame, text="", fg=TEXT_DIM, bg=PANEL_INNER,
+                                         font=(FONT_FAMILY, 8), justify="left", wraplength=260)
+        self.country_lang_lbl.pack(anchor="w", pady=(4, 0))
+        self.combo_country.bind("<<ComboboxSelected>>", lambda _event: (self._update_country_languages(), self._on_localized_country_selected()))
+        self._country_languages: Dict[str, List[str]] = {}
 
         # Gelişmiş Ayarlar (Collapsible Frame)
         adv_card = tk.Frame(card, bg=PANEL_INNER, highlightbackground=PANEL_BORDER, highlightthickness=1, padx=12, pady=10)
@@ -869,6 +899,37 @@ class KnowleyTkinterApp(tk.Tk):
             command=self._probe_providers_async,
         )
         self.btn_probe.pack(side="right")
+
+        # LLM sağlayıcı seçimi (LLM_ALLOWED_PROVIDERS ile uygulanır)
+        select_box = tk.Frame(prov_card, bg=PANEL_INNER, highlightbackground=PANEL_BORDER, highlightthickness=1, padx=10, pady=7)
+        select_box.pack(fill="x", pady=(0, 8))
+        tk.Label(select_box, text="LLM SAĞLAYICILARI", fg=MUTED, bg=PANEL_INNER, font=(FONT_FAMILY, 8, "bold")).pack(anchor="w")
+        self.llm_vars: Dict[str, tk.BooleanVar] = {}
+        self.llm_model_vars: Dict[str, Dict[str, tk.BooleanVar]] = {}
+        self.llm_model_buttons: Dict[str, list] = {}
+        keys = llm_key_status()
+        selected = set(load_llm_selection())
+        for name in LLM_PROVIDERS:
+            var = tk.BooleanVar(value=name in selected)
+            self.llm_vars[name] = var
+            label = name.capitalize() if keys.get(name) else f"{name.capitalize()} (API anahtarı yok)"
+            ttk.Checkbutton(
+                select_box, text=label, variable=var, command=self._on_llm_selection_changed,
+                state="normal" if keys.get(name) else "disabled",
+            ).pack(anchor="w", pady=1)
+            self.llm_model_vars[name] = {}
+            self.llm_model_buttons[name] = []
+            saved_models = set(self.manager.models.get(name) or llm_available_models(name))
+            for model in llm_available_models(name):
+                mvar = tk.BooleanVar(value=model in saved_models)
+                self.llm_model_vars[name][model] = mvar
+                button = ttk.Checkbutton(select_box, text="    " + model, variable=mvar, command=self._on_llm_selection_changed)
+                button.pack(anchor="w")
+                self.llm_model_buttons[name].append(button)
+        self.llm_select_lbl = tk.Label(select_box, text="", fg=MUTED, bg=PANEL_INNER, font=(FONT_FAMILY, 8), justify="left", wraplength=260)
+        self.llm_select_lbl.pack(anchor="w", pady=(4, 0))
+        self._refresh_llm_model_states()
+        self._show_llm_selection()
 
         # Sağlayıcı kartları listesi konteyneri
         self.providers_container = tk.Frame(prov_card, bg=PANEL_BG)
@@ -1016,6 +1077,7 @@ class KnowleyTkinterApp(tk.Tk):
         self.event_text.tag_configure("started", foreground=CYAN, font=("Consolas", 9, "bold"))
         self.event_text.tag_configure("planning", foreground=PURPLE)
         self.event_text.tag_configure("saved", foreground=GREEN, font=("Consolas", 9, "bold"))
+        self.event_text.tag_configure("generated", foreground=ORANGE, font=("Consolas", 9, "bold"))
         self.event_text.tag_configure("retry", foreground=ORANGE)
         self.event_text.tag_configure("duplicate", foreground=MUTED)
         self.event_text.tag_configure("completed", foreground=GREEN, font=("Consolas", 9, "bold"))
@@ -1263,9 +1325,17 @@ class KnowleyTkinterApp(tk.Tk):
         ival = int(float(value))
         self.combo_pct_lbl.config(text=f"%{ival}")
 
+    def _update_country_languages(self) -> None:
+        """Local questions always use the country's Sheets languages + English; the language choice is not editable."""
+        languages = list(self._country_languages.get(self.combo_country.get(), []))
+        if "en" not in languages:
+            languages.append("en")
+        self.country_lang_lbl.config(text="Yerel soru dilleri (otomatik): " + ", ".join(languages))
+
     def _toggle_country_profile(self) -> None:
         enabled = self.var_cp_enabled.get()
         if enabled:
+            self._update_country_languages()
             self.country_select_frame.pack(fill="x", pady=(6, 0))
             self.combo_country.config(state="readonly")
         else:
@@ -1445,7 +1515,7 @@ class KnowleyTkinterApp(tk.Tk):
         def worker() -> None:
             def progress(done: int, total: int) -> None:
                 if done == 1 or done == total or done % 10 == 0:
-                    self.after(0, lambda d=done, t=total: self.external_status_lbl.config(text=f"Tam şema + 5 dil: {d}/{t}", fg=ORANGE))
+                    self.after(0, lambda d=done, t=total: self.external_status_lbl.config(text=f"Çeviri (ülke dilleri + en): {d}/{t}", fg=ORANGE))
 
             report = validate_and_transform(
                 self.external_raw_records,
@@ -1527,7 +1597,7 @@ class KnowleyTkinterApp(tk.Tk):
                 repo = self.manager.repository
                 algo_summary = repo.summary()
                 countries = repo.country_profiles()
-                providers = self.manager.llm_manager.status(live=False)
+                providers = self.manager.llm_manager.status(live=False) if self.manager.llm_manager else {}
 
                 data = {
                     "algorithm": algo_summary,
@@ -1967,6 +2037,8 @@ class KnowleyTkinterApp(tk.Tk):
             self.combo_country.config(values=self.country_profile_values)
             if self.country_profile_values:
                 self.combo_country.current(0)
+        self._country_languages = {c["name"]: list(c.get("languages") or []) for c in data.get("countries", [])}
+        self._update_country_languages()
 
         self._on_mode_change()
         self._render_providers(data.get("providers", {}))
@@ -1996,7 +2068,60 @@ class KnowleyTkinterApp(tk.Tk):
             self.fb_health_badge.config(text="ERİŞİLEMİYOR", fg=RED)
             self.fb_count_lbl.config(text="—")
 
+    def _show_llm_selection(self, error: str = "") -> None:
+        chosen = [name for name in LLM_PROVIDERS if self.llm_vars[name].get()]
+        keys = llm_key_status()
+        inactive = [name for name in chosen if not keys.get(name)]
+        active = [name for name in chosen if keys.get(name)]
+        if error:
+            self.llm_select_lbl.config(text=error, fg=RED)
+        elif self.manager.llm_error:
+            self.llm_select_lbl.config(text=self.manager.llm_error, fg=ORANGE)
+        else:
+            text = "Etkin: " + (", ".join(active) or "—") + " · yeni işler bu listeyle çalışır"
+            if inactive:
+                text += "\nEtkin değil (API anahtarı yok): " + ", ".join(inactive)
+            self.llm_select_lbl.config(text=text, fg=ORANGE if inactive else MUTED)
+
+    def _refresh_llm_model_states(self) -> None:
+        """Model boxes follow their provider: disabled when the provider is off or has no API key."""
+        keys = llm_key_status()
+        for name, buttons in self.llm_model_buttons.items():
+            enabled = self.llm_vars[name].get() and keys.get(name)
+            for button in buttons:
+                button.config(state="normal" if enabled else "disabled")
+
+    def _chosen_llm_models(self) -> Dict[str, list]:
+        return {
+            name: [model for model, var in self.llm_model_vars[name].items() if var.get()]
+            for name in LLM_PROVIDERS if self.llm_vars[name].get()
+        }
+
+    def _on_llm_selection_changed(self) -> None:
+        """Validate (at least one provider and one model per provider), persist and apply for new jobs."""
+        chosen = [name for name in LLM_PROVIDERS if self.llm_vars[name].get()]
+        try:
+            applied = self.manager.set_providers(chosen, self._chosen_llm_models())
+        except (ValueError, OSError, RuntimeError) as exc:
+            current = set(self.manager.selection)  # revert the checkboxes to the last applied selection
+            for name in LLM_PROVIDERS:
+                self.llm_vars[name].set(name in current)
+                active_models = set(self.manager.models.get(name) or llm_available_models(name))
+                for model, var in self.llm_model_vars[name].items():
+                    var.set(model in active_models)
+            self._refresh_llm_model_states()
+            self._show_llm_selection(str(exc))
+            return
+        for name in LLM_PROVIDERS:
+            self.llm_vars[name].set(name in applied)
+        self._refresh_llm_model_states()
+        self._show_llm_selection()
+        self._probe_providers_async()
+
     def _probe_providers_async(self) -> None:
+        if self.manager.llm_manager is None:
+            self._render_providers({})
+            return
         self.btn_probe.config(text="…", state="disabled")
 
         def worker() -> None:
@@ -2154,6 +2279,7 @@ class KnowleyTkinterApp(tk.Tk):
             "country": country_val or "",
             "combo_percent": int(self.scale_combo.get()),
             "languages": selected_langs,
+            "write_to_firestore": bool(self.var_write_fs.get()),
         }
 
     def _get_custom_difficulty_count(self, level: str) -> int:
@@ -2231,7 +2357,6 @@ class KnowleyTkinterApp(tk.Tk):
         events = job.get("events") or []
 
         total = options.get("question_count") or 0
-        saved_events = [e for e in events if isinstance(e, dict) and e.get("event") == "saved"]
 
         completed_count = summary.get("processed")
         if completed_count is None:
@@ -2242,9 +2367,9 @@ class KnowleyTkinterApp(tk.Tk):
         self.progress_bar.set_progress(pct)
         produced_live = summary.get("produced")
         if produced_live is None:
-            produced_values = [e.get("produced") for e in saved_events if isinstance(e.get("produced"), int)]
-            produced_live = max([0] + produced_values)
+            produced_live = produced_from_events(events)
         self.progress_count_lbl.config(text=f"{produced_live} / {total}")
+        writes = firestore_writes_enabled(options, events)
         self.progress_state_lbl.config(text=status.upper())
 
         if status in {"completed", "stopped", "failed"}:
@@ -2256,7 +2381,9 @@ class KnowleyTkinterApp(tk.Tk):
             if summary.get("provider_status"):
                 self._render_providers(summary["provider_status"])
         else:
-            self.activity_title_lbl.config(text="Üretim devam ediyor")
+            self.activity_title_lbl.config(
+                text="Üretim devam ediyor" if writes else "Üretim devam ediyor — Firestore'a YAZILMIYOR (deneme)"
+            )
             self.btn_start.config(state="disabled")
             self.btn_stop.pack(side="right", padx=(8, 0))
 
@@ -2274,6 +2401,7 @@ class KnowleyTkinterApp(tk.Tk):
             "started": "▶",
             "planning": "⌁",
             "saved": "✓",
+            "generated": "✎",
             "retry": "↻",
             "provider_unavailable": "!",
             "duplicate": "≋",
@@ -2295,11 +2423,13 @@ class KnowleyTkinterApp(tk.Tk):
                 msg = f"{ev.get('category')} › {ev.get('subcategory')}"
                 if ev.get("combo"):
                     msg += f" + {ev.get('secondary_category')}"
-            elif kind == "saved":
+            elif kind in {"saved", "generated"}:
                 q_text = ev.get("question", "")
                 if len(q_text) > 90:
                     q_text = q_text[:87] + "..."
                 msg = q_text or "Soru Firestore'a yazıldı."
+                if kind == "generated":
+                    msg += " [Firestore'a YAZILMADI]"
             elif kind == "retry":
                 msg = f"{ev.get('message', 'API yeniden deneniyor')} · {ev.get('wait_seconds', '')}s"
             elif kind == "provider_unavailable":

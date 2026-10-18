@@ -106,6 +106,9 @@ def save_question_to_firestore(db, question_obj, collection_name: str = "questio
         
         # Meta veriler ve doğru şık/süre eşleşmesi
         q_dict["question_hash"] = q_hash
+        from core.community_distribution import apply_simulated_distribution
+
+        apply_simulated_distribution(q_hash, q_dict)  # simulated until real votes exist
         q_dict["created_at"] = firestore.SERVER_TIMESTAMP
         q_dict["status"] = "published"
         # Firestore sözleşmesi: eski ``version`` alanı artık kalıcı şemada yok.

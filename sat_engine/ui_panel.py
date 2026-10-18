@@ -201,6 +201,18 @@ BG, PANEL, CYAN, GREEN, ORANGE, RED, TXT, MUTED = "#070914", "#111426", "#57e5ff
 FONT = "Segoe UI"
 
 
+def global_llm_defaults():
+    """-> (providers, {provider: model}) from core.llm_settings; ([], {}) when unavailable. claude is never included.
+    A model is pinned only when the user narrowed that provider to exactly one."""
+    try:
+        from core import llm_settings as g
+        sel = [p for p in g.load_selection() if p in llm.KNOWN]
+        models = g.load_models()
+        return sel, {p: m[0] for p, m in models.items() if p in sel and len(m) == 1 and m[0] != llm.model_for(p)}
+    except Exception:
+        return [], {}
+
+
 class SatPanel(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
@@ -223,8 +235,9 @@ class SatPanel(ttk.Frame):
         self.defaults = {p: llm.model_for(p) for p in llm.KNOWN}
         saved = [p for p in pr.get("order") or [] if p in llm.KNOWN]
         self.order = saved + [p for p in llm.KNOWN if p not in saved]
-        self.enabled = {p: tk.BooleanVar(value=p in (pr["enabled"] if "enabled" in pr else self.avail)) for p in llm.KNOWN}
-        self.models = {p: tk.StringVar(value=(pr.get("models") or {}).get(p) or self.defaults[p]) for p in llm.KNOWN}
+        gsel, gmodels = global_llm_defaults()  # main app's provider/model boxes; used only when nothing is saved here
+        self.enabled = {p: tk.BooleanVar(value=p in (pr["enabled"] if "enabled" in pr else (gsel or self.avail))) for p in llm.KNOWN}
+        self.models = {p: tk.StringVar(value=(pr.get("models") or {}).get(p) or gmodels.get(p) or self.defaults[p]) for p in llm.KNOWN}
         self._claude = None  # filled by the probe thread (claude_ready() runs a subprocess)
         self._claude_shown = False
         self.health = {}

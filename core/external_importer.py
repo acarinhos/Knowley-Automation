@@ -587,7 +587,7 @@ def enrich_question_translations(question: Dict[str, Any], llm_manager: Any = No
                 (item["name"] for item in repository.countries() if item.get("code") == code),
                 "",
             )
-        requested_languages = repository.languages_for_country(country) or requested_languages
+        requested_languages = repository.question_languages(country) if country else requested_languages
     normalized, provider = translate_localized_content(
         source,
         source_language,

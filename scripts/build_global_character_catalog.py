@@ -12,13 +12,11 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "data" / "global_character_source.json"
 LOCALIZED = ROOT / "data" / "global_character_locales.json"
 OUTPUT = ROOT / "data" / "global_character_catalog.json"
-CHARACTER_SCHEMA_VERSION = "1.0.0"
-CHARACTER_LOCALES = (
-    "en", "de-DE", "ar", "bn-BD", "da-DK", "id", "fa-IR", "nl-NL", "fil",
-    "fi-FI", "fr-FR", "hi-IN", "ja-JP", "ko-KR", "pl-PL", "hu-HU", "ms-MY",
-    "no-NO", "pt-BR", "ro", "ru-RU", "th", "tr-TR", "uk", "ur", "vi",
-    "el-GR", "cs-CZ", "zh-CN", "zh-TW", "iw-IL", "es-419", "es-ES", "sv-SE", "it-IT",
+ALIASES = ROOT / "data" / "global_character_aliases.json"
+from core.character_catalog import (  # noqa: E402
+    CHARACTER_LOCALES, CHARACTER_SCHEMA_VERSION, LEVEL_THRESHOLDS, UNLOCK_THRESHOLD, default_avatar_url,
 )
+from core.translation_service import canonical_language_code  # noqa: E402
 
 
 def clean(text: Any) -> str:
@@ -35,6 +33,33 @@ def key(text: str) -> str:
     normalized = unicodedata.normalize("NFKD", clean(text).lower().replace("ı", "i"))
     ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
     return re.sub(r"[^a-z0-9]+", " ", ascii_text).strip()
+
+
+WORD = re.compile(r"[^\W\d_]+(?:'[^\W\d_]+)?")
+
+
+def rename_text(text: str, mapping: dict[str, str]) -> str:
+    """Replace whole words (case-insensitive, keeping title/upper case) using a word -> alias map."""
+    lowered = {k.casefold(): v for k, v in mapping.items()}
+
+    def swap(match: re.Match) -> str:
+        word = match.group()
+        alias = lowered.get(word.casefold())
+        if alias is None:
+            return word
+        return alias.upper() if word.isupper() and len(word) > 1 else alias
+
+    return WORD.sub(swap, text)
+
+
+def name_tokens(name: str) -> list[str]:
+    return re.findall(r"[^\W\d_]+", name)
+
+
+def alias_map(original: str, alias: str) -> dict[str, str]:
+    """Full name plus positional tokens (>=3 letters) so titles/roles quoting the name are covered."""
+    tokens = list(zip(name_tokens(original), name_tokens(alias)))
+    return {original: alias, **{o: a for o, a in tokens if len(o) >= 3 and o != a}}
 
 
 def effect(
@@ -317,9 +342,17 @@ def value_from_effects(effects: list[dict[str, Any]]) -> float | None:
 
 def main() -> int:
     source_rows = json.loads(SOURCE.read_text(encoding="utf-8"))
-    locale_texts = json.loads(LOCALIZED.read_text(encoding="utf-8"))
+    locale_texts = {
+        text: {canonical_language_code(k): v for k, v in by_locale.items()}
+        for text, by_locale in json.loads(LOCALIZED.read_text(encoding="utf-8")).items()
+    }
     if not isinstance(locale_texts, dict):
         raise ValueError("Localized title/role mapping must be a JSON object.")
+
+    if not ALIASES.exists():
+        raise FileNotFoundError(f"{ALIASES} is required; refusing to build a catalogue with original (unaliased) names.")
+    aliases = json.loads(ALIASES.read_text(encoding="utf-8"))
+    skill_terms = aliases.get("skill_terms", {})
 
     output: list[dict[str, Any]] = []
     for row in source_rows:
@@ -338,9 +371,15 @@ def main() -> int:
         raw_id = "gl_" + "_".join(
             part for part in (slug_id(category), slug_id(subcategory), slug_id(clean(row.get("name")))) if part
         )
+        # Ids stay derived from the original name; only visible text uses the alias.
+        entry = aliases.get("characters", {}).get(raw_id)
+        if entry is None:
+            raise ValueError(f"No alias for {raw_id}; add it to {ALIASES.name}.")
+        display_name = entry["alias"]
+        names = alias_map(entry["original"], entry["alias"])
         skills: list[dict[str, Any]] = []
         for slot, source_text in enumerate(row.get("skills") or [], start=1):
-            source_text = clean(source_text)
+            source_text = rename_text(clean(source_text), {**skill_terms, **names})
             if not source_text:
                 raise ValueError(f"{raw_id} is missing source skill slot {slot}.")
             label, _, description = source_text.partition(":")
@@ -368,28 +407,28 @@ def main() -> int:
 
         translations = {
             locale: {
-                "name": clean(row.get("name")),
-                "title": locale_texts[source_title][locale],
-                "role": locale_texts[source_role][locale],
+                "name": display_name,
+                "title": rename_text(locale_texts[source_title][locale], names),
+                "role": rename_text(locale_texts[source_role][locale], names),
             }
             for locale in CHARACTER_LOCALES
         }
         output.append({
             "schema_version": CHARACTER_SCHEMA_VERSION,
             "id": raw_id,
-            "name": clean(row.get("name")),
-            "title": locale_texts[source_title]["en"],
-            "role": locale_texts[source_role]["en"],
+            "name": display_name,
+            "title": rename_text(locale_texts[source_title]["en"], names),
+            "role": rename_text(locale_texts[source_role]["en"], names),
             "category_id": slug_id(category),
             "category_name": category,
             "sub_category_id": slug_id(subcategory),
             "sub_category_name": subcategory,
             "region_code": "GL",
             "character_type": "global",
-            "rarity": "unassigned",
-            "avatar_url": None,
-            "unlock_threshold": None,
-            "is_active": False,
+            "avatar_url": default_avatar_url(),
+            "unlock_threshold": UNLOCK_THRESHOLD,
+            "level_thresholds": dict(LEVEL_THRESHOLDS),
+            "is_active": True,
             "translations": translations,
             "skills": skills,
             "source": {
