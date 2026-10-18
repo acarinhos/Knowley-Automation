@@ -53,6 +53,9 @@ def test_breakdowns_and_keys():
     assert r["by_answer_type"] == {"mcq": 4, "grid_in": 1} and r["by_has_visual"]["visual var"] == 1
     assert r["key_letters"] == {"A": 2, "B": 0, "C": 1, "D": 1}
     assert r["by_provider"] == {"groq": 5} and r["by_session"] == {"s1": 5} and r["by_module"] == {"1": 5}
+    assert r["by_tur"] == {} and r["tur_missing"] == 5 and "tur eksik: 5" in report.format_text(r)
+    r3 = report.build_report([d(tur="eng"), d(section="math", tur="math"), d(tur="eng"), d()], NOW)
+    assert r3["by_tur"] == {"eng": 2, "math": 1} and r3["tur_missing"] == 1
     assert "active_passive" not in r and "by_status" not in r and "by_verified" not in r
     r2 = report.build_report([d(active=True, status="approved"), d(active=False)], NOW)
     assert r2["active_passive"] == {"aktif": 1, "pasif": 1} and r2["by_status"] == {"approved": 1}

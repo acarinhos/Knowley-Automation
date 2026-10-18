@@ -8,7 +8,7 @@ from typing import Iterable, Optional
 
 from .config import FIRESTORE_COLLECTION
 
-FIELDS = ("section", "module", "difficulty", "domain", "skill", "answer_type", "correct_answer", "stem", "session_id", "status", "active",
+FIELDS = ("section", "tur", "module", "difficulty", "domain", "skill", "answer_type", "correct_answer", "stem", "session_id", "status", "active",
           "created_at", "has_visual", "visual.spec.kind", "meta.provider", "meta.model", "meta.created_at", "meta.verified")
 TZ_NAME = "Europe/Istanbul"
 UNKNOWN = "bilinmiyor"
@@ -77,6 +77,8 @@ def build_report(docs: Iterable[dict], now: Optional[datetime] = None, tz: str =
         "by_section": _count(docs, lambda d: d.get("section")),
         "by_domain": _count(docs, lambda d: d.get("domain")),
         "by_skill": _count(docs, lambda d: d.get("skill")),
+        "by_tur": _count(docs, lambda d: d.get("tur")),
+        "tur_missing": sum(1 for d in docs if not d.get("tur")),
         "by_difficulty": _count(docs, lambda d: d.get("difficulty")),
         "by_answer_type": _count(docs, lambda d: d.get("answer_type")),
         "by_has_visual": _count(docs, lambda d: "visual var" if _has_visual(d) else "görsel yok"),
@@ -111,11 +113,12 @@ def format_text(r: dict) -> str:
            f"Toplam {r['total']} | Bugün {c['today']} | 7 gün {c['last_7_days']} | 30 gün {c['last_30_days']} | Tüm zamanlar {c['all_time']} | Tarihsiz {c['unknown_date']}"]
     if r.get("note"):
         out.append("Not: " + r["note"])
-    for key, title in (("by_section", "Bölüm"), ("by_domain", "Alan"), ("by_skill", "Konu"), ("by_difficulty", "Zorluk"), ("by_answer_type", "Tür"),
+    for key, title in (("by_section", "Bölüm"), ("by_domain", "Alan"), ("by_skill", "Konu"), ("by_difficulty", "Zorluk"), ("by_tur", "Tür (eng/math)"), ("by_answer_type", "Tür"),
                        ("by_has_visual", "Görsel"), ("by_module", "Modül"), ("by_session", "Oturum"), ("by_provider", "Sağlayıcı"), ("by_model", "Model"),
                        ("key_letters", "Anahtar harfi (mcq)"), ("active_passive", "Aktif/pasif"), ("by_status", "Durum"), ("by_verified", "Doğrulama")):
         if r.get(key):
             out += ["", f"[{title}]"] + [f"  {k}: {v}" for k, v in r[key].items()]
+    out += ["", f"tur eksik: {r['tur_missing']}"]
     out += ["", "[Son 30 gün]", "  " + (" ".join(f"{k[5:]}:{v}" for k, v in r["per_day_30"].items() if v) or "-"), "", "[Son eklenenler]"]
     out += [f"  {x['created']} {x['section']} {x['difficulty']} {x['skill']} | {x['stem']}" for x in r["latest"]] or ["  -"]
     return "\n".join(out)

@@ -290,6 +290,8 @@ def test_only_store_module_contains_firestore_writes():
     sp = (root / "saveplan.py").read_text(encoding="utf-8")
     assert not pat.search(sp.replace("ids)", "")), "saveplan must stay read-only"
     assert len(re.findall(r"\bref\.set\(", (root / "store.py").read_text(encoding="utf-8"))) == 1
+    # allow-list: the one guarded backfill write (update of {"tur": ...} only; gated by --save + WRITES_ENV in backfill_tur)
+    assert len(re.findall(r'batch\.update\(ref, \{"tur": want\}\)', (root / "store.py").read_text(encoding="utf-8"))) == 1
 
 
 def test_build_doc_matches_written_shape():

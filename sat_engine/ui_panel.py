@@ -510,7 +510,7 @@ class SatPanel(ttk.Frame):
 REPORT_JSON = OUT / "sat_report.json"
 CARDS = (("Toplam", "total", CYAN), ("Bugün", "today", GREEN), ("7 gün", "last_7_days", GREEN), ("30 gün", "last_30_days", ORANGE),
          ("Tüm zamanlar", "all_time", CYAN))
-GROUPS = (("by_section", "Bölüm"), ("by_domain", "Alan"), ("by_skill", "Konu"), ("by_difficulty", "Zorluk"), ("by_answer_type", "Tür"),
+GROUPS = (("by_section", "Bölüm"), ("by_domain", "Alan"), ("by_skill", "Konu"), ("by_difficulty", "Zorluk"), ("by_tur", "Tür (eng/math)"), ("by_answer_type", "Tür"),
           ("by_has_visual", "Görsel"), ("by_module", "Modül"), ("key_letters", "Anahtar harfi (mcq)"), ("active_passive", "Aktif/pasif"),
           ("by_status", "Durum"), ("by_verified", "Doğrulama"), ("by_provider", "Sağlayıcı"), ("by_model", "Model"), ("by_session", "Oturum"))
 
@@ -636,6 +636,7 @@ class ReportWindow(tk.Toplevel):
             tgt = self.t_cat if key in ("by_section", "by_domain", "by_skill") else self.t_diff
             for k, v in (r.get(key) or {}).items():
                 tgt.insert("", "end", values=(title, k, v))
+        self.t_diff.insert("", "end", values=("Tür (eng/math)", "tur eksik", r.get("tur_missing", 0)))
         for x in r["latest"]:
             self.t_last.insert("", "end", values=(x["created"], x["section"], f"{x['domain']} / {x['skill']}", x["difficulty"], x["stem"]))
 

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 from .config import ENV_DIR, FIRESTORE_COLLECTION, get_env, is_truthy
-from .schema import SATQuestion
+from .schema import TUR, SATQuestion
 
 WRITES_ENV = "KNOWLEY_GENERATION_WRITES_ENABLED"
 
@@ -62,3 +62,34 @@ def save_questions(questions: Iterable[SATQuestion], dry_run: bool = True, sessi
         ref.set(build_doc(q, session_id))
         counts["written"] += 1
     return counts
+
+
+def backfill_tur(dry_run: bool = True, db=None) -> dict:
+    """Set top-level `tur` (from `section`) on existing docs where it is missing/wrong. Updates ONLY that field; never creates/deletes.
+    Real writes need dry_run=False AND the env flag. Idempotent."""
+    _check_collection(FIRESTORE_COLLECTION)
+    db = db or get_db()
+    col = db.collection(FIRESTORE_COLLECTION)
+    c = {"total": 0, "ok": 0, "to_update": 0, "unknown_section": 0, "updated": 0, "dry_run": True}
+    todo = []
+    for d in col.select(["section", "tur"]).stream():
+        v = d.to_dict() or {}
+        c["total"] += 1
+        want = TUR.get(v.get("section"))
+        if want is None:
+            c["unknown_section"] += 1
+        elif v.get("tur") == want:
+            c["ok"] += 1
+        else:
+            todo.append((d.reference, want))
+    c["to_update"] = len(todo)
+    if dry_run or not is_truthy(get_env(WRITES_ENV)):
+        return c
+    c["dry_run"] = False
+    for i in range(0, len(todo), 400):
+        batch = db.batch()
+        for ref, want in todo[i:i + 400]:
+            batch.update(ref, {"tur": want})
+        batch.commit()
+        c["updated"] += len(todo[i:i + 400])
+    return c
