@@ -240,6 +240,9 @@ def save_worker_question(db: Any, question_obj: GeneratedQuestion) -> bool:
             return False
 
         q_dict["question_hash"] = q_hash
+        from core.community_distribution import apply_simulated_distribution
+
+        apply_simulated_distribution(q_hash, q_dict)  # simulated until real votes exist
         q_dict["created_at"] = firestore.SERVER_TIMESTAMP
         q_dict["status"] = "published"
         q_dict["times_served"] = 0
@@ -450,9 +453,8 @@ def run_generation(
         planned_scope = generation_plan.scope
         planned_country = generation_plan.target_country
         if planned_scope == "local":
-            question_languages = repository.languages_for_country(planned_country)
-            if not question_languages:
-                question_languages = ["en"]
+            # Local questions always carry the country's Sheets languages + English, whatever the UI selection is.
+            question_languages = repository.question_languages(planned_country)
         else:
             # All global questions, including section 2 / item-focused questions,
             # must carry the complete configured 35-language set.

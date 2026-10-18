@@ -7,6 +7,8 @@ __pycache__/
 !data/global_character_source.json
 !data/global_character_locales.json
 !data/global_character_catalog.json
+!data/global_character_aliases.json
+local_backups/
 !data/knowley_country_region_metadata.json
 !data/knowley_localize_sub_snapshot.json
 !data/knowley_country_profiles_*.json

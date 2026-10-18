@@ -11,13 +11,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG_PATH = ROOT / "data" / "global_character_catalog.json"
-CHARACTER_SCHEMA_VERSION = "1.0.0"
-CHARACTER_LOCALES = (
-    "en", "de-DE", "ar", "bn-BD", "da-DK", "id", "fa-IR", "nl-NL", "fil", "fi-FI",
-    "fr-FR", "hi-IN", "ja-JP", "ko-KR", "pl-PL", "hu-HU", "ms-MY", "no-NO", "pt-BR",
-    "ro", "ru-RU", "th", "tr-TR", "uk", "ur", "vi", "el-GR", "cs-CZ", "zh-CN",
-    "zh-TW", "iw-IL", "es-419", "es-ES", "sv-SE", "it-IT",
-)
+from core.character_catalog import CHARACTER_LOCALES, CHARACTER_SCHEMA_VERSION  # noqa: E402
 
 
 def json_cell(value: Any) -> str:
@@ -30,7 +24,7 @@ def build_tables(catalog: dict[str, Any]) -> dict[str, tuple[list[str], list[lis
     character_headers = [
         "character_id", "schema_version", "character_type", "region_code", "category_id",
         "category_name", "sub_category_id", "sub_category_name", "name", "title_en", "role_en",
-        "rarity", "avatar_url", "unlock_threshold", "is_active", "source_sheet", "source_row",
+        "avatar_url", "unlock_threshold", "level_thresholds_json", "is_active", "source_sheet", "source_row",
         "scope_basis", "display_order", "question_mix",
     ]
     character_rows = []
@@ -52,7 +46,7 @@ def build_tables(catalog: dict[str, Any]) -> dict[str, tuple[list[str], list[lis
             character["id"], character["schema_version"], character["character_type"], character["region_code"],
             character["category_id"], character["category_name"], character["sub_category_id"],
             character["sub_category_name"], character["name"], character["title"], character["role"],
-            character["rarity"], character["avatar_url"], character["unlock_threshold"], character["is_active"],
+            character["avatar_url"], character["unlock_threshold"], json_cell(character["level_thresholds"]), character["is_active"],
             source["sheet"], source["row"], source["scope_basis"], source.get("display_order"), None,
         ])
         for locale in CHARACTER_LOCALES:
@@ -140,7 +134,7 @@ def build_tables(catalog: dict[str, Any]) -> dict[str, tuple[list[str], list[lis
         ["keyword", "string|null", "translations.{locale}.keyword", "Question authoring + translation", "Exact localized phrase from the question stem.", "show_keyword"],
         ["logical_order", "array<int>|null", "questions root", "Question authoring", "Permutation of canonical 0..3 indices; option-balancing remaps it.", "sort_options"],
         ["binary_fallback", "map|null", "translations.{locale}.binary_fallback", "Question authoring + translation", "{statement: localized string, is_true: boolean}.", "binary_convert"],
-        ["community_distribution", "array<int>|null", "questions root/runtime", "Live vote aggregation", "Four percentages summing to 100; never generated statically.", "show_community_distribution"],
+        ["community_distribution", "array<int>|null", "questions root/runtime", "Simulated at save time, replaced by live vote aggregation", "Four percentages summing to 100; simulated until real votes exist (community_distribution_meta.source).", "show_community_distribution"],
         ["base_points", "integer", "questions root", "Question default", "Default 100; score abilities multiply or add to this value.", "score_multiplier, score_bonus_percent"],
         ["difficulty", "Kolay|Orta|Zor|null", "questions root", "Question authoring", "Global uses difficulty_global; local uses difficulty_local.", "difficulty-conditioned effects"],
         ["target_country_code", "string", "questions root", "Question persistence", "GL for global; exact region code from country list for local.", "scope guard"],
@@ -150,9 +144,9 @@ def build_tables(catalog: dict[str, Any]) -> dict[str, tuple[list[str], list[lis
         ["clarified_options", "map<string,string>", "translations.{locale}.clarified_options", "Question authoring + translation", "Localized A-D map generated for each supported locale; preserve canonical option keys and correct-answer meaning. Legacy records need a backfill or runtime transform.", "clarify_options"],
     ]
     progression_rows = [
-        ["is_unlocked", "boolean", False, "Server-owned", "True only after unlock-threshold evaluation."],
-        ["current_level", "integer 1..3", 1, "Server transaction", "Determines which skill slots are available."],
-        ["experience_points", "integer", 0, "Server transaction", "XP earned toward level progression."],
+        ["points_source", "users/{uid}.categoryTotalScores.{category_name}", "read-only", "Question scoring", "All-time points the player earned from question scores in the character's category."],
+        ["level_from_points", "rule", "derived", "App/server", "points < 50 locked; 50-99 lvl1; 100-199 lvl2; >= 200 lvl3 (characters.level_thresholds / unlock_threshold). Not stored."],
+        ["(no users/{uid}/characters documents are created by the catalogue)", "-", "-", "App", "The app creates the fields below on demand."],
         ["daily_uses", "map", "{slot_1:0,slot_2:0,slot_3:0}", "Server transaction", "Reset by date; enforce slot-specific daily_limits from the character skill."],
         ["last_reset_date", "YYYY-MM-DD", "empty until initialized", "Server clock", "Pick and document one reset timezone; do not trust client clock."],
         ["is_equipped", "boolean", False, "Server transaction", "Enforce one equipped character per category if that is the game rule."],

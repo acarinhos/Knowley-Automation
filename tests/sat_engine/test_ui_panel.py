@@ -249,3 +249,12 @@ def test_panel_providers_flow(panel):
     with mock.patch.object(u.messagebox, "showerror") as se:
         assert panel._providers() is None
     se.assert_called_once()
+
+
+def test_global_llm_defaults_follow_core_settings(monkeypatch):
+    from core import llm_settings as g
+    from sat_engine import ui_panel
+    monkeypatch.setattr(g, "load_selection", lambda *a, **k: ["groq", "gemini"])
+    monkeypatch.setattr(g, "load_models", lambda *a, **k: {"groq": ["x-model"], "gemini": g.available_models("gemini")})
+    sel, models = ui_panel.global_llm_defaults()
+    assert sel == ["groq", "gemini"] and models == {"groq": "x-model"} and "claude" not in sel

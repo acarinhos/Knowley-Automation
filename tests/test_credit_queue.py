@@ -5,43 +5,47 @@ from core.sheet_algorithm import get_sheet_algorithm_repository
 from core.generator import build_prompt
 
 
+# Without a country the queue concatenates every profile; the credit rules are checked per country profile.
+COUNTRY = "Türkiye"
+
+
 class CreditQueueAndFoundationalTriviaTests(unittest.TestCase):
     def setUp(self):
         self.repo = get_sheet_algorithm_repository()
 
     def test_queue_154_length_and_category_weights(self):
-        queue = self.repo.build_credit_queue("154")
+        queue = self.repo.build_credit_queue("154", country=COUNTRY)
         self.assertEqual(len(queue), 154)
 
         cat_counts = {}
         for target in queue:
             cat_counts[target.category] = cat_counts.get(target.category, 0) + 1
 
-        expected_weights = self.repo.category_weights("154")
+        expected_weights = self.repo.category_weights("154", country=COUNTRY)
         for cat, expected in expected_weights.items():
             self.assertEqual(cat_counts.get(cat, 0), expected, f"{cat} 154 havuzunda {expected} olmalıydı")
 
     def test_queue_64_length_and_category_weights(self):
-        queue = self.repo.build_credit_queue("64")
+        queue = self.repo.build_credit_queue("64", country=COUNTRY)
         self.assertEqual(len(queue), 64)
 
         cat_counts = {}
         for target in queue:
             cat_counts[target.category] = cat_counts.get(target.category, 0) + 1
 
-        expected_weights = self.repo.category_weights("64")
+        expected_weights = self.repo.category_weights("64", country=COUNTRY)
         for cat, expected in expected_weights.items():
             self.assertEqual(cat_counts.get(cat, 0), expected, f"{cat} 64 havuzunda {expected} olmalıydı")
 
     def test_queue_basic_length_and_coverage(self):
-        queue = self.repo.build_credit_queue(basic_only=True)
+        queue = self.repo.build_credit_queue(basic_only=True, country=COUNTRY)
         self.assertEqual(len(queue), 21)
 
         categories = {target.category for target in queue}
         self.assertEqual(len(categories), 21, "Sheet'teki 21 ana kategorinin tamamı temel havuzda yer almalıdır")
 
     def test_custom_total_is_apportioned_from_sheet_credits(self):
-        queue = self.repo.build_credit_queue("154", total_count=37)
+        queue = self.repo.build_credit_queue("154", total_count=37, country=COUNTRY)
         self.assertEqual(len(queue), 37)
 
         actual = {}
@@ -49,25 +53,7 @@ class CreditQueueAndFoundationalTriviaTests(unittest.TestCase):
             key = (target.category, target.subcategory)
             actual[key] = actual.get(key, 0) + 1
 
-        records = []
-        selected_localized_countries = {
-            target.category: target.target_country
-            for target in queue
-            if target.target_country
-        }
-        for record in self.repo.records_for_country():
-            if record["weight_154"] <= 0:
-                continue
-            if record["subcategory"] != "Localize Sub":
-                records.append(record)
-                continue
-            selected_country = selected_localized_countries[record["category"]]
-            records.extend(
-                localized
-                for localized in self.repo._localized_records[selected_country]
-                if localized["category"] == record["category"]
-                and localized["weight_154"] > 0
-            )
+        records = [r for r in self.repo.records_for_country(COUNTRY) if r["weight_154"] > 0]
         total_weight = sum(record["weight_154"] for record in records)
         for record in records:
             expected = 37 * record["weight_154"] / total_weight

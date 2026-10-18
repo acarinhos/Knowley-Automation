@@ -1540,7 +1540,7 @@
     "name": "Johannes Kepler",
     "role": "",
     "skills": [
-      "Elips Rotası: Süreye bağlı puan çarpanını katlar",
+      "Elips Rotası: İlk 5 saniyede cevaplanırsa soru puanını 2x yapar",
       "Gezegenler Kanunu: Doğru şıkkın harf yerini fısıldar",
       "Kozmik Uyum: Yanlış 2 seçeneği yörüngeden siler"
     ],
@@ -1771,12 +1771,12 @@
     "display_order": null,
     "category": "Biyoloji",
     "subcategory": "İnsan Fizyolojisi",
-    "name": "Usain Bolt",
+    "name": "Walter Cannon",
     "role": "",
     "skills": [
-      "Yıldırım Deparı: İlk 3 saniyede cevaplanırsa 2x puan verir",
-      "Son 100 Metre: Yanlış 2 seçeneği geride bırakır",
-      "Dünya Rekoru: Soruyu doğrudan doğru kabul ettirir"
+      "Homeostaz Dengesi: İlk 3 saniyede cevaplanırsa 2x puan verir",
+      "Savaş ya da Kaç: Yanlış 2 seçeneği anında eler",
+      "Beden Bilgeliği: Soruyu doğrudan doğru kabul ettirir"
     ],
     "quota": "Lvl 1: Y1 (3 Hak)\nLvl 2: Y1 (5 Hak) + Y2 (3 Hak)\nLvl 3: Y1 (7 Hak) + Y2 (5 Hak) + Y3 (2 Hak)",
     "question_mix": null
