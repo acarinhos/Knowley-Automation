@@ -27,10 +27,21 @@ def main(argv=None) -> int:
     ap.add_argument("--clean", action="store_true", help="mechanical formatting clean-up of --session (backup <file>.pre_clean.bak)")
     ap.add_argument("--dedupe-topics", action="store_true", help="with --clean: regenerate later items of near-duplicate scenario pairs")
     ap.add_argument("--save-plan", action="store_true", help="print what --save would write to Firestore for --session (read-only, writes nothing)")
+    ap.add_argument("--report", action="store_true", help="read-only Firestore report of the SAT collection (counts, breakdowns); add --json for JSON")
+    ap.add_argument("--json", action="store_true", help="with --report: print JSON")
     ap.add_argument("--output-dir", help="directory holding the session files (default: sat_engine/output)")
     a = ap.parse_args(argv)
     sid = a.session or (f"seed{a.seed}-{'-'.join(('rw', 'math') if a.section == 'both' else (a.section,))}" if a.seed is not None else None)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    if a.report:  # read-only: never reaches run_session/save
+        from .report import build_report, fetch_docs, format_text
+        try:
+            r = build_report(fetch_docs())
+        except Exception as e:  # noqa: BLE001
+            print(f"rapor alınamadı: {type(e).__name__}: {str(e)[:200]}")
+            return 1
+        print(json.dumps(r, ensure_ascii=False, indent=1) if a.json else format_text(r))
+        return 0
     if a.audit:
         if not sid:
             ap.error("--audit needs --session or --seed")
