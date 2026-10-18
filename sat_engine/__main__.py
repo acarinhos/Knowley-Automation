@@ -30,6 +30,7 @@ def main(argv=None) -> int:
     ap.add_argument("--dedupe-topics", action="store_true", help="with --clean: regenerate later items of near-duplicate scenario pairs")
     ap.add_argument("--save-plan", action="store_true", help="print what --save would write to Firestore for --session (read-only, writes nothing)")
     ap.add_argument("--report", action="store_true", help="read-only Firestore report of the SAT collection (counts, breakdowns); add --json for JSON")
+    ap.add_argument("--backfill-tur", action="store_true", help="set missing/wrong `tur` on existing Firestore docs (dry run unless --save + env flag)")
     ap.add_argument("--json", action="store_true", help="with --report: print JSON")
     ap.add_argument("--providers", help="comma list, order = preference (gemini,groq,cohere,nvidia,claude); default: all configured")
     ap.add_argument("--models", help="model overrides for this run only, e.g. gemini=gemini-2.5-pro,groq=openai/gpt-oss-20b")
@@ -67,6 +68,16 @@ def _dispatch(a, ap, providers) -> int:
             print(f"rapor alınamadı: {type(e).__name__}: {str(e)[:200]}")
             return 1
         print(json.dumps(r, ensure_ascii=False, indent=1) if a.json else format_text(r))
+        return 0
+    if a.backfill_tur:  # only touches the single `tur` field; never reaches run_session
+        from .store import backfill_tur
+        try:
+            r = backfill_tur(dry_run=not a.save)
+        except Exception as e:  # noqa: BLE001
+            print(f"backfill başarısız: {type(e).__name__}: {str(e)[:200]}")
+            return 1
+        print(f"backfill-tur ({'DRY RUN' if r['dry_run'] else 'WRITE'}): toplam {r['total']}, zaten doğru {r['ok']}, güncellenecek {r['to_update']}, "
+              f"bilinmeyen section {r['unknown_section']}, güncellenen {r['updated']}")
         return 0
     if a.audit:
         if not sid:

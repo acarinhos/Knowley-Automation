@@ -36,3 +36,13 @@ def test_grid_in():
         with pytest.raises(ValidationError):
             mk(section="math", domain="Algebra", skill="Linear functions", answer_type="grid_in",
                options=None, correct_answer=bad)
+
+
+def test_tur_derived_and_checked():
+    assert mk().tur == "eng" and mk().model_dump()["tur"] == "eng"
+    m = mk(section="math", domain="Algebra", skill="Linear functions", answer_type="grid_in", options=None, correct_answer="3")
+    assert m.tur == "math"
+    with pytest.raises(ValidationError):
+        mk(tur="math")
+    d = mk().model_dump(); d.pop("tur")
+    assert SATQuestion.model_validate(d).tur == "eng"

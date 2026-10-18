@@ -36,6 +36,7 @@ TAXONOMY: dict[str, dict[str, list[str]]] = {
 }
 
 Section = Literal["rw", "math"]
+TUR = {"rw": "eng", "math": "math"}
 Difficulty = Literal["easy", "medium", "hard"]
 _GRID_RE = re.compile(r"^-?(\d+(\.\d+)?|\.\d+|\d+/\d+)$")
 
@@ -71,6 +72,7 @@ class QuestionMeta(BaseModel):
 class SATQuestion(BaseModel):
     id: str
     section: Section
+    tur: Literal["eng", "math"]  # derived from section (rw -> eng, math -> math); never stored independently
     module: Literal[1, 2]
     difficulty: Difficulty
     domain: str
@@ -91,6 +93,8 @@ class SATQuestion(BaseModel):
             return d
         d = dict(d)
         math = d.get("section") == "math"
+        if d.get("tur") in (None, "") and d.get("section") in TUR:
+            d["tur"] = TUR[d["section"]]
         for k in ("passage", "options"):
             d[k] = _none_if_null(d.get(k))
         for k in ("stem", "passage", "explanation", "correct_answer"):
@@ -105,6 +109,8 @@ class SATQuestion(BaseModel):
 
     @model_validator(mode="after")
     def _check(self):
+        if self.tur != TUR[self.section]:
+            raise ValueError(f"tur {self.tur!r} inconsistent with section {self.section!r}")
         if self.domain not in TAXONOMY[self.section]:
             raise ValueError(f"unknown domain {self.domain!r} for section {self.section}")
         if self.skill not in TAXONOMY[self.section][self.domain]:
