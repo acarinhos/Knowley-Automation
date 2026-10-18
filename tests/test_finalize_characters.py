@@ -4,7 +4,7 @@ from pathlib import Path
 
 from core.character_catalog import (
     CHARACTER_LOCALES, LEVEL_THRESHOLDS, POINTS_SOURCE, default_avatar_url, firestore_character_document,
-    level_from_points, load_global_character_catalog,
+    level_avatar_urls, level_from_points, load_global_character_catalog,
 )
 from core.translation_service import SUPPORTED_LANGUAGE_CODES
 from scripts.finalize_characters import DELETE, merge_skills, migrate_translations, plan_character_update
@@ -58,7 +58,7 @@ class PlanTests(unittest.TestCase):
 
     def legacy(self):
         data = json.loads(json.dumps(self.expected))
-        data.update({"rarity": "unassigned", "is_active": False, "avatar_url": None, "unlock_threshold": None, "name": "Original",
+        data.update({"rarity": "unassigned", "is_active": False, "avatar_url": None, "avatar_urls": None, "unlock_threshold": None, "name": "Original",
                      "schema_version": "1.0.0"})
         data.pop("level_thresholds", None)
         data["translations"] = {"de-DE": data["translations"]["de"], **{k: v for k, v in data["translations"].items() if k != "de"}}
@@ -70,7 +70,9 @@ class PlanTests(unittest.TestCase):
         self.assertIs(update["is_active"], True)
         self.assertEqual(update["unlock_threshold"], 50)
         self.assertEqual(update["level_thresholds"], LEVEL_THRESHOLDS)
-        self.assertEqual(update["avatar_url"], default_avatar_url())
+        self.assertEqual(update["avatar_url"], self.expected["avatar_urls"]["lvl1"])
+        self.assertEqual(update["avatar_urls"], level_avatar_urls(self.expected["id"]))
+        self.assertTrue(update["avatar_url"].endswith(f"/characters/avatars/{self.expected['id']}/lvl1.png"))
         self.assertEqual(update["name"], self.expected["name"])
         self.assertEqual(set(update["translations"]), set(CHARACTER_LOCALES))
         self.assertNotIn("id", update)  # ids never change

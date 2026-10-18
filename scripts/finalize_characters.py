@@ -7,7 +7,7 @@
 
 Per existing document (ids never change; users/* is never touched):
   name, title, role, skills text/effects from the alias catalogue; translations moved to the short language codes
-  (the short key wins on duplicates, extra fields are kept); `rarity` deleted; is_active=true; avatar_url;
+  (the short key wins on duplicates, extra fields are kept); `rarity` deleted; is_active=true; avatar_url/avatar_urls (per-level);
   unlock_threshold=50; level_thresholds; schema_version.
 Missing catalogue characters are created (with created_at). --delete-orphans removes documents that are not in the
 catalogue (backed up first; refused while users/*/characters references them). Nothing else is deleted.
@@ -69,7 +69,7 @@ def merge_skills(current: List[Mapping[str, Any]], expected: List[Mapping[str, A
 def plan_character_update(current: Mapping[str, Any], expected: Mapping[str, Any]) -> Dict[str, Any]:
     """Changed top-level fields only; DELETE marks a field to remove. {} when the document is already final."""
     update: Dict[str, Any] = {}
-    for field in ("name", "title", "role", "avatar_url", "unlock_threshold", "level_thresholds", "schema_version"):
+    for field in ("name", "title", "role", "avatar_url", "avatar_urls", "unlock_threshold", "level_thresholds", "schema_version"):
         if current.get(field) != expected[field]:
             update[field] = expected[field]
     if current.get("is_active") is not True:
@@ -219,7 +219,7 @@ def main() -> int:
         if state != "written":
             continue
         after = db.collection("characters").document(doc_id).get().to_dict() or {}
-        if after.get("is_active") is True and "rarity" not in after and after.get("avatar_url") == catalogue[doc_id]["avatar_url"]:
+        if after.get("is_active") is True and "rarity" not in after and after.get("avatar_url") == catalogue[doc_id]["avatar_url"]                 and after.get("avatar_urls") == catalogue[doc_id]["avatar_urls"]:
             verified += 1
         else:
             bad += 1

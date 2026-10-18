@@ -15,7 +15,7 @@ from core.translation_service import SUPPORTED_LANGUAGE_CODES
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_CATALOG_PATH = ROOT_DIR / "data" / "global_character_catalog.json"
-CHARACTER_SCHEMA_VERSION = "1.1.0"
+CHARACTER_SCHEMA_VERSION = "1.2.0"
 DEFAULT_BUCKET = "knowley-1-categories"
 DEFAULT_AVATAR_PATH = "characters/default_robot.png"
 UNLOCK_THRESHOLD = 50
@@ -27,6 +27,12 @@ POINTS_SOURCE = "users/{uid}.categoryTotalScores.{category_name}"
 def default_avatar_url(bucket: str = DEFAULT_BUCKET) -> str:
     """Public Storage URL of the shared robot avatar (same URL form as the category images)."""
     return f"https://storage.googleapis.com/{bucket}/{DEFAULT_AVATAR_PATH}"
+
+
+def level_avatar_urls(character_id: str, bucket: str = DEFAULT_BUCKET) -> dict[str, str]:
+    """Public Storage URLs of a character's per-level avatars (lvl1..lvl3)."""
+    return {lvl: f"https://storage.googleapis.com/{bucket}/characters/avatars/{character_id}/{lvl}.png"
+            for lvl in ("lvl1", "lvl2", "lvl3")}
 
 
 def level_from_points(points: Any, thresholds: dict[str, int] | None = None) -> int:
@@ -166,7 +172,10 @@ def user_character_progression_template() -> dict[str, Any]:
 
 def firestore_character_document(character: CharacterDocument) -> dict[str, Any]:
     """Return a clean document payload without server-managed timestamps."""
-    return character.model_dump(mode="python")
+    document = character.model_dump(mode="python")
+    document["avatar_urls"] = level_avatar_urls(character.id)
+    document["avatar_url"] = document["avatar_urls"]["lvl1"]  # robot stays the locked-state image only
+    return document
 
 
 def supported_action_types(characters: Iterable[CharacterDocument]) -> set[str]:
