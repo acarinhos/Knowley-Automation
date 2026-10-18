@@ -22,7 +22,7 @@ from firebase_admin import firestore
 from core.llm_manager import MultiLLMManager
 from core.llm_manager import AllProvidersCoolingDown
 from core.sheet_algorithm import SheetAlgorithmRepository, get_sheet_algorithm_repository
-from core.translation_service import COUNTRY_LANGUAGE_CODES, SUPPORTED_LANGUAGE_CODES
+from core.translation_service import COUNTRY_LANGUAGE_CODES, SUPPORTED_LANGUAGE_CODES, TranslationIncompleteError
 from core.starting_difficulty import StartingDifficultyAssigner
 from core.visual_questions import (
     VisualQuestionSchedule,
@@ -71,6 +71,10 @@ class GenerationOptions:
     duration_seconds: Optional[int] = None
     credit_pool: str = "154"
     generation_mode: Optional[str] = None
+    custom_mode: Optional[str] = None
+    difficulty_counts_per_10: Dict[str, int] = field(
+        default_factory=lambda: {"Kolay": 4, "Orta": 4, "Zor": 2}
+    )
     country_profile_enabled: bool = False
     combo_percent: int = 40
     sleep_between_requests: float = SLEEP_BETWEEN_REQUESTS
@@ -79,6 +83,8 @@ class GenerationOptions:
     visual_questions_enabled: bool = True
 
     def validate(self) -> "GenerationOptions":
+        if self.question_count is not None:
+            self.question_count = int(self.question_count)
         if self.question_count is not None and not 1 <= int(self.question_count) <= 10_000:
             raise ValueError("Soru adedi 1 ile 10.000 arasında olmalıdır.")
         if self.difficulty not in {None, "Kolay", "Orta", "Zor"}:
@@ -86,12 +92,71 @@ class GenerationOptions:
         if self.scope not in {None, "global", "local"}:
             raise ValueError("Kapsam global, local veya otomatik olmalıdır.")
         mode = str(self.generation_mode or self.credit_pool).strip().lower()
-        if mode not in {"154", "64", "basic"}:
-            raise ValueError("Üretim modu 154, 64 veya basic olmalıdır.")
+        if mode not in {"154", "64", "basic", "custom", "country_local"}:
+            raise ValueError("Üretim modu 154, 64, basic, custom veya country_local olmalıdır.")
         self.generation_mode = mode
         self.credit_pool = "64" if mode == "64" else "154"
+        if mode == "custom":
+            if self.question_count is None:
+                raise ValueError("Özel üretim modunda sonlu bir soru adedi girilmelidir.")
+            if self.custom_mode not in {"equal", "difficulty"}:
+                raise ValueError("Özel mod türü eşit dağılım veya zorluk dağılımı olmalıdır.")
+            if self.difficulty is not None:
+                raise ValueError("Özel modda zorluk, seçilen özel dağılım tarafından belirlenir.")
+            if self.custom_mode == "equal":
+                if self.question_count < 160:
+                    raise ValueError("Tüm kategori ve alt kategorileri eşit dağıtmak için en az 160 soru gerekir.")
+                if self.category or self.subcategory:
+                    raise ValueError("Eşit dağılım modu tüm kategori ve alt kategorileri kapsar; kategori filtresi kullanılamaz.")
+            else:
+                if self.question_count % 10 != 0:
+                    raise ValueError("Özel zorluk modunda toplam soru sayısı 10'un katı olmalıdır.")
+                if not isinstance(self.difficulty_counts_per_10, dict):
+                    raise ValueError("Zorluk adetleri Kolay, Orta ve Zor için girilmelidir.")
+                counts: Dict[str, int] = {}
+                for level in ("Kolay", "Orta", "Zor"):
+                    value = self.difficulty_counts_per_10.get(level)
+                    if isinstance(value, bool):
+                        raise ValueError("Zorluk adetleri 0 ile 10 arasında tam sayı olmalıdır.")
+                    try:
+                        count = int(value)
+                    except (TypeError, ValueError):
+                        raise ValueError("Zorluk adetleri 0 ile 10 arasında tam sayı olmalıdır.") from None
+                    if count < 0 or count > 10 or str(value).strip() != str(count):
+                        raise ValueError("Zorluk adetleri 0 ile 10 arasında tam sayı olmalıdır.")
+                    counts[level] = count
+                if sum(counts.values()) != 10:
+                    raise ValueError("Her 10 soru için Kolay + Orta + Zor adetlerinin toplamı 10 olmalıdır.")
+                self.difficulty_counts_per_10 = counts
+        else:
+            self.custom_mode = None
+        local_target_countries: Optional[List[str]] = None
+        if mode == "country_local":
+            if self.question_count is None:
+                raise ValueError("Ülke/bölge yerel hedef modunda soru adedi girilmelidir.")
+            if not self.country:
+                raise ValueError("Ülke/bölge yerel hedef modunda ülke/bölge seçmek zorunludur.")
+            from core.sheet_algorithm import get_sheet_algorithm_repository
+
+            repository = get_sheet_algorithm_repository()
+            local_target_countries = repository.local_target_countries(pool="154")
+            if self.country not in local_target_countries:
+                raise ValueError("Seçilen ülke/bölge için yerel hedef bulunamadı.")
+            minimum_count = repository.country_local_target_count(self.country, pool="154")
+            if self.question_count < minimum_count:
+                raise ValueError(
+                    f"{self.country} için en az {minimum_count} soru girilmelidir; "
+                    "her yerel alt hedefe en az bir soru ayrılır."
+                )
+            self.country_profile_enabled = True
+            self.scope = "local"
         if self.country_profile_enabled:
-            if self.country not in COUNTRY_PROFILES:
+            valid_countries = (
+                local_target_countries
+                if mode == "country_local"
+                else COUNTRY_PROFILES
+            )
+            if self.country not in (valid_countries or []):
                 raise ValueError("Ülke profili seçimi, kategorizasyon sayfası bulunan profillerden biri olmalıdır.")
         else:
             self.country = None
@@ -280,10 +345,16 @@ def run_generation(
     if options.write_to_firestore and db is None:
         db = init_firebase()
 
-    from core.difficulty_balancer import get_difficulty_balancer
+    from core.difficulty_balancer import DifficultyBalancer
     from core.generation_planner import GenerationPlanner
 
-    diff_balancer = get_difficulty_balancer()
+    custom_difficulty_counts = (
+        options.difficulty_counts_per_10
+        if options.generation_mode == "custom" and options.custom_mode == "difficulty"
+        else None
+    )
+    diff_balancer = DifficultyBalancer(custom_difficulty_counts)
+    local_difficulty_balancer = DifficultyBalancer()
     gen_planner = GenerationPlanner(sheet_repository=repository)
     produced_count = 0
     processed_count = 0
@@ -302,7 +373,9 @@ def run_generation(
     credit_queue: List[Any] = repository.build_credit_queue(
         pool=options.credit_pool,
         country=options.country if options.country_profile_enabled else None,
+        country_local_only=options.generation_mode == "country_local",
         basic_only=basic_only,
+        equal_distribution=options.generation_mode == "custom" and options.custom_mode == "equal",
         total_count=options.question_count,
         category=options.category,
         subcategory=options.subcategory,
@@ -332,7 +405,9 @@ def run_generation(
                 credit_queue = repository.build_credit_queue(
                     pool=options.credit_pool,
                     country=options.country if options.country_profile_enabled else None,
+                    country_local_only=options.generation_mode == "country_local",
                     basic_only=basic_only,
+                    equal_distribution=options.generation_mode == "custom" and options.custom_mode == "equal",
                     category=options.category,
                     subcategory=options.subcategory,
                 )
@@ -350,7 +425,13 @@ def run_generation(
         primary_cat = algorithm_target.category
         target_sub = algorithm_target.subcategory
 
-        is_combo = not basic_only and random.randint(1, 100) <= options.combo_percent
+        equal_distribution = options.generation_mode == "custom" and options.custom_mode == "equal"
+        is_combo = (
+            not basic_only
+            and not equal_distribution
+            and options.generation_mode != "country_local"
+            and random.randint(1, 100) <= options.combo_percent
+        )
         secondary_cat = _choose_secondary(primary_cat, repository) if is_combo else None
         visual_question = bool(
             options.visual_questions_enabled and visual_schedule.peek(credit_queue[:10])
@@ -387,11 +468,26 @@ def run_generation(
         if not focus_info:
             focus_info.append("Genel trivia standardı ve halkın bilgisine uygun temel bilgi kuralları uygulanır.")
 
+        pool_description = (
+            "Tüm kategori-alt kategori hedefleri eşit"
+            if equal_distribution
+            else (
+                "seçilen ülke/bölgenin yerel hedefleri"
+                if options.generation_mode == "country_local"
+                else f"{options.credit_pool} kredi havuzu"
+            )
+        )
+        if options.generation_mode == "custom" and options.custom_mode == "difficulty":
+            pool_description += (
+                f"; 10'luk zorluk kotası K:{options.difficulty_counts_per_10['Kolay']} "
+                f"O:{options.difficulty_counts_per_10['Orta']} Z:{options.difficulty_counts_per_10['Zor']}"
+            )
+
         algorithm_context = (
             f"Kaynak sayfa: {algorithm_target.source_sheet}; Algoritma sürümü: {repository.version}.\n"
             f"Kategori: {primary_cat} (Kredi Ağırlığı: {algorithm_target.category_weight})\n"
             f"Alt Kategori: {target_sub} (Kredi Ağırlığı: {algorithm_target.subcategory_weight}) "
-            f"[{'Temel Kategori' if basic_only else options.credit_pool + ' Kredi Havuzu'}]\n"
+            f"[{pool_description if not basic_only else 'Temel kategori hedef havuzu'}]\n"
             f"Algoritma Bölümü: {algorithm_target.section or 'profil sayfası'}\n"
             f"Kapsam Dengesi: %{round(algorithm_target.global_ratio * 100)} GL / %{round(algorithm_target.local_ratio * 100)} LO\n"
             f"ODAK NOKTALARI & REHBER:\n" + "\n".join(f"- {line}" for line in focus_info)
@@ -412,6 +508,17 @@ def run_generation(
         )
 
         success_this_item = False
+        reserved_difficulty = (
+            diff_balancer.get_next_target()
+            if options.difficulty is None
+            else None
+        )
+        reserved_local_difficulty = (
+            local_difficulty_balancer.get_next_target()
+            if reserved_difficulty is not None and planned_scope == "global"
+            else None
+        )
+        local_target = reserved_local_difficulty or reserved_difficulty
         for attempt in range(1, options.max_retries + 1):
             if stop_event.is_set():
                 break
@@ -424,7 +531,18 @@ def run_generation(
                     target_country=planned_country,
                     target_country_credit=generation_plan.target_country_credit,
                     scope=planned_scope,
-                    base_difficulty=options.difficulty,
+                    base_difficulty=(local_target.level if local_target else options.difficulty),
+                    target_score=local_target.score if local_target else None,
+                    target_global_difficulty=(
+                        reserved_difficulty.level
+                        if reserved_difficulty is not None and planned_scope == "global"
+                        else None
+                    ),
+                    target_global_score=(
+                        reserved_difficulty.score
+                        if reserved_difficulty is not None and planned_scope == "global"
+                        else None
+                    ),
                     balance_categories=False,
                     difficulty_balancer=diff_balancer,
                     generation_planner=gen_planner,
@@ -458,6 +576,13 @@ def run_generation(
                     "sheet": algorithm_target.source_sheet,
                     "credit_pool": options.credit_pool,
                     "generation_mode": options.generation_mode,
+                    "custom_mode": options.custom_mode,
+                    "difficulty_counts_per_10": (
+                        dict(options.difficulty_counts_per_10)
+                        if options.generation_mode == "custom" and options.custom_mode == "difficulty"
+                        else None
+                    ),
+                    "equal_target_distribution": equal_distribution,
                     "country_profile_enabled": options.country_profile_enabled,
                     "basic_only": basic_only,
                     "category_weight": algorithm_target.category_weight,
@@ -474,6 +599,8 @@ def run_generation(
 
                 saved = save_worker_question(db, q_data) if options.write_to_firestore else True
                 if saved:
+                    reserved_difficulty = None
+                    reserved_local_difficulty = None
                     if starting_assignment_pending:
                         starting_difficulty_assigner.commit()
                         starting_assignment_pending = False
@@ -498,6 +625,12 @@ def run_generation(
                         starting_difficulty=getattr(q_data, "starting_difficulty", None),
                     )
                 else:
+                    if reserved_difficulty is not None:
+                        diff_balancer.return_target(reserved_difficulty)
+                        reserved_difficulty = None
+                    if reserved_local_difficulty is not None:
+                        local_difficulty_balancer.return_target(reserved_local_difficulty)
+                        reserved_local_difficulty = None
                     if starting_assignment_pending:
                         starting_difficulty_assigner.rollback(q_data)
                         starting_assignment_pending = False
@@ -508,25 +641,61 @@ def run_generation(
                 if starting_assignment_pending:
                     starting_difficulty_assigner.rollback(q_data)
                 err_str = str(err)
+                if isinstance(err, TranslationIncompleteError):
+                    failed_count += 1
+                    stop_event.set()
+                    _emit(
+                        on_event,
+                        "translation_incomplete",
+                        index=processed_count,
+                        missing_languages=list(err.languages),
+                        message=err_str[:500],
+                    )
+                    logging.error(
+                        "Soru çevirileri tamamlanamadı (%d dil); aynı soruyu yeniden üretmek yerine iş durduruluyor: %s",
+                        len(err.languages),
+                        ", ".join(err.languages),
+                    )
+                    break
                 if isinstance(err, AllProvidersCoolingDown):
+                    retryable = bool(err.retryable)
+                    can_retry_soon = retryable and err.retry_after <= 90
                     wait_sec = min(90, max(1, err.retry_after + 1))
                     _emit(
                         on_event,
                         "provider_unavailable",
                         index=processed_count,
-                        retry_after=wait_sec,
+                        retry_after=wait_sec if can_retry_soon else err.retry_after,
                         message=err_str[:500],
                     )
-                    logging.warning(
-                        "LLM havuzu geçici olarak kullanılamıyor; %ss sonra otomatik yeniden denenecek.",
-                        wait_sec,
-                    )
-                    if attempt < options.max_retries:
+                    if can_retry_soon and attempt < options.max_retries:
+                        logging.warning(
+                            "LLM sağlayıcıları geçici olarak kullanılamıyor; %ss sonra yeniden denenecek.",
+                            wait_sec,
+                        )
                         stop_event.wait(wait_sec)
                         continue
-                    failed_count += 1
-                    logging.error("LLM havuzu yeniden denemelerden sonra kullanılamadı: %s", err)
-                    break
+                    if err.quota_limited and not retryable:
+                        raise RuntimeError(
+                            "Ücretsiz LLM sağlayıcı kotaları tükenmiş; kısa süre sonra tekrar denemek "
+                            "sonuç vermeyeceği için üretim işi durduruldu. Sağlayıcı kotası yenilendiğinde "
+                            f"yeniden başlatın. Ayrıntı: {err}"
+                        ) from err
+                    if retryable and err.retry_after > 90:
+                        wait_kind = "kota beklemesi" if err.quota_limited else "sağlayıcı bekleme süresi"
+                        raise RuntimeError(
+                            f"LLM {wait_kind} uzun ({err.retry_after}s); uzun bekleme yerine üretim işi "
+                            f"durduruldu. Daha sonra yeniden başlatın. Ayrıntı: {err}"
+                        ) from err
+                    if retryable and attempt >= options.max_retries:
+                        raise RuntimeError(
+                            f"LLM sağlayıcıları {options.max_retries} kısa yeniden denemede yanıt vermedi; "
+                            "tekrarları her soru için sürdürmemek üzere üretim işi durduruldu."
+                        ) from err
+                    raise RuntimeError(
+                        "LLM sağlayıcılarında geçici olmayan erişim/yapılandırma hatası var; "
+                        f"aynı hatayı sonraki sorularda tekrarlamamak için üretim durduruldu. Ayrıntı: {err}"
+                    ) from err
                 is_quota = "429" in err_str or "RESOURCE_EXHAUSTED" in err_str
                 wait_sec = extract_retry_delay(err_str) if is_quota else attempt * 5
                 _emit(
@@ -544,6 +713,11 @@ def run_generation(
                 else:
                     failed_count += 1
                     logging.error("Hata oluştu (%s/%s): %s", attempt, options.max_retries, err)
+
+        if reserved_difficulty is not None:
+            diff_balancer.return_target(reserved_difficulty)
+        if reserved_local_difficulty is not None:
+            local_difficulty_balancer.return_target(reserved_local_difficulty)
 
         if success_this_item:
             logging.info("📊 Toplam Başarılı Soru: %s", produced_count)

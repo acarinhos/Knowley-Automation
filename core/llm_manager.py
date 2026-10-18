@@ -31,6 +31,41 @@ logger = logging.getLogger("LLMManager")
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
+def _remove_trailing_json_commas(source: str) -> str:
+    """Remove commas immediately before a JSON object/array closer.
+
+    Model responses occasionally add a trailing comma. Scan string boundaries
+    so comma-like text inside a translated string is preserved exactly.
+    """
+    result: list[str] = []
+    in_string = False
+    escaped = False
+    index = 0
+    while index < len(source):
+        char = source[index]
+        if in_string:
+            result.append(char)
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+        elif char == '"':
+            in_string = True
+            result.append(char)
+        elif char == ",":
+            lookahead = index + 1
+            while lookahead < len(source) and source[lookahead].isspace():
+                lookahead += 1
+            if lookahead >= len(source) or source[lookahead] not in "]}":
+                result.append(char)
+        else:
+            result.append(char)
+        index += 1
+    return "".join(result)
+
+
 class AllProvidersCoolingDown(RuntimeError):
     """No provider can be called now without repeating a known failure."""
 
@@ -40,15 +75,63 @@ class AllProvidersCoolingDown(RuntimeError):
         details: str,
         *,
         quota_limited: bool = False,
-        retryable: bool = False,
+        retryable: bool = True,
     ):
         self.retry_after = max(1, int(retry_after))
         self.quota_limited = quota_limited
-        self.retryable = retryable or quota_limited
+        # A quota error is not automatically worth retrying now: daily/monthly
+        # exhaustion must be reported without treating the default 30s as a reset.
+        self.retryable = bool(retryable)
         super().__init__(
             f"Tüm LLM sağlayıcıları geçici olarak kullanılamıyor; "
             f"en erken {self.retry_after}s sonra yeniden deneyin. {details}"
         )
+
+
+class ProviderCallError(RuntimeError):
+    """Sanitized provider failure that retains retry and HTTP status metadata."""
+
+    def __init__(self, provider: str, original: Exception) -> None:
+        self.original_error = original
+        self.response = getattr(original, "response", None)
+        headers = getattr(self.response, "headers", {}) or {}
+        status = getattr(original, "status_code", None)
+        if status is None:
+            status = getattr(self.response, "status_code", None)
+        if status is None:
+            match = re.search(r"\b(401|403|408|413|425|429|500|502|503|504)\b", str(original))
+            status = int(match.group(1)) if match else None
+        self.status_code = status
+        text = str(original).casefold()
+        raw_retry_after = (
+            getattr(original, "retry_after", None)
+            or headers.get("retry-after")
+            or headers.get("x-ratelimit-reset-requests")
+            or headers.get("x-ratelimit-reset-tokens")
+        )
+        self.retry_after = None
+        if raw_retry_after is not None:
+            try:
+                self.retry_after = max(1, int(float(raw_retry_after)))
+            except (TypeError, ValueError):
+                duration_parts = re.findall(r"(\d+(?:\.\d+)?)(h|m|s)", str(raw_retry_after).casefold())
+                if duration_parts:
+                    self.retry_after = max(
+                        1,
+                        int(sum(float(value) * {"h": 3600, "m": 60, "s": 1}[unit] for value, unit in duration_parts)),
+                    )
+        self.quota_limited = status == 429 or "resource_exhausted" in text or "quota" in text
+        self.quota_exhausted = status == 429 and (
+            any(marker in text for marker in ("daily", "per day", "day", "monthly", "per month", "month"))
+            and any(marker in text for marker in ("limit", "quota", "request"))
+        )
+        self.retryable = (
+            self.quota_limited
+            or status in (408, 425, 500, 502, 503, 504)
+            or isinstance(original, requests.Timeout)
+        )
+        status_text = f"HTTP {status}" if status else type(original).__name__
+        super().__init__(f"{provider} provider request failed ({status_text}).")
 
 
 class _GeminiQuotaGuard:
@@ -65,9 +148,23 @@ class _GeminiQuotaGuard:
         self.tpm = max(1, _int_env("GEMINI_TPM", 200_000) or 200_000)
         self.rpd = max(1, _int_env("GEMINI_RPD", 450) or 450)
         ledger = os.getenv("GEMINI_QUOTA_LEDGER_PATH", "").strip()
-        self.path = Path(ledger) if ledger else Path(__file__).resolve().parent.parent / ".gemini_quota_ledger.json"
+        project_ledger = Path(__file__).resolve().parent.parent / ".gemini_quota_ledger.json"
+        if ledger:
+            self.path = Path(ledger)
+            self._migration_sources: list[Path] = []
+        elif os.getenv("LOCALAPPDATA"):
+            # Keep the frequently replaced file outside OneDrive/project sync.
+            self.path = Path(os.environ["LOCALAPPDATA"]) / "Knowley" / "gemini_quota_ledger.json"
+            self._migration_sources = [
+                project_ledger.with_suffix(project_ledger.suffix + ".tmp"),
+                project_ledger,
+            ]
+        else:
+            self.path = project_ledger
+            self._migration_sources = [project_ledger.with_suffix(project_ledger.suffix + ".tmp")]
         self.lock = threading.Lock()
         self.last_model_index = -1
+        self._persistence_warning_emitted = False
         self.state: Dict[str, Dict[str, Any]] = {model: {"requests": [], "tokens": [], "day": "", "daily": 0, "cooldown_until": 0.0} for model in self.models}
         self._load()
 
@@ -89,9 +186,28 @@ class _GeminiQuotaGuard:
         return cls._pacific_datetime(timestamp).date().isoformat()
 
     def _load(self) -> None:
-        try:
-            stored = json.loads(self.path.read_text(encoding="utf-8"))
-        except (OSError, ValueError, TypeError):
+        def modified_at(candidate: Path) -> float:
+            try:
+                return candidate.stat().st_mtime
+            except OSError:
+                return 0.0
+
+        candidates = [self.path, *self._migration_sources]
+        candidates = sorted(
+            (candidate for candidate in candidates if candidate.exists()),
+            key=modified_at,
+            reverse=True,
+        )
+        stored = None
+        for candidate in candidates:
+            try:
+                parsed = json.loads(candidate.read_text(encoding="utf-8"))
+                if isinstance(parsed, dict):
+                    stored = parsed
+                    break
+            except (OSError, ValueError, TypeError):
+                continue
+        if stored is None:
             return
         today = self._day_key()
         for model in self.models:
@@ -107,10 +223,24 @@ class _GeminiQuotaGuard:
             }
 
     def _save(self) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        temporary = self.path.with_suffix(self.path.suffix + ".tmp")
-        temporary.write_text(json.dumps(self.state, separators=(",", ":")), encoding="utf-8")
-        temporary.replace(self.path)
+        """Persist pacing state when possible without blocking Gemini calls.
+
+        The project commonly lives in a OneDrive-synced directory. Sync locks can
+        make atomic replacement raise PermissionError; quota accounting still
+        works in memory and the provider remains responsible for its hard limits.
+        """
+        try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            temporary = self.path.with_suffix(self.path.suffix + ".tmp")
+            temporary.write_text(json.dumps(self.state, separators=(",", ":")), encoding="utf-8")
+            temporary.replace(self.path)
+        except OSError as exc:
+            if not self._persistence_warning_emitted:
+                logger.warning(
+                    "Gemini local quota ledger could not be saved (%s); continuing with in-memory pacing.",
+                    type(exc).__name__,
+                )
+                self._persistence_warning_emitted = True
 
     def reserve(self, prompt_tokens: int) -> tuple[str, int]:
         now = time.time()
@@ -204,7 +334,7 @@ def _int_env(name: str, default: Optional[int]) -> Optional[int]:
 
 
 class MultiLLMManager:
-    """Gemini, Groq, Cohere ve NVIDIA round-robin/fallback yöneticisi.
+    """Free-tier multi-provider router with rotation and quota-aware fallback.
 
     Hesaba özgü limitleri hiçbir sağlayıcı ortak bir kota API'siyle sunmadığı
     için UI iki sinyali ayrı gösterir: bu süreçte gözlenen kullanım ve API'nin
@@ -212,7 +342,7 @@ class MultiLLMManager:
     limitler tahmin olarak etiketlenir.
     """
 
-    GEMINI_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash", "gemini-3.8-flash"]
+    GEMINI_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"]
     GROQ_MODELS = [
         "openai/gpt-oss-120b",
         "openai/gpt-oss-20b",
@@ -227,19 +357,22 @@ class MultiLLMManager:
 
     def __init__(self):
         self.providers: List[str] = []
-        self.current_idx = 0
         self._lock = threading.Lock()
+        self._provider_cursor = 0
         self._probe_cache: Dict[str, Any] = {"at": 0.0, "providers": {}}
         self._provider_cooldown_until: Dict[str, float] = {}
         self._provider_cooldown_retryable: Dict[str, bool] = {}
         self._provider_cooldown_quota: Dict[str, bool] = {}
+        self._provider_429_count: Dict[str, int] = {}
+        self._provider_disabled_reason: Dict[str, str] = {}
         self.usage: Dict[str, Dict[str, Any]] = {}
         self.last_call: Dict[str, Any] = {}
 
         self.gemini_models = _csv_env("GEMINI_MODELS", self.GEMINI_MODELS)
+        quota_guard_setting = os.getenv("GEMINI_QUOTA_GUARD", "true").strip().casefold()
         self.gemini_quota_guard = (
             _GeminiQuotaGuard(self.gemini_models)
-            if os.getenv("GEMINI_QUOTA_GUARD", "").strip().casefold() in {"1", "true", "yes", "on"}
+            if quota_guard_setting in {"1", "true", "yes", "on"}
             else None
         )
         self.groq_models = _csv_env("GROQ_MODELS", self.GROQ_MODELS)
@@ -249,13 +382,22 @@ class MultiLLMManager:
         allowed_providers = (
             {provider.strip().casefold() for provider in raw_provider_allowlist.split(",") if provider.strip()}
             if raw_provider_allowlist is not None
-            else None
+            else {"gemini", "groq", "cohere", "nvidia"}
         )
+        if raw_provider_allowlist is None:
+            logger.info(
+                "LLM_ALLOWED_PROVIDERS ayarlı değil; anahtarı bulunan sağlayıcılar yedek sırasıyla etkin."
+            )
 
         self.gemini_key = os.getenv("GEMINI_API_KEY")
         if self.gemini_key and (allowed_providers is None or "gemini" in allowed_providers):
             try:
-                self.gemini_client = genai.Client(api_key=self.gemini_key, http_options={"timeout": 25000})
+                # Keep the default interactive timeout short, but allow bulk
+                # backfills to request a longer deadline via environment.
+                self.gemini_client = genai.Client(
+                    api_key=self.gemini_key,
+                    http_options={"timeout": _int_env("GEMINI_TIMEOUT_MS", 25000)},
+                )
                 self.providers.append("gemini")
             except Exception as exc:
                 logger.warning("Gemini başlatılamadı: %s", exc)
@@ -263,7 +405,7 @@ class MultiLLMManager:
         self.groq_key = os.getenv("GROQ_API_KEY")
         if self.groq_key and (allowed_providers is None or "groq" in allowed_providers):
             try:
-                self.groq_client = Groq(api_key=self.groq_key, timeout=25.0)
+                self.groq_client = Groq(api_key=self.groq_key, timeout=20.0, max_retries=0)
                 self.providers.append("groq")
             except Exception as exc:
                 logger.warning("Groq başlatılamadı: %s", exc)
@@ -271,7 +413,9 @@ class MultiLLMManager:
         self.cohere_key = os.getenv("COHERE_API_KEY")
         if self.cohere_key and (allowed_providers is None or "cohere" in allowed_providers):
             try:
-                self.cohere_client = cohere.ClientV2(api_key=self.cohere_key, timeout=25.0)
+                self.cohere_client = cohere.ClientV2(
+                    api_key=self.cohere_key, timeout=20.0, max_retries=0
+                )
                 self.providers.append("cohere")
             except Exception as exc:
                 logger.warning("Cohere başlatılamadı: %s", exc)
@@ -330,7 +474,22 @@ class MultiLLMManager:
 
     def _record_error(self, provider: str, error: Exception) -> None:
         with self._lock:
-            self.usage.setdefault(provider, {})["last_error"] = str(error)[:300]
+            self.usage.setdefault(provider, {})["last_error"] = self._safe_error_summary(error)
+
+    def _safe_error_summary(self, error: Exception) -> str:
+        text = str(error)
+        for secret in (
+            self.gemini_key,
+            os.getenv("GROQ_API_KEY"),
+            os.getenv("COHERE_API_KEY"),
+            os.getenv("NVIDIA_API_KEY"),
+        ):
+            if secret:
+                text = text.replace(secret, "[redacted]")
+        text = re.sub(r"(?i)([?&](?:api[_-]?key|key|token)=)[^&\s]+", r"\1[redacted]", text)
+        text = re.sub(r"(?i)(\b(?:api[_-]?key|authorization|token)\b\s*[:=]\s*)[^\s,;]+", r"\1[redacted]", text)
+        text = re.sub(r"(?i)\bBearer\s+[^\s,;]+", "Bearer [redacted]", text)
+        return text[:300]
 
     def _call_groq(self, system_prompt: str, user_prompt: str) -> str:
         last_error: Optional[Exception] = None
@@ -368,17 +527,24 @@ class MultiLLMManager:
             except Exception as exc:
                 last_error = exc
                 error_text = str(exc).lower()
+                status = getattr(exc, "status_code", None)
+                if status is None:
+                    status = getattr(getattr(exc, "response", None), "status_code", None)
                 if (
-                    getattr(exc, "status_code", None) in (413, 429)
+                    status in (401, 403, 413, 429)
                     or "413" in error_text
                     or "429" in error_text
+                    or "401" in error_text
+                    or "403" in error_text
                     or "resource_exhausted" in error_text
                 ):
                     # İstek tüm modeller için aynı boyutta; aynı payload'ı tekrar
                     # göndermek yalnızca gecikme yaratır.
                     break
                 continue
-        raise RuntimeError(f"Groq modellerinin hiçbirine erişilemedi: {last_error}")
+        if last_error:
+            raise ProviderCallError("Groq", last_error) from last_error
+        raise RuntimeError("Groq modellerinin hiçbirine erişilemedi.")
 
     def _call_cohere(self, system_prompt: str, user_prompt: str) -> str:
         last_error: Optional[Exception] = None
@@ -406,14 +572,21 @@ class MultiLLMManager:
             except Exception as exc:
                 last_error = exc
                 error_text = str(exc).lower()
+                status = getattr(exc, "status_code", None)
+                if status is None:
+                    status = getattr(getattr(exc, "response", None), "status_code", None)
                 if (
-                    getattr(exc, "status_code", None) == 429
+                    status in (401, 403, 429)
                     or "429" in error_text
+                    or "401" in error_text
+                    or "403" in error_text
                     or "too many requests" in error_text
                 ):
                     break
                 continue
-        raise RuntimeError(f"Cohere modellerinin hiçbirine erişilemedi: {last_error}")
+        if last_error:
+            raise ProviderCallError("Cohere", last_error) from last_error
+        raise RuntimeError("Cohere modellerinin hiçbirine erişilemedi.")
 
     def _call_gemini(
         self,
@@ -447,7 +620,10 @@ class MultiLLMManager:
                     "system_instruction": system_prompt,
                     "response_mime_type": "application/json",
                     "temperature": 0.7,
-                    "max_output_tokens": _int_env("GEMINI_MAX_OUTPUT_TOKENS", 65536),
+                    # A question or a four-language repair batch needs only a
+                    # small JSON response. A 65k ceiling adds latency and can
+                    # trigger Gemini's server-side deadline on these prompts.
+                    "max_output_tokens": _int_env("GEMINI_MAX_OUTPUT_TOKENS", 8192),
                     "automatic_function_calling": types.AutomaticFunctionCallingConfig(disable=True),
                 }
                 if response_schema:
@@ -469,13 +645,13 @@ class MultiLLMManager:
                 return response.text or "{}"
             except Exception as exc:
                 last_error = exc
+                status = getattr(exc, "status_code", None)
+                if status is None:
+                    status = getattr(getattr(exc, "response", None), "status_code", None)
                 if self.gemini_quota_guard:
                     delay = self.gemini_quota_guard.fail(model_name, exc)
                     quota_waits.append(delay)
                     text = str(exc).lower()
-                    status = getattr(exc, "status_code", None)
-                    if status is None:
-                        status = getattr(getattr(exc, "response", None), "status_code", None)
                     is_quota_error = (
                         status == 429
                         or status == 403 and "quota" in text
@@ -493,6 +669,15 @@ class MultiLLMManager:
                         api_errors_are_quota = False
                     if not is_retryable_error:
                         api_errors_are_retryable = False
+                error_text = str(exc).casefold()
+                auth_error = status in (401, 403) or any(
+                    marker in error_text
+                    for marker in ("unauthorized", "invalid api key", "invalid_api_key", "authentication failed")
+                )
+                if auth_error and "quota" not in error_text:
+                    # A credential/authorization error is common to all models;
+                    # trying each model repeats the same failed network call.
+                    break
         if quota_waits and self.gemini_quota_guard and (
             local_quota_block or api_errors_are_quota or api_errors_are_retryable
         ):
@@ -504,7 +689,9 @@ class MultiLLMManager:
                 quota_limited=local_quota_block or api_errors_are_quota,
                 retryable=local_quota_block or api_errors_are_retryable,
             )
-        raise RuntimeError(f"Gemini modellerinin hiçbirine erişilemedi: {last_error}")
+        if last_error:
+            raise ProviderCallError("Gemini", last_error) from last_error
+        raise RuntimeError("Gemini modellerinin hiçbirine erişilemedi.")
 
     def _call_nvidia(self, system_prompt: str, user_prompt: str) -> str:
         last_error: Optional[Exception] = None
@@ -526,7 +713,10 @@ class MultiLLMManager:
                         "max_tokens": 4096,
                         "temperature": 0.7,
                     },
-                    timeout=float(os.getenv("NVIDIA_TIMEOUT_SECONDS", "20")),
+                    # Large structured question prompts often take longer than
+                    # 12s on the shared inference endpoint; allow an actual
+                    # response before this provider is marked failed.
+                    timeout=float(os.getenv("NVIDIA_TIMEOUT_SECONDS", "30")),
                 )
                 response.raise_for_status()
                 payload = response.json()
@@ -541,9 +731,12 @@ class MultiLLMManager:
                 return payload["choices"][0]["message"]["content"] or "{}"
             except Exception as exc:
                 last_error = exc
-                if isinstance(exc, requests.Timeout):
+                status = getattr(getattr(exc, "response", None), "status_code", None)
+                if isinstance(exc, requests.Timeout) or status in (401, 403, 413, 429):
                     break
-        raise RuntimeError(f"NVIDIA modellerinin hiçbirine erişilemedi: {last_error}")
+        if last_error:
+            raise ProviderCallError("NVIDIA", last_error) from last_error
+        raise RuntimeError("NVIDIA modellerinin hiçbirine erişilemedi.")
 
     @staticmethod
     def _cooldown_for_error(error: Exception) -> int:
@@ -566,19 +759,25 @@ class MultiLLMManager:
         *,
         response_schema: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        attempts = len(self.providers)
         errors: List[str] = []
-        waitable_errors: List[bool] = []
-        quota_errors: List[bool] = []
-        for _ in range(attempts):
+        # Rotate the primary provider across configured free-tier keys. A failed
+        # provider still falls through to the remaining providers for this question.
+        with self._lock:
+            if self.providers:
+                start_index = self._provider_cursor % len(self.providers)
+                self._provider_cursor = (start_index + 1) % len(self.providers)
+                ordered_providers = self.providers[start_index:] + self.providers[:start_index]
+            else:
+                ordered_providers = []
+        for provider in ordered_providers:
             with self._lock:
-                provider = self.providers[self.current_idx]
-                self.current_idx = (self.current_idx + 1) % len(self.providers)
+                disabled_reason = self._provider_disabled_reason.get(provider)
                 cooldown_until = float(self._provider_cooldown_until.get(provider, 0.0))
+            if disabled_reason:
+                errors.append(f"{provider}: disabled ({disabled_reason})")
+                continue
             if cooldown_until > time.time():
                 errors.append(f"{provider}: cooldown ({int(cooldown_until - time.time())}s)")
-                waitable_errors.append(self._provider_cooldown_retryable.get(provider, False))
-                quota_errors.append(self._provider_cooldown_quota.get(provider, False))
                 continue
             try:
                 if provider == "groq":
@@ -592,25 +791,65 @@ class MultiLLMManager:
                 clean = raw.strip()
                 if clean.startswith("```"):
                     clean = clean.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-                data = json.loads(clean)
+                try:
+                    data = json.loads(clean)
+                except json.JSONDecodeError:
+                    repaired = _remove_trailing_json_commas(clean)
+                    if repaired == clean:
+                        raise
+                    data = json.loads(repaired)
                 data["_provider"] = provider
                 with self._lock:
                     data["_quota"] = dict(self.last_call)
                     self._provider_cooldown_until.pop(provider, None)
                     self._provider_cooldown_retryable.pop(provider, None)
                     self._provider_cooldown_quota.pop(provider, None)
+                    self._provider_429_count.pop(provider, None)
                 return data
             except Exception as exc:
                 self._record_error(provider, exc)
                 with self._lock:
                     retry_after = getattr(exc, "retry_after", None)
-                    cooldown = int(retry_after) if retry_after is not None else self._cooldown_for_error(exc)
+                    if isinstance(exc, json.JSONDecodeError):
+                        # A malformed model response is not provider downtime;
+                        # permit the caller to request a corrected response.
+                        cooldown = 1
+                    else:
+                        cooldown = int(retry_after) if retry_after is not None else self._cooldown_for_error(exc)
                     self._provider_cooldown_until[provider] = time.time() + max(1, cooldown)
                 status = getattr(exc, "status_code", None)
                 if status is None:
                     status = getattr(getattr(exc, "response", None), "status_code", None)
+                status_label = f"HTTP {status}" if status else type(exc).__name__
+                if isinstance(exc, (AllProvidersCoolingDown, PermissionError)):
+                    detail = self._safe_error_summary(exc)
+                    if detail:
+                        status_label = f"{status_label}: {detail}"
+                error_text = str(exc).casefold()
+                auth_failure = status in (401, 403) or any(
+                    marker in error_text
+                    for marker in ("unauthorized", "invalid api key", "invalid_api_key", "authentication failed")
+                )
+                if auth_failure:
+                    reason = f"authentication failed (HTTP {status})" if status else "authentication failed"
+                    with self._lock:
+                        self._provider_disabled_reason[provider] = reason
+                elif bool(getattr(exc, "quota_exhausted", False)):
+                    with self._lock:
+                        self._provider_disabled_reason[provider] = (
+                            "provider daily or monthly free quota exhausted (HTTP 429)"
+                        )
+                elif status == 429:
+                    with self._lock:
+                        count = self._provider_429_count.get(provider, 0) + 1
+                        self._provider_429_count[provider] = count
+                        if count >= 2:
+                            self._provider_disabled_reason[provider] = (
+                                "repeated HTTP 429; paused for the rest of this run"
+                            )
                 retryable = (
                     bool(getattr(exc, "retryable", False))
+                    or isinstance(exc, json.JSONDecodeError)
                     or status in (408, 425, 429, 500, 502, 503, 504)
                     or "timeout" in str(exc).lower()
                     or "deadline_exceeded" in str(exc).lower()
@@ -621,24 +860,60 @@ class MultiLLMManager:
                 with self._lock:
                     self._provider_cooldown_retryable[provider] = retryable
                     self._provider_cooldown_quota[provider] = quota_limited
-                waitable_errors.append(retryable)
-                quota_errors.append(quota_limited)
-                errors.append(f"{provider}: {exc}")
-                logger.warning("%s çağrısı başarısız oldu; sıradaki sağlayıcı deneniyor.", provider.upper())
+                errors.append(f"{provider}: {status_label}")
+                disabled = provider in self._provider_disabled_reason
+                log_method = logger.warning if disabled else logger.info
+                log_method(
+                    "%s çağrısı başarısız (%s); %s.",
+                    provider.upper(),
+                    status_label,
+                    "bu süreçte devre dışı bırakıldı" if disabled else "sıradaki etkin sağlayıcı deneniyor",
+                )
         now = time.time()
-        remaining = [
-            max(1, int(until - now))
-            for provider, until in self._provider_cooldown_until.items()
-            if provider in self.providers and until > now
+        recovering_providers = [
+            provider
+            for provider in self.providers
+            if provider not in self._provider_disabled_reason
+            and float(self._provider_cooldown_until.get(provider, 0.0)) > now
         ]
+        remaining = [
+            max(1, int(self._provider_cooldown_until[provider] - now))
+            for provider in recovering_providers
+        ]
+        all_providers_quota_blocked = bool(self.providers) and all(
+            (
+                provider in self._provider_disabled_reason
+                and (
+                    "quota" in self._provider_disabled_reason[provider].casefold()
+                    or "429" in self._provider_disabled_reason[provider]
+                )
+            )
+            or (
+                provider not in self._provider_disabled_reason
+                and float(self._provider_cooldown_until.get(provider, 0.0)) > now
+                and bool(self._provider_cooldown_quota.get(provider, False))
+            )
+            for provider in self.providers
+        )
         raise AllProvidersCoolingDown(
             min(remaining) if remaining else 30,
             "Tüm LLM sağlayıcıları hata verdi. " + " | ".join(errors),
-            quota_limited=bool(quota_errors) and all(quota_errors),
-            retryable=bool(waitable_errors) and all(waitable_errors),
+            quota_limited=all_providers_quota_blocked,
+            retryable=any(
+                self._provider_cooldown_retryable.get(provider, False)
+                for provider in recovering_providers
+            ),
         )
 
     def _limits(self, provider: str) -> Dict[str, Any]:
+        if provider == "gemini" and self.gemini_quota_guard:
+            return {
+                "rpm": _int_env("GEMINI_RPM", self.gemini_quota_guard.rpm),
+                "period_requests": _int_env("GEMINI_RPD", self.gemini_quota_guard.rpd),
+                "period": "day",
+                "tpm": _int_env("GEMINI_TPM", self.gemini_quota_guard.tpm),
+                "source": "local safety target; exact project quota is shown in AI Studio",
+            }
         if provider == "groq":
             return {
                 "rpm": _int_env("GROQ_RPM", 30),
@@ -718,6 +993,10 @@ class MultiLLMManager:
             )
             result[provider] = {
                 "configured": configured,
+                "disabled_reason": self._provider_disabled_reason.get(provider),
+                "cooldown_remaining": max(
+                    0, int(float(self._provider_cooldown_until.get(provider, 0.0)) - now)
+                ),
                 "models": getattr(self, f"{provider}_models"),
                 "limits": limits,
                 "session_usage": usage,

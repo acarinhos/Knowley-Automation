@@ -31,6 +31,7 @@ from core.translation_service import (
     COUNTRY_LANGUAGE_CODES,
     LANGUAGE_CODE_TO_NAME,
     SUPPORTED_LANGUAGE_CODES,
+    TranslationIncompleteError,
     translate_localized_content,
 )
 
@@ -201,6 +202,25 @@ def normalize_generated_payload(data: Dict[str, Any], fallback_filter_tag: str) 
             continue
         options = content.get("options")
         answer = options.get(correct) if isinstance(options, dict) else None
+        question_text = str(content.get("question") or "").strip()
+        if not str(content.get("simplified_question") or "").strip() and question_text:
+            # Older/short model responses may omit the ability-facing variant.
+            # Reuse the source question rather than inventing a paraphrase.
+            content["simplified_question"] = question_text
+        if isinstance(options, dict):
+            clarified = content.get("clarified_options")
+            clarified = clarified if isinstance(clarified, dict) else {}
+            normalized_clarified = {}
+            for letter in "ABCD":
+                value = clarified.get(letter)
+                if not str(value or "").strip():
+                    value = options.get(letter)
+                if value is not None:
+                    normalized_clarified[letter] = value
+            if normalized_clarified:
+                # Keep provided clarifications and safely fill omissions with
+                # their matching original option; never alter the answer map.
+                content["clarified_options"] = normalized_clarified
         if not str(content.get("explanation") or "").strip() and answer:
             content["explanation"] = f"Doğru cevap: {answer}."
         if not str(content.get("filter_tag") or "").strip():
@@ -439,6 +459,8 @@ def build_prompt(
     languages: Optional[List[str]] = None,
     algorithm_context: Optional[str] = None,
     visual_question: bool = False,
+    target_global_difficulty: Optional[str] = None,
+    target_global_score: Optional[int] = None,
 ) -> str:
     is_combo = secondary_category is not None
     country_rule = target_country if target_country else "Global"
@@ -542,20 +564,35 @@ def build_prompt(
         )
 
     if is_global_eligible:
+        global_target_instruction = (
+            f"- Üretim kotası için küresel zorluk hedefi kesin: 'difficulty_global' = '{target_global_difficulty}', "
+            f"'difficulty_global_score' = {target_global_score}. Küresel etiketi ve puanı aynen kullan.\n"
+            if target_global_difficulty and target_global_score is not None
+            else "- Küresel zorluğu dünya genelindeki ortalama bilgi düzeyine göre bağımsız değerlendir.\n"
+        )
         dual_difficulty_instruction = (
             f"ASİMETRİK ÇİFT ZORLUK PUANLAMA TALİMATI (KÜRESEL ELİT ÜLKE):\n"
             f"- Hedef Odak Ülke: {country_rule} (Kredi: {credit_rule}/10 - Küresel Elit Ülke)\n"
             f"- Bu ülke küresel sahnede tanınan elit bir merkezdir. Soruya İKİ AYRI PUAN atanmalıdır:\n"
             f"  1. 'difficulty_local_score' (1-10): {country_rule} vatandaşının/kültürünün bu konuyu bilme zorluğu. Hedef Yerel Puan: {target_score}/10 ({target_diff}).\n"
             f"  2. 'difficulty_global_score' (1-10): Dünyanın geri kalanındaki ortalama bir insanın bu ülkeyle ilgili konuyu bilme zorluğu (Kolay: 1-4, Orta: 5-8, Zor: 9-10).\n"
-            f"- Bu iki puanı birbirinden bağımsız, ASİMETRİK olarak değerlendir. Örneğin ABD iç dinamikleri bir Amerikalı için Kolay (1-4) veya Orta (5-8) olabilirken, dünyanın geri kalanı için Zor (9-10) olabilir.\n"
+            f"- Yerel zorluğu ülke bağlamında değerlendir; küresel puanı ayrı ver. Yerel puanı küresel kota hedefine uydurma. Örneğin ABD iç dinamikleri ABD'de Kolay/Orta iken küresel ölçekte Zor olabilir.\n"
+            f"{global_target_instruction}"
             f"- Çıktı JSON'ında 'is_global_eligible': true, hem local hem global puan ve seviyeleri eksiksiz doldurulmalıdır.\n"
             f"- 'difficulty_meta': {{'local': {{'level': '{target_diff}', 'score': {target_score}, 'context_country': '{country_rule}'}}, 'global': {{'level': '...', 'score': ...}}}} olmalıdır."
         )
-        schema_global_level = '"Orta"'
-        schema_global_score = "6"
-        schema_meta_global = '{"level": "Orta", "score": 6}'
-        schema_profile_global = '{"label": "Orta", "score": 6}'
+        schema_global_level = json.dumps(target_global_difficulty, ensure_ascii=False) if target_global_difficulty else '"Orta"'
+        schema_global_score = str(target_global_score) if target_global_score is not None else "6"
+        schema_meta_global = (
+            json.dumps({"level": target_global_difficulty, "score": target_global_score}, ensure_ascii=False)
+            if target_global_difficulty and target_global_score is not None
+            else '{"level": "Orta", "score": 6}'
+        )
+        schema_profile_global = (
+            json.dumps({"label": target_global_difficulty, "score": target_global_score}, ensure_ascii=False)
+            if target_global_difficulty and target_global_score is not None
+            else '{"label": "Orta", "score": 6}'
+        )
     else:
         dual_difficulty_instruction = (
             f"TEK YEREL ZORLUK PUANLAMA TALİMATI (SADECE YEREL KAPSAMLI ÜLKE):\n"
@@ -815,10 +852,13 @@ def generate_question_with_fallback(
     algorithm_version: Optional[str] = None,
     visual_question: bool = False,
     llm_manager: Optional[Any] = None,
+    target_score: Optional[int] = None,
+    target_global_difficulty: Optional[str] = None,
+    target_global_score: Optional[int] = None,
     **kwargs: Any,
 ) -> GeneratedQuestion:
     """
-    Kategori, şık, kapsam (Global/Local), ülke kredisi ve zorluk (4-4-2 kotası)
+    Kategori, şık, kapsam (Global/Local), ülke kredisi ve zorluk kotası
     dengeleme mekanizması destekli soru üretim fonksiyonu (v1.0.3).
     """
     # 1. Kategori dengelemesi aktifse ve kategori veya alt kategori eksikse
@@ -873,7 +913,8 @@ def generate_question_with_fallback(
         requested_languages = ["en"] if final_scope == "local" else list(SUPPORTED_LANGUAGE_CODES)
     source_language = "en" if "en" in requested_languages else requested_languages[0]
 
-    # 3. Zorluk dengelemesi (4-4-2 kuralı ve 1-10 puan dengesi)
+    # 3. Zorluk dengelemesi. Worker ayrılmış bir hedefi verdiyse aynı hedef,
+    # yeniden denemelerde korunur; diğer çağrılar balancer'dan alır.
     from core.difficulty_balancer import get_difficulty_balancer, DifficultyBalancer
     diff_balancer = difficulty_balancer or get_difficulty_balancer()
 
@@ -885,7 +926,8 @@ def generate_question_with_fallback(
         target_score = diff_target.score
     elif target_diff:
         target_diff = DifficultyBalancer.normalize_level(target_diff)
-        target_score = diff_balancer.get_balanced_score_for_level(target_diff)
+        if target_score is None:
+            target_score = diff_balancer.get_balanced_score_for_level(target_diff)
 
     if not target_diff:
         target_diff = "Orta"
@@ -906,6 +948,8 @@ def generate_question_with_fallback(
         languages=[source_language],
         algorithm_context=algorithm_context,
         visual_question=visual_question,
+        target_global_difficulty=target_global_difficulty,
+        target_global_score=target_global_score,
     )
     
     active_llm_manager = llm_manager or MultiLLMManager()
@@ -946,6 +990,10 @@ def generate_question_with_fallback(
             break
         except AllProvidersCoolingDown:
             raise
+        except TranslationIncompleteError:
+            # Regenerating the source question cannot repair omitted locales and
+            # needlessly spends generation quota.
+            raise
         except Exception as err:
             last_error = err
             logging.warning(f"Soru üretim/doğrulama denemesi ({attempt}/{max_retries}) başarısız: {err}")
@@ -969,13 +1017,17 @@ def generate_question_with_fallback(
     final_local_level = DifficultyBalancer.score_to_level(clamped_local_score)
 
     if final_is_global_eligible:
-        raw_global_level = getattr(q, "difficulty_global", None)
+        raw_global_level = target_global_difficulty or getattr(q, "difficulty_global", None)
         if not raw_global_level and q.difficulty_profile and q.difficulty_profile.global_scope:
             raw_global_level = q.difficulty_profile.global_scope.label
         if not raw_global_level:
             raw_global_level = "Orta"
 
-        raw_global_score = getattr(q, "difficulty_global_score", None)
+        raw_global_score = (
+            target_global_score
+            if target_global_score is not None
+            else getattr(q, "difficulty_global_score", None)
+        )
         if (not raw_global_score or raw_global_score == 5) and q.difficulty_profile and q.difficulty_profile.global_scope:
             raw_global_score = q.difficulty_profile.global_scope.score
         clamped_global_score = DifficultyBalancer.validate_and_clamp_score(raw_global_level, raw_global_score)

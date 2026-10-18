@@ -35,7 +35,7 @@ LEGACY_COUNTRY_SHEET_ALIASES = {
     "Almanya": "Almanya Kategorizasyon",
 }
 
-GENERATION_MODES = {"154", "64", "basic"}
+GENERATION_MODES = {"154", "64", "basic", "custom", "country_local"}
 
 
 def _clean(value: Any) -> str:
@@ -397,6 +397,24 @@ class SheetAlgorithmRepository:
             country for country in self.countries() if country.get("profile_sheet")
         ]
 
+    def local_target_countries(self, pool: str = "154") -> List[str]:
+        """Return listed countries/regions with at least one local-capable target."""
+        return [
+            item["name"]
+            for item in self.countries()
+            if self.country_local_target_count(item["name"], pool=pool) > 0
+        ]
+
+    def country_local_target_count(self, country: str, pool: str = "154") -> int:
+        """Count weighted subcategory targets that can produce local questions."""
+        weight_key = f"weight_{'64' if str(pool) == '64' else '154'}"
+        return sum(
+            1
+            for record in self.records_for_country(country)
+            if float(record.get("local_ratio") or 0) > 0
+            and max(0, _as_int(record.get(weight_key))) > 0
+        )
+
     def country_code(self, country: Optional[str], scope: Optional[str] = None) -> str:
         """Return the configured country/region code, or GL for global questions."""
         if str(scope or "").strip().lower() != "local":
@@ -622,9 +640,11 @@ class SheetAlgorithmRepository:
         pool: str = "154",
         country: Optional[str] = None,
         basic_only: bool = False,
+        equal_distribution: bool = False,
         total_count: Optional[int] = None,
         category: Optional[str] = None,
         subcategory: Optional[str] = None,
+        country_local_only: bool = False,
     ) -> List[AlgorithmTarget]:
         """Yalnızca Sheet kredi ağırlıklarından AlgorithmTarget kuyruğu oluşturur.
 
@@ -636,10 +656,21 @@ class SheetAlgorithmRepository:
         Slotlar kategoriler arasında dengeli ve dönüşümlü (interleaved) sıralanır.
         """
         pool_key = "64" if str(pool) == "64" else "154"
+        if country_local_only and not country:
+            raise ValueError("Ülke/bölge yerel hedef modu için ülke/bölge seçilmelidir.")
         if country:
             records = self.records_for_country(country)
             for record in records:
                 record.setdefault("target_country", country)
+        elif equal_distribution:
+            # In all-target equality mode, represent the generic taxonomy once
+            # and expand each localized placeholder to one real regional set.
+            # Expanding every country's copy here would prevent a 160 minimum
+            # run from giving every target at least one slot.
+            records = self._expand_localized_placeholders(
+                self.records_for_country(None),
+                basic_only=False,
+            )
         else:
             records = []
             for country_info in self.countries():
@@ -662,11 +693,32 @@ class SheetAlgorithmRepository:
             # sonrasında seçilen ülkenin tüm gerçek alt hedeflerini kapsar.
             if sub_key != _key("Localize Sub"):
                 records = [record for record in records if _key(record["subcategory"]) == sub_key]
+        if country_local_only:
+            records = [
+                record for record in records
+                if float(record.get("local_ratio") or 0) > 0
+            ]
+        if equal_distribution:
+            unique_records: List[Dict[str, Any]] = []
+            seen_targets: set[tuple[str, str, str]] = set()
+            for record in records:
+                target_key = (
+                    _key(record.get("category")),
+                    _key(record.get("subcategory")),
+                    _key(record.get("target_country") or country),
+                )
+                if target_key not in seen_targets:
+                    seen_targets.add(target_key)
+                    unique_records.append(record)
+            records = unique_records
         weight_key = f"weight_{pool_key}"
 
         weighted_records: List[tuple[Dict[str, Any], int]] = []
         for record in records:
             if basic_only and not record.get("is_base"):
+                continue
+            if equal_distribution:
+                weighted_records.append((record, 1))
                 continue
             weight = 1 if basic_only else max(0, int(record.get(weight_key, 0)))
             if weight > 0:
@@ -679,9 +731,31 @@ class SheetAlgorithmRepository:
         requested_total = natural_total if total_count is None else int(total_count)
         if requested_total < 1:
             return []
+        if equal_distribution and requested_total < len(weighted_records):
+            raise ValueError(
+                "Eşit dağılım için toplam soru adedi, kullanılabilir kategori-alt kategori "
+                f"hedefi sayısı olan {len(weighted_records)} değerinden az olamaz."
+            )
+        if country_local_only and requested_total < len(weighted_records):
+            raise ValueError(
+                "Ülke/bölge yerel hedef modu için soru adedi, bu hedefteki kullanılabilir "
+                f"alt kategori sayısı olan {len(weighted_records)} değerinden az olamaz."
+            )
 
         if requested_total == natural_total:
             allocations = [weight for _, weight in weighted_records]
+        elif country_local_only:
+            # Give every local-capable subcategory one question first; distribute
+            # the remaining requested total according to the selected credit pool.
+            remaining_total = requested_total - len(weighted_records)
+            exact = [remaining_total * weight / natural_total for _, weight in weighted_records]
+            allocations = [1 + int(value) for value in exact]
+            remaining = requested_total - sum(allocations)
+            remainder_order = list(range(len(weighted_records)))
+            random.shuffle(remainder_order)
+            remainder_order.sort(key=lambda index: exact[index] - int(exact[index]), reverse=True)
+            for index in remainder_order[:remaining]:
+                allocations[index] += 1
         else:
             exact = [requested_total * weight / natural_total for _, weight in weighted_records]
             allocations = [int(value) for value in exact]

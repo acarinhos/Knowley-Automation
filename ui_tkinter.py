@@ -42,7 +42,12 @@ from core.external_importer import (
     validate_and_transform,
 )
 from database.db_manager import init_firebase, save_question_to_firestore
-from ui_server import JobManager, firebase_question_audit, firebase_summary
+from database.question_report import canonicalize_question_report_countries, question_report_country_label
+from ui_server import JobManager, firebase_question_audit, firebase_question_report, firebase_summary
+try:  # optional SAT generation panel
+    from sat_engine.ui_panel import install as install_sat_panel
+except Exception:
+    install_sat_panel = None
 
 # Renk Paleti (Knowley Dark Modern Theme)
 BG_MAIN = "#070914"
@@ -252,6 +257,11 @@ class KnowleyTkinterApp(tk.Tk):
 
         self._configure_styles()
         self._build_ui()
+        if install_sat_panel:
+            try:
+                install_sat_panel(self)
+            except Exception:  # never crash app start
+                logging.getLogger(__name__).exception("SAT panel could not be installed")
         self.bind_all("<MouseWheel>", self._scroll_panel_under_pointer, add="+")
         self.bind_all("<Button-4>", self._scroll_panel_under_pointer, add="+")
         self.bind_all("<Button-5>", self._scroll_panel_under_pointer, add="+")
@@ -529,6 +539,22 @@ class KnowleyTkinterApp(tk.Tk):
             command=self._open_firebase_audit,
         ).pack(side="left", padx=(0, 12))
 
+        self.btn_firebase_report = tk.Button(
+            action_bar,
+            text="Soru Raporlama  ↗",
+            bg=PANEL_INNER,
+            fg=PURPLE,
+            activebackground=PANEL_BORDER,
+            activeforeground=TEXT_LIGHT,
+            font=(FONT_FAMILY, 9, "bold"),
+            relief="flat",
+            cursor="hand2",
+            padx=14,
+            pady=7,
+            command=self._open_firebase_question_report,
+        )
+        self.btn_firebase_report.pack(side="left", padx=(0, 12))
+
         self.form_error_lbl = tk.Label(
             action_bar,
             text="",
@@ -598,11 +624,18 @@ class KnowleyTkinterApp(tk.Tk):
         mode_frame = tk.Frame(card, bg=PANEL_BG)
         mode_frame.pack(fill="x", pady=(0, 10))
         self.var_mode = tk.StringVar(value="154")
+        self._last_mode = "154"
+        self._country_profile_was_enabled = False
+        self._country_profile_selection_before_localized = ""
+        self.country_profile_values: List[str] = []
+        self.country_local_values: List[str] = []
 
         modes = [
             ("154", "154 kredi\nTam dağılım"),
             ("64", "64 kredi\nKısa seri"),
             ("basic", "Temel\nYalnız temel hedefler"),
+            ("custom", "Özel\nDengeli üretim"),
+            ("country_local", "Ülke/Bölge\nYerel hedefler"),
         ]
         for val, lbl in modes:
             rb = ttk.Radiobutton(
@@ -617,29 +650,107 @@ class KnowleyTkinterApp(tk.Tk):
         # Soru Adedi
         count_frame = tk.Frame(card, bg=PANEL_BG)
         count_frame.pack(fill="x", pady=(0, 10))
-        tk.Label(count_frame, text="Soru adedi", fg=TEXT_DIM, bg=PANEL_BG, font=(FONT_FAMILY, 9, "bold")).pack(anchor="w", pady=(0, 3))
+        self.count_frame = count_frame
+        self.count_label = tk.Label(count_frame, text="Soru adedi", fg=TEXT_DIM, bg=PANEL_BG, font=(FONT_FAMILY, 9, "bold"))
+        self.count_label.pack(anchor="w", pady=(0, 3))
 
         self.var_count = tk.IntVar(value=154)
         self.spin_count = ttk.Spinbox(count_frame, from_=1, to=10000, textvariable=self.var_count, width=15)
         self.spin_count.pack(fill="x")
+
+        self.custom_config_card = tk.Frame(
+            card, bg=PANEL_INNER, highlightbackground=PANEL_BORDER, highlightthickness=1, padx=12, pady=10
+        )
+        tk.Label(
+            self.custom_config_card,
+            text="Özel üretim seçenekleri",
+            fg=TEXT_DIM,
+            bg=PANEL_INNER,
+            font=(FONT_FAMILY, 9, "bold"),
+        ).pack(anchor="w", pady=(0, 5))
+        self.var_custom_mode = tk.StringVar(value="equal")
+        ttk.Radiobutton(
+            self.custom_config_card,
+            text="Tüm kategori ve alt kategorileri eşit dağıt (en az 160 soru)",
+            value="equal",
+            variable=self.var_custom_mode,
+            command=self._on_custom_mode_change,
+        ).pack(anchor="w", pady=2)
+        ttk.Radiobutton(
+            self.custom_config_card,
+            text="Her 10 soruda zorluk adetlerini belirle",
+            value="difficulty",
+            variable=self.var_custom_mode,
+            command=self._on_custom_mode_change,
+        ).pack(anchor="w", pady=2)
+        self.equal_mode_hint = tk.Label(
+            self.custom_config_card,
+            text="Tüm kategori-alt kategori hedefleri eşit ağırlık alır; seçilen ülke profili varsa o profilin hedefleri kullanılır.",
+            fg=MUTED,
+            bg=PANEL_INNER,
+            font=(FONT_FAMILY, 8),
+            wraplength=440,
+            justify="left",
+        )
+        self.equal_mode_hint.pack(anchor="w", pady=(3, 0))
+        self.difficulty_quota_frame = tk.Frame(self.custom_config_card, bg=PANEL_INNER)
+        quota_row = tk.Frame(self.difficulty_quota_frame, bg=PANEL_INNER)
+        quota_row.pack(fill="x", pady=(4, 2))
+        self.difficulty_count_vars: Dict[str, tk.IntVar] = {}
+        for level, default in (("Kolay", 4), ("Orta", 4), ("Zor", 2)):
+            field = tk.Frame(quota_row, bg=PANEL_INNER)
+            field.pack(side="left", expand=True, fill="x", padx=(0, 7))
+            tk.Label(field, text=level, fg=TEXT_DIM, bg=PANEL_INNER, font=(FONT_FAMILY, 8, "bold")).pack(anchor="w")
+            var = tk.IntVar(value=default)
+            self.difficulty_count_vars[level] = var
+            ttk.Spinbox(
+                field,
+                from_=0,
+                to=10,
+                increment=1,
+                textvariable=var,
+                width=6,
+                command=self._update_custom_quota_total,
+            ).pack(fill="x")
+            var.trace_add("write", lambda *_args: self._update_custom_quota_total())
+        self.difficulty_quota_total = tk.Label(
+            self.difficulty_quota_frame,
+            text="Toplam: 10 / 10",
+            fg=GREEN,
+            bg=PANEL_INNER,
+            font=(FONT_FAMILY, 8, "bold"),
+        )
+        self.difficulty_quota_total.pack(anchor="w", pady=(2, 0))
+        tk.Label(
+            self.difficulty_quota_frame,
+            text="Her blokta adetler toplamı 10 olmalı. Toplam üretim adedi de 10'un katı olmalı.",
+            fg=MUTED,
+            bg=PANEL_INNER,
+            font=(FONT_FAMILY, 8),
+            wraplength=440,
+            justify="left",
+        ).pack(anchor="w", pady=(2, 0))
+        self.custom_config_card.pack_forget()
 
         # Ülke Profili Kartı
         cp_card = tk.Frame(card, bg=PANEL_INNER, highlightbackground=PANEL_BORDER, highlightthickness=1, padx=12, pady=10)
         cp_card.pack(fill="x", pady=(0, 10))
 
         self.var_cp_enabled = tk.BooleanVar(value=False)
-        cp_check = ttk.Checkbutton(
+        self.country_profile_check = ttk.Checkbutton(
             cp_card,
             text="Ülke profili (İsteğe bağlı yerelleştirme matrisi)",
             variable=self.var_cp_enabled,
             command=self._toggle_country_profile,
         )
-        cp_check.pack(anchor="w")
+        self.country_profile_check.pack(anchor="w")
 
         self.country_select_frame = tk.Frame(cp_card, bg=PANEL_INNER)
-        tk.Label(self.country_select_frame, text="Profil", fg=TEXT_DIM, bg=PANEL_INNER, font=(FONT_FAMILY, 8, "bold")).pack(anchor="w", pady=(6, 2))
+        self.country_select_label = tk.Label(self.country_select_frame, text="Profil", fg=TEXT_DIM, bg=PANEL_INNER, font=(FONT_FAMILY, 8, "bold"))
+        self.country_select_label.pack(anchor="w", pady=(6, 2))
         self.combo_country = ttk.Combobox(self.country_select_frame, state="disabled", values=[])
         self.combo_country.pack(fill="x")
+        self.combo_country.bind("<<ComboboxSelected>>", self._on_localized_country_selected)
 
         # Gelişmiş Ayarlar (Collapsible Frame)
         adv_card = tk.Frame(card, bg=PANEL_INNER, highlightbackground=PANEL_BORDER, highlightthickness=1, padx=12, pady=10)
@@ -656,19 +767,18 @@ class KnowleyTkinterApp(tk.Tk):
         self.adv_content.pack(fill="x", pady=(8, 0))
 
         # Zorluk
-        tk.Label(self.adv_content, text="Zorluk", fg=TEXT_DIM, bg=PANEL_INNER, font=(FONT_FAMILY, 8, "bold")).pack(anchor="w", pady=(0, 2))
+        self.difficulty_label = tk.Label(self.adv_content, text="Zorluk", fg=TEXT_DIM, bg=PANEL_INNER, font=(FONT_FAMILY, 8, "bold"))
+        self.difficulty_label.pack(anchor="w", pady=(0, 2))
         self.difficulty_map = {
-            "4–4–2 otomatik dengesi": "",
-            "Yalnız Kolay · 1–4": "Kolay",
-            "Yalnız Orta · 5–8": "Orta",
-            "Yalnız Zor · 9–10": "Zor",
+            "2–2–1 otomatik dengesi · her 5 soru": "",
         }
         self.combo_difficulty = ttk.Combobox(self.adv_content, state="readonly", values=list(self.difficulty_map.keys()))
-        self.combo_difficulty.set("4–4–2 otomatik dengesi")
+        self.combo_difficulty.set("2–2–1 otomatik dengesi · her 5 soru")
         self.combo_difficulty.pack(fill="x", pady=(0, 8))
 
         # Dil kapsamı
-        tk.Label(self.adv_content, text="Dil kapsamı", fg=TEXT_DIM, bg=PANEL_INNER, font=(FONT_FAMILY, 8, "bold")).pack(anchor="w", pady=(0, 3))
+        self.language_scope_label = tk.Label(self.adv_content, text="Dil kapsamı", fg=TEXT_DIM, bg=PANEL_INNER, font=(FONT_FAMILY, 8, "bold"))
+        self.language_scope_label.pack(anchor="w", pady=(0, 3))
         tk.Label(
             self.adv_content,
             text="35 aktif dil · Global ve öge soruları tüm dillerde; yerel sorular ülke/bölge satırındaki dillerde üretilir.",
@@ -811,7 +921,6 @@ class KnowleyTkinterApp(tk.Tk):
             command=self._open_firebase_audit,
         )
         self.btn_firebase_audit.pack(anchor="w", pady=(7, 0))
-
         # 3. Kart: Algoritma Kaynağı
         algo_card = tk.Frame(sidebar, bg=PANEL_BG, highlightbackground=PANEL_BORDER, highlightthickness=1, padx=16, pady=12)
         algo_card.pack(fill="x")
@@ -1014,18 +1123,141 @@ class KnowleyTkinterApp(tk.Tk):
 
     def _on_mode_change(self) -> None:
         mode = self.var_mode.get()
+        changed_mode = mode != self._last_mode
+        if mode == "country_local":
+            if changed_mode:
+                self._country_profile_was_enabled = self.var_cp_enabled.get()
+                self._country_profile_selection_before_localized = self.combo_country.get()
+                self.var_cp_enabled.set(True)
+                self.combo_country.set("")
+                self.var_count.set(1)
+            self.combo_country.configure(values=self.country_local_values, state="readonly")
+            self.country_profile_check.configure(state="disabled")
+            self.country_profile_check.configure(text="Ülke/bölge seçimi zorunlu · yalnız yerel hedefler")
+            self.country_select_label.config(text="Ülke / Bölge")
+            self.country_select_frame.pack(fill="x", pady=(6, 0))
+            self.spin_count.configure(from_=1, to=10000, increment=1)
+            self.pool_badge_val.config(text="YEREL")
+            self.pool_badge_sub.config(text="ülke/bölge hedefleri")
+            self._update_country_local_minimum()
+        elif self._last_mode == "country_local":
+            self.country_profile_check.configure(state="normal")
+            self.country_profile_check.configure(text="Ülke profili (İsteğe bağlı yerelleştirme matrisi)")
+            self.country_select_label.config(text="Profil")
+            self.var_cp_enabled.set(self._country_profile_was_enabled)
+            self.combo_country.configure(values=self.country_profile_values)
+            restored_country = self._country_profile_selection_before_localized
+            if restored_country not in self.country_profile_values:
+                restored_country = self.country_profile_values[0] if self.country_profile_values else ""
+            self.combo_country.set(restored_country)
+            self._toggle_country_profile()
+
         if mode == "154":
             self.var_count.set(154)
             self.pool_badge_val.config(text="154")
             self.pool_badge_sub.config(text="kredi havuzu")
+            self.spin_count.configure(from_=1, to=10000, increment=1)
         elif mode == "64":
             self.var_count.set(64)
             self.pool_badge_val.config(text="64")
             self.pool_badge_sub.config(text="kredi havuzu")
+            self.spin_count.configure(from_=1, to=10000, increment=1)
         elif mode == "basic":
             self.var_count.set(21)
             self.pool_badge_val.config(text="21")
             self.pool_badge_sub.config(text="temel hedef havuzu")
+            self.spin_count.configure(from_=1, to=10000, increment=1)
+        elif mode == "country_local":
+            pass
+        elif mode == "custom":
+            if changed_mode:
+                self.var_count.set(160 if self.var_custom_mode.get() == "equal" else 100)
+            self.custom_config_card.pack(fill="x", pady=(0, 10), after=self.count_frame)
+            self._on_custom_mode_change()
+        if mode != "custom":
+            self.custom_config_card.pack_forget()
+            if mode != "country_local":
+                self.count_label.config(text="Soru adedi")
+            self.difficulty_label.pack(anchor="w", pady=(0, 2), before=self.language_scope_label)
+            self.combo_difficulty.pack(fill="x", pady=(0, 8), before=self.language_scope_label)
+            if mode == "country_local":
+                self.scale_combo.state(["disabled"])
+                self.combo_pct_lbl.config(text="Kapalı")
+            else:
+                self.scale_combo.state(["!disabled"])
+                self.combo_pct_lbl.config(text=f"%{int(self.scale_combo.get())}")
+        self._last_mode = mode
+
+    def _on_localized_country_selected(self, _event: Optional[tk.Event] = None) -> None:
+        if self.var_mode.get() == "country_local":
+            self._update_country_local_minimum(reset_count=True)
+
+    def _update_country_local_minimum(self, reset_count: bool = False) -> None:
+        country = self.combo_country.get().strip()
+        if not country:
+            self.spin_count.configure(from_=1, to=10000, increment=1)
+            self.count_label.config(text="Soru adedi · önce ülke/bölge seçin")
+            self.pool_badge_val.config(text="YEREL")
+            self.pool_badge_sub.config(text="ülke/bölge hedefleri")
+            return
+
+        minimum = self.manager.repository.country_local_target_count(country, pool="154")
+        self.spin_count.configure(from_=max(1, minimum), to=10000, increment=1)
+        if reset_count or self._get_count_value(default=0) < minimum:
+            self.var_count.set(minimum)
+        self.count_label.config(text=f"Toplam soru adedi (minimum {minimum})")
+        self.pool_badge_val.config(text=str(minimum))
+        self.pool_badge_sub.config(text="yerel alt hedef")
+
+    def _on_custom_mode_change(self) -> None:
+        custom_mode = self.var_custom_mode.get()
+        current_count = self._get_count_value(default=160)
+        self.difficulty_label.pack_forget()
+        self.combo_difficulty.pack_forget()
+        self.equal_mode_hint.pack_forget()
+        self.difficulty_quota_frame.pack_forget()
+
+        if custom_mode == "equal":
+            self.count_label.config(text="Toplam soru adedi (en az 160)")
+            self.spin_count.configure(from_=160, to=10000, increment=1)
+            if current_count < 160:
+                self.var_count.set(160)
+            self.pool_badge_val.config(text="EŞİT")
+            self.pool_badge_sub.config(text="tüm hedefler")
+            self.equal_mode_hint.pack(anchor="w", pady=(3, 0))
+            self.scale_combo.state(["disabled"])
+            self.combo_pct_lbl.config(text="Kapalı")
+        else:
+            self.count_label.config(text="Toplam soru adedi (10'un katı)")
+            self.spin_count.configure(from_=10, to=10000, increment=10)
+            adjusted_count = max(10, current_count)
+            if adjusted_count % 10:
+                adjusted_count = ((adjusted_count + 9) // 10) * 10
+            if adjusted_count != current_count:
+                self.var_count.set(adjusted_count)
+            self.pool_badge_val.config(text="ZORLUK")
+            self.pool_badge_sub.config(text="10 soruluk kota")
+            self.difficulty_quota_frame.pack(fill="x", pady=(1, 0))
+            self.scale_combo.state(["!disabled"])
+            self.combo_pct_lbl.config(text=f"%{int(self.scale_combo.get())}")
+        self._update_custom_quota_total()
+
+    def _get_count_value(self, default: int = 0) -> int:
+        try:
+            return int(self.var_count.get())
+        except (ValueError, tk.TclError):
+            return default
+
+    def _update_custom_quota_total(self) -> None:
+        if not hasattr(self, "difficulty_count_vars"):
+            return
+        try:
+            total = sum(int(value.get()) for value in self.difficulty_count_vars.values())
+        except (ValueError, tk.TclError):
+            total = -1
+        color = GREEN if total == 10 else RED
+        text = f"Toplam: {total} / 10" if total >= 0 else "Adetleri tam sayı olarak girin"
+        self.difficulty_quota_total.config(text=text, fg=color)
 
     def _on_combo_scale_change(self, value: str) -> None:
         ival = int(float(value))
@@ -1308,8 +1540,8 @@ class KnowleyTkinterApp(tk.Tk):
 
             # Firebase kontrolü
             self._load_firebase_async()
-            # Canlı sağlayıcı kontrolü
-            self._probe_providers_async()
+            # Avoid serial network probes to every provider during startup.
+            # The user can run a live probe explicitly from the provider panel.
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -1350,6 +1582,330 @@ class KnowleyTkinterApp(tk.Tk):
         self.firebase_audit_tree.pack(side="left", fill="both", expand=True)
         scroll_y.pack(side="right", fill="y")
         self._load_firebase_audit_async()
+
+    def _open_firebase_question_report(self) -> None:
+        window = getattr(self, "question_report_window", None)
+        if window and window.winfo_exists():
+            window.lift()
+            return
+
+        window = tk.Toplevel(self)
+        self.question_report_window = window
+        window.title("Firebase · 1.1.0 Soru Raporlama")
+        window.geometry("1240x790")
+        window.minsize(980, 650)
+        window.configure(bg=BG_MAIN)
+
+        outer = tk.Frame(window, bg=BG_MAIN, padx=18, pady=15)
+        outer.pack(fill="both", expand=True)
+
+        header = tk.Frame(outer, bg=BG_MAIN)
+        header.pack(fill="x", pady=(0, 10))
+        title_box = tk.Frame(header, bg=BG_MAIN)
+        title_box.pack(side="left", fill="x", expand=True)
+        tk.Label(
+            title_box,
+            text="FIREBASE SORU RAPORU",
+            fg=TEXT_LIGHT,
+            bg=BG_MAIN,
+            font=(FONT_FAMILY, 14, "bold"),
+        ).pack(anchor="w")
+        self.question_report_status = tk.Label(
+            title_box,
+            text="Soru sınıflandırmaları yükleniyor…",
+            fg=ORANGE,
+            bg=BG_MAIN,
+            font=(FONT_FAMILY, 9),
+        )
+        self.question_report_status.pack(anchor="w", pady=(2, 0))
+        self.question_report_refresh = tk.Button(
+            header,
+            text="↻ Yenile",
+            command=self._load_firebase_question_report_async,
+            bg=PANEL_INNER,
+            fg=CYAN,
+            activebackground=PANEL_BORDER,
+            relief="flat",
+            cursor="hand2",
+            padx=12,
+            pady=5,
+        )
+        self.question_report_refresh.pack(side="right", padx=(10, 0))
+
+        filter_card = tk.Frame(
+            outer,
+            bg=PANEL_BG,
+            padx=14,
+            pady=11,
+            highlightbackground=PANEL_BORDER,
+            highlightthickness=1,
+        )
+        filter_card.pack(fill="x", pady=(0, 10))
+        tk.Label(
+            filter_card,
+            text="FİLTRELER",
+            fg=MUTED,
+            bg=PANEL_BG,
+            font=(FONT_FAMILY, 8, "bold"),
+        ).pack(anchor="w", pady=(0, 7))
+
+        filter_row = tk.Frame(filter_card, bg=PANEL_BG)
+        filter_row.pack(fill="x")
+        for column in range(3):
+            filter_row.columnconfigure(column, weight=1, uniform="report_filter")
+
+        self.question_report_country_values: Dict[str, str] = {"Tümü": "*"}
+        self.question_report_country_var = tk.StringVar(value="Tümü")
+        self.question_report_category_var = tk.StringVar(value="Tümü")
+        self.question_report_difficulty_var = tk.StringVar(value="Tümü")
+
+        filter_definitions = [
+            ("Ülke / bölge", self.question_report_country_var),
+            ("Zorluk seviyesi", self.question_report_difficulty_var),
+            ("Kategori", self.question_report_category_var),
+        ]
+        self.question_report_combos: Dict[str, ttk.Combobox] = {}
+        for column, (label, variable) in enumerate(filter_definitions):
+            cell = tk.Frame(filter_row, bg=PANEL_BG)
+            cell.grid(row=0, column=column, sticky="ew", padx=(0 if column == 0 else 8, 0))
+            tk.Label(cell, text=label, fg=TEXT_DIM, bg=PANEL_BG, font=(FONT_FAMILY, 9, "bold")).pack(anchor="w", pady=(0, 4))
+            combo = ttk.Combobox(cell, textvariable=variable, state="readonly", values=["Tümü"])
+            combo.pack(fill="x")
+            combo.bind("<<ComboboxSelected>>", self._update_firebase_question_report)
+            self.question_report_combos[label] = combo
+
+        self.question_report_match_count = tk.Label(
+            outer,
+            text="Filtrelere uyan soru: —",
+            fg=CYAN,
+            bg=PANEL_INNER,
+            font=(FONT_FAMILY, 11, "bold"),
+            padx=12,
+            pady=8,
+            anchor="w",
+        )
+        self.question_report_match_count.pack(fill="x", pady=(0, 10))
+
+        ranking_card = tk.Frame(
+            outer,
+            bg=PANEL_BG,
+            padx=12,
+            pady=10,
+            highlightbackground=PANEL_BORDER,
+            highlightthickness=1,
+        )
+        ranking_card.pack(fill="both", expand=True)
+        tk.Label(
+            ranking_card,
+            text="GENEL SIRALAMALAR · 1.1.0 SORULARI",
+            fg=TEXT_LIGHT,
+            bg=PANEL_BG,
+            font=(FONT_FAMILY, 10, "bold"),
+        ).pack(anchor="w", pady=(0, 8))
+
+        rankings = tk.Frame(ranking_card, bg=PANEL_BG)
+        rankings.pack(fill="both", expand=True)
+        for column in range(3):
+            rankings.columnconfigure(column, weight=1, uniform="report_ranking")
+        rankings.rowconfigure(0, weight=1)
+
+        self.question_report_trees: Dict[str, ttk.Treeview] = {}
+        ranking_definitions = [
+            ("categories", "Kategori sıralaması"),
+            ("countries", "Ülke / bölge sıralaması"),
+            ("difficulties", "Zorluk sıralaması"),
+        ]
+        for column, (key, label) in enumerate(ranking_definitions):
+            panel = tk.Frame(rankings, bg=PANEL_BG)
+            panel.grid(row=0, column=column, sticky="nsew", padx=(0 if column == 0 else 7, 0))
+            tk.Label(panel, text=label, fg=TEXT_DIM, bg=PANEL_BG, font=(FONT_FAMILY, 9, "bold")).pack(anchor="w", pady=(0, 5))
+            table_frame = tk.Frame(panel, bg=PANEL_BG)
+            table_frame.pack(fill="both", expand=True)
+            tree = ttk.Treeview(
+                table_frame,
+                columns=("rank", "name", "count", "share"),
+                show="headings",
+                style="External.Treeview",
+                height=17,
+            )
+            for column_id, heading in (("rank", "#"), ("name", "Ad"), ("count", "Soru"), ("share", "%")):
+                tree.heading(column_id, text=heading)
+            tree.column("rank", width=38, minwidth=34, anchor="center", stretch=False)
+            tree.column("name", width=170, minwidth=95, anchor="w")
+            tree.column("count", width=64, minwidth=55, anchor="center", stretch=False)
+            tree.column("share", width=58, minwidth=48, anchor="center", stretch=False)
+            scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
+            tree.configure(yscrollcommand=scrollbar.set)
+            tree.pack(side="left", fill="both", expand=True)
+            scrollbar.pack(side="right", fill="y")
+            self.question_report_trees[key] = tree
+
+        self.question_report_questions: List[Dict[str, Any]] = []
+        self.question_report_country_names: Dict[str, str] = {}
+        self._load_firebase_question_report_async()
+
+    def _load_firebase_question_report_async(self) -> None:
+        if not getattr(self, "question_report_window", None) or not self.question_report_window.winfo_exists():
+            return
+        if getattr(self, "question_report_loading", False):
+            return
+        self.question_report_loading = True
+        self.question_report_refresh.config(state="disabled", text="Yükleniyor…")
+        self.question_report_status.config(text="Firestore soru sınıflandırmaları okunuyor…", fg=ORANGE)
+
+        def worker() -> None:
+            try:
+                report = firebase_question_report()
+                try:
+                    country_profiles = self.manager.repository.countries()
+                    report = canonicalize_question_report_countries(report, country_profiles)
+                    country_names = {"GL": "Global"}
+                    country_names.update({
+                        str(item.get("code") or "").strip().upper(): str(item.get("name") or "").strip()
+                        for item in country_profiles
+                        if item.get("code") and item.get("name")
+                    })
+                except Exception:
+                    country_names = {}
+                self.after(0, lambda: self._render_firebase_question_report(report, country_names, None))
+            except Exception as exc:
+                self.after(0, lambda error=str(exc): self._render_firebase_question_report(None, {}, error))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _render_firebase_question_report(
+        self,
+        report: Optional[Dict[str, Any]],
+        country_names: Dict[str, str],
+        error: Optional[str],
+    ) -> None:
+        self.question_report_loading = False
+        if not getattr(self, "question_report_window", None) or not self.question_report_window.winfo_exists():
+            return
+        self.question_report_refresh.config(state="normal", text="↻ Yenile")
+        if error or not report:
+            self.question_report_status.config(text=f"Rapor yüklenemedi: {error or 'Firestore yanıt vermedi'}", fg=RED)
+            return
+
+        self.question_report_questions = list(report.get("questions") or [])
+        self.question_report_country_names = dict(country_names)
+        for item in self.question_report_questions:
+            code = str(item.get("country_code") or "").strip()
+            name = str(item.get("country_name") or "").strip()
+            if code and name:
+                self.question_report_country_names.setdefault(code, name)
+        self.question_report_status.config(
+            text=f"1.1.0 · {int(report.get('question_count') or len(self.question_report_questions)):,} soru yüklendi · sınıflandırma verisi".replace(",", "."),
+            fg=GREEN,
+        )
+
+        country_codes = set(self.question_report_country_names)
+        country_codes.add("GL")
+        country_codes.update(
+            str(item.get("country_code") or "Bilinmeyen")
+            for item in self.question_report_questions
+        )
+        countries = sorted(
+            country_codes,
+            key=lambda value: (self.question_report_country_names.get(value, value).casefold(), value),
+        )
+        self.question_report_country_values = {"Tümü": "*"}
+        country_labels = ["Tümü"]
+        for code in countries:
+            name = self.question_report_country_names.get(code)
+            label = question_report_country_label(code, name)
+            self.question_report_country_values[label] = code
+            country_labels.append(label)
+
+        categories = sorted(
+            {category for item in self.question_report_questions for category in item.get("categories", [])},
+            key=str.casefold,
+        )
+        difficulties = [
+            level for level in ("Kolay", "Orta", "Zor", "Bilinmiyor")
+            if any(item.get("difficulty") == level for item in self.question_report_questions)
+        ]
+        category_values = ["Tümü", *categories]
+        difficulty_values = ["Tümü", *difficulties]
+
+        for combo in self.question_report_combos.values():
+            current = combo.get()
+            if combo is self.question_report_combos["Ülke / bölge"]:
+                values = country_labels
+            elif combo is self.question_report_combos["Zorluk seviyesi"]:
+                values = difficulty_values
+            else:
+                values = category_values
+            combo.configure(values=values)
+            if current not in values:
+                combo.set("Tümü")
+
+        self._update_firebase_question_report()
+
+    def _update_firebase_question_report(self, _event: Optional[tk.Event] = None) -> None:
+        questions = getattr(self, "question_report_questions", [])
+        country_label = self.question_report_country_var.get() or "Tümü"
+        country = self.question_report_country_values.get(country_label, "*")
+        category = self.question_report_category_var.get() or "Tümü"
+        difficulty = self.question_report_difficulty_var.get() or "Tümü"
+
+        matches = [
+            question for question in questions
+            if (country == "*" or question.get("country_code") == country)
+            and (category == "Tümü" or category in (question.get("categories") or []))
+            and (difficulty == "Tümü" or question.get("difficulty") == difficulty)
+        ]
+        self.question_report_match_count.config(
+            text=f"Filtrelere uyan soru: {len(matches):,} / {len(questions):,}".replace(",", ".")
+        )
+
+        category_counts: Dict[str, int] = {}
+        country_counts: Dict[str, int] = {
+            code: 0 for code in self.question_report_country_names
+        }
+        country_counts.setdefault("GL", 0)
+        difficulty_counts: Dict[str, int] = {}
+        country_names_by_code: Dict[str, str] = dict(self.question_report_country_names)
+        for question in questions:
+            for name in set(question.get("categories") or ["Bilinmeyen"]):
+                category_counts[name] = category_counts.get(name, 0) + 1
+            code = str(question.get("country_code") or "Bilinmeyen")
+            country_counts[code] = country_counts.get(code, 0) + 1
+            source_name = str(question.get("country_name") or "").strip()
+            if source_name and code not in country_names_by_code:
+                country_names_by_code[code] = source_name
+            level = str(question.get("difficulty") or "Bilinmiyor")
+            difficulty_counts[level] = difficulty_counts.get(level, 0) + 1
+
+        self._render_question_report_ranking(
+            self.question_report_trees["categories"], category_counts, sum(category_counts.values())
+        )
+        self._render_question_report_ranking(
+            self.question_report_trees["countries"],
+            country_counts,
+            sum(country_counts.values()),
+            display_names={
+                code: question_report_country_label(code, country_names_by_code.get(code, code))
+                for code in country_counts
+            },
+        )
+        self._render_question_report_ranking(
+            self.question_report_trees["difficulties"], difficulty_counts, sum(difficulty_counts.values())
+        )
+
+    @staticmethod
+    def _render_question_report_ranking(
+        tree: ttk.Treeview,
+        counts: Dict[str, int],
+        denominator: int,
+        display_names: Optional[Dict[str, str]] = None,
+    ) -> None:
+        tree.delete(*tree.get_children())
+        rows = sorted(counts.items(), key=lambda item: (-item[1], (display_names or {}).get(item[0], item[0]).casefold()))
+        for rank, (name, count) in enumerate(rows, start=1):
+            display = (display_names or {}).get(name, name)
+            share = (count / denominator * 100) if denominator else 0
+            tree.insert("", "end", values=(rank, display, f"{count:,}".replace(",", "."), f"{share:.1f}%"))
 
     def _load_firebase_audit_async(self) -> None:
         if not getattr(self, "firebase_audit_window", None) or not self.firebase_audit_window.winfo_exists():
@@ -1401,10 +1957,16 @@ class KnowleyTkinterApp(tk.Tk):
         subcat_count = summary.get("generic_subcategory_count", "—")
         self.algo_stats_lbl.config(text=f"{cat_count} kategori  ·  {country_count} ülke profili  ·  {subcat_count} alt hedef")
 
-        country_names = [c["name"] for c in data.get("countries", [])]
-        self.combo_country.config(values=country_names)
-        if country_names:
-            self.combo_country.current(0)
+        self.country_profile_values = [c["name"] for c in data.get("countries", [])]
+        self.country_local_values = self.manager.repository.local_target_countries(pool="154")
+        if self.var_mode.get() == "country_local":
+            self.combo_country.config(values=self.country_local_values, state="readonly")
+            self.combo_country.set("")
+            self.var_count.set(1)
+        else:
+            self.combo_country.config(values=self.country_profile_values)
+            if self.country_profile_values:
+                self.combo_country.current(0)
 
         self._on_mode_change()
         self._render_providers(data.get("providers", {}))
@@ -1455,28 +2017,47 @@ class KnowleyTkinterApp(tk.Tk):
         for name, item in providers.items():
             live = item.get("live")
             configured = item.get("configured", False)
+            disabled_reason = str(item.get("disabled_reason") or "")
+            cooldown_remaining = int(item.get("cooldown_remaining") or 0)
             reachable = live.get("reachable") if live else None
-            ready = configured and (live is None or reachable)
+            usage = item.get("session_usage") or {}
+            used = int(usage.get("requests", 0) or 0)
+            last_error = str(usage.get("last_error") or "")
+            available_models = live.get("available_models", []) if isinstance(live, dict) else []
 
             if not configured:
                 state_lbl = "PASİF"
                 state_color = MUTED
+            elif disabled_reason:
+                state_lbl = "KOTA DOLU" if "quota" in disabled_reason or "429" in disabled_reason else "ERİŞİM HATASI"
+                state_color = ORANGE if state_lbl == "KOTA DOLU" else RED
+            elif cooldown_remaining > 0:
+                state_lbl = f"BEKLEME {cooldown_remaining}s"
+                state_color = ORANGE
             elif live is None:
                 state_lbl = "KONTROL"
                 state_color = ORANGE
-            elif ready:
-                state_lbl = "HAZIR"
+            elif not reachable or not available_models:
+                state_lbl = "MODEL ERİŞİLEMİYOR"
+                state_color = RED
+            elif last_error:
+                state_lbl = "SON ÇAĞRI HATASI"
+                state_color = RED
+            elif used:
+                state_lbl = "ÜRETİM ÇAĞRISI OK"
                 state_color = GREEN
             else:
-                state_lbl = "ERİŞİLEMİYOR"
-                state_color = RED
+                # /models is only a catalog probe. It does not prove that
+                # generate-content requests have free quota or will succeed.
+                state_lbl = "KATALOG AÇIK"
+                state_color = CYAN
 
             remaining = item.get("remaining_questions")
-            suffix = "kesin kalan" if item.get("remaining_is_exact") else "tahmini kalan"
-            rem_str = f"{remaining:,}".replace(",", ".") if remaining is not None else "—"
-            used = (item.get("session_usage") or {}).get("requests", 0)
+            remaining_is_exact = bool(item.get("remaining_is_exact")) and remaining is not None
+            suffix = "sağlayıcı başlığına göre kalan" if remaining_is_exact else "gerçek kota bilgisi yok"
+            rem_str = f"{remaining:,}".replace(",", ".") if remaining_is_exact else "—"
 
-            models = (live.get("available_models") if isinstance(live, dict) else None) or item.get("models", [])
+            models = available_models or item.get("models", [])
             model_name = models[0] if models else "Model bulunamadı"
 
             card = tk.Frame(self.providers_container, bg=PANEL_INNER, highlightbackground=PANEL_BORDER, highlightthickness=1, padx=10, pady=7)
@@ -1499,35 +2080,90 @@ class KnowleyTkinterApp(tk.Tk):
             tk.Label(metrics, text=f"{used} çağrı", fg=MUTED, bg=PANEL_INNER, font=(FONT_FAMILY, 8)).pack(side="right")
 
             tk.Label(card, text=model_name, fg=MUTED, bg=PANEL_INNER, font=("Consolas", 7)).pack(anchor="w")
+            if live and reachable and not disabled_reason and not cooldown_remaining and not used and not last_error:
+                tk.Label(
+                    card,
+                    text="Model kataloğu açık; gerçek üretim kotası henüz doğrulanmadı.",
+                    fg=TEXT_DIM,
+                    bg=PANEL_INNER,
+                    font=(FONT_FAMILY, 8),
+                ).pack(anchor="w")
+            if disabled_reason:
+                reason = (
+                    "Ücretsiz kota sınırına ulaşıldı; bu uygulama çalışmasında duraklatıldı."
+                    if "quota" in disabled_reason or "429" in disabled_reason
+                    else "Kimlik doğrulama hatası; anahtar ve bölge ayarını kontrol edin."
+                )
+                tk.Label(card, text=reason, fg=state_color, bg=PANEL_INNER, font=(FONT_FAMILY, 8)).pack(anchor="w")
 
     # ----------------------------------------------------
     # İş Başlatma & Durdurma
     # ----------------------------------------------------
 
     def _collect_payload(self) -> Dict[str, Any]:
-        count = self.var_count.get()
+        count = self._get_count_value(default=0)
         if count < 1:
             raise ValueError("Soru adedi en az 1 olmalıdır.")
+
+        mode = self.var_mode.get()
+        custom_mode = self.var_custom_mode.get() if mode == "custom" else None
+        difficulty_counts = {
+            level: self._get_custom_difficulty_count(level)
+            for level in ("Kolay", "Orta", "Zor")
+        } if custom_mode == "difficulty" else {"Kolay": 4, "Orta": 4, "Zor": 2}
+
+        if custom_mode == "equal" and count < 160:
+            raise ValueError("Tüm kategori ve alt kategorilerin eşit dağılması için en az 160 soru girin.")
+        if custom_mode == "difficulty":
+            if count % 10:
+                raise ValueError("Özel zorluk modunda toplam soru sayısı 10'un katı olmalıdır.")
+            if sum(difficulty_counts.values()) != 10:
+                raise ValueError("Kolay, Orta ve Zor adetlerinin toplamı her 10 soru için 10 olmalıdır.")
 
         selected_langs = list(SUPPORTED_LANGUAGE_CODES)
 
         country_enabled = self.var_cp_enabled.get()
         country_val = self.combo_country.get() if country_enabled else None
+        if mode == "country_local":
+            country_enabled = True
+            country_val = self.combo_country.get().strip()
+            if not country_val:
+                raise ValueError("Ülke/bölge yerel hedef modunda ülke/bölge seçmek zorunludur.")
+            minimum_count = self.manager.repository.country_local_target_count(country_val, pool="154")
+            if minimum_count < 1:
+                raise ValueError("Seçilen ülke/bölge için yerel alt hedef bulunamadı.")
+            if count < minimum_count:
+                raise ValueError(
+                    f"{country_val} için en az {minimum_count} soru girin; "
+                    "her yerel alt hedefe en az bir soru ayrılır."
+                )
         if country_enabled and not country_val:
             raise ValueError("Ülke profili etkinleştirildiğinde bir profil seçilmelidir.")
 
         diff_selected = self.combo_difficulty.get()
-        difficulty = self.difficulty_map.get(diff_selected, "")
+        difficulty = self.difficulty_map.get(diff_selected, "") if mode != "custom" else ""
 
         return {
             "question_count": count,
-            "generation_mode": self.var_mode.get(),
+            "generation_mode": mode,
+            "custom_mode": custom_mode,
+            "difficulty_counts_per_10": difficulty_counts,
             "difficulty": difficulty,
+            "scope": "local" if mode == "country_local" else None,
             "country_profile_enabled": country_enabled,
             "country": country_val or "",
             "combo_percent": int(self.scale_combo.get()),
             "languages": selected_langs,
         }
+
+    def _get_custom_difficulty_count(self, level: str) -> int:
+        try:
+            value = self.difficulty_count_vars[level].get()
+        except (ValueError, tk.TclError):
+            raise ValueError(f"{level} adedi 0 ile 10 arasında tam sayı olmalıdır.") from None
+        if value < 0 or value > 10:
+            raise ValueError(f"{level} adedi 0 ile 10 arasında tam sayı olmalıdır.")
+        return int(value)
 
     def _on_start_clicked(self) -> None:
         self.form_error_lbl.config(text="")

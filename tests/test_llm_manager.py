@@ -3,16 +3,23 @@ Knowley Soru Üretim Motoru v1.0.3
 MultiLLMManager Çoklu Sağlayıcı ve Fallback Birim Testleri
 """
 
+import os
 import unittest
 from unittest.mock import Mock, patch
-from core.llm_manager import AllProvidersCoolingDown, MultiLLMManager
+from core.llm_manager import AllProvidersCoolingDown, MultiLLMManager, ProviderCallError
 
 
 class TestMultiLLMManager(unittest.TestCase):
 
     def setUp(self):
         # Birim testleri gerçek anahtar veya ağ erişimi gerektirmemeli.
-        with patch.dict("os.environ", {"NVIDIA_API_KEY": "test-only-placeholder"}):
+        with patch.dict(
+            "os.environ",
+            {
+                "NVIDIA_API_KEY": "test-only-placeholder",
+                "LLM_ALLOWED_PROVIDERS": "nvidia",
+            },
+        ):
             self.manager = MultiLLMManager()
 
     def test_providers_initialized(self):
@@ -21,11 +28,23 @@ class TestMultiLLMManager(unittest.TestCase):
         for p in self.manager.providers:
             self.assertIn(p, ["gemini", "groq", "cohere", "nvidia"])
 
+    def test_default_enables_each_configured_provider_as_fallback(self):
+        keys = {
+            "GEMINI_API_KEY": "test-gemini",
+            "GROQ_API_KEY": "test-groq",
+            "COHERE_API_KEY": "test-cohere",
+            "NVIDIA_API_KEY": "test-nvidia",
+        }
+        with patch.dict("os.environ", keys):
+            os.environ.pop("LLM_ALLOWED_PROVIDERS", None)
+            manager = MultiLLMManager()
+
+        self.assertEqual(manager.providers, ["gemini", "groq", "cohere", "nvidia"])
+
     @patch.object(MultiLLMManager, "_call_nvidia")
     def test_nvidia_provider_is_supported(self, mock_nvidia):
         mock_nvidia.return_value = '{"question": "NVIDIA Question"}'
         self.manager.providers = ["nvidia"]
-        self.manager.current_idx = 0
 
         result = self.manager.generate_trivia("sys", "user")
 
@@ -35,34 +54,25 @@ class TestMultiLLMManager(unittest.TestCase):
     @patch.object(MultiLLMManager, "_call_gemini")
     @patch.object(MultiLLMManager, "_call_groq")
     @patch.object(MultiLLMManager, "_call_cohere")
-    def test_round_robin_rotation(self, mock_cohere, mock_groq, mock_gemini):
-        """Motorlar Round-Robin sıralamasıyla dönüşümlü olarak çağrılmalıdır."""
+    @patch.object(MultiLLMManager, "_call_nvidia")
+    def test_primary_provider_rotates_across_configured_providers(
+        self, mock_nvidia, mock_cohere, mock_groq, mock_gemini
+    ):
+        """Başarılı soru çağrıları etkin sağlayıcılar arasında sırayla dağıtılır."""
         mock_gemini.return_value = '{"question": "Gemini Question"}'
         mock_groq.return_value = '{"question": "Groq Question"}'
         mock_cohere.return_value = '{"question": "Cohere Question"}'
+        mock_nvidia.return_value = '{"question": "NVIDIA Question"}'
 
-        self.manager.providers = ["gemini", "groq", "cohere"]
-        self.manager.current_idx = 0
+        self.manager.providers = ["gemini", "groq", "cohere", "nvidia"]
+        providers = [
+            self.manager.generate_trivia("sys", "user")["_provider"]
+            for _ in range(4)
+        ]
 
-        res1 = self.manager.generate_trivia("sys", "user")
-        self.assertEqual(res1["_provider"], "gemini")
-        self.assertEqual(res1["question"], "Gemini Question")
-        self.assertEqual(self.manager.current_idx, 1)
-
-        res2 = self.manager.generate_trivia("sys", "user")
-        self.assertEqual(res2["_provider"], "groq")
-        self.assertEqual(res2["question"], "Groq Question")
-        self.assertEqual(self.manager.current_idx, 2)
-
-        res3 = self.manager.generate_trivia("sys", "user")
-        self.assertEqual(res3["_provider"], "cohere")
-        self.assertEqual(res3["question"], "Cohere Question")
-        self.assertEqual(self.manager.current_idx, 0)
-
-        # Başa dönme kontrolü
-        res4 = self.manager.generate_trivia("sys", "user")
-        self.assertEqual(res4["_provider"], "gemini")
-        self.assertEqual(self.manager.current_idx, 1)
+        self.assertEqual(providers, ["gemini", "groq", "cohere", "nvidia"])
+        for mock_provider in (mock_gemini, mock_groq, mock_cohere, mock_nvidia):
+            self.assertEqual(mock_provider.call_count, 1)
 
     @patch.object(MultiLLMManager, "_call_gemini")
     @patch.object(MultiLLMManager, "_call_groq")
@@ -72,7 +82,6 @@ class TestMultiLLMManager(unittest.TestCase):
         mock_groq.return_value = '{"question": "Groq Fallback Question"}'
 
         self.manager.providers = ["gemini", "groq"]
-        self.manager.current_idx = 0
 
         res = self.manager.generate_trivia("sys", "user")
         self.assertEqual(res["_provider"], "groq")
@@ -88,7 +97,6 @@ class TestMultiLLMManager(unittest.TestCase):
         mock_cohere.side_effect = Exception("Cohere Error")
 
         self.manager.providers = ["gemini", "groq", "cohere"]
-        self.manager.current_idx = 0
 
         with self.assertRaises(AllProvidersCoolingDown) as ctx:
             self.manager.generate_trivia("sys", "user")
@@ -115,12 +123,23 @@ class TestMultiLLMManager(unittest.TestCase):
 
         self.assertEqual(client.chat.call_count, 1)
 
+    def test_gemini_error_keeps_correct_provider_label(self):
+        client = Mock()
+        client.models.generate_content.side_effect = Exception("invalid model")
+        self.manager.gemini_client = client
+        self.manager.gemini_models = ["test-model"]
+        self.manager.gemini_quota_guard = None
+
+        with self.assertRaises(ProviderCallError) as ctx:
+            self.manager._call_gemini("sys", "user")
+
+        self.assertIn("Gemini provider request failed", str(ctx.exception))
+
     @patch.object(MultiLLMManager, "_call_cohere")
     def test_markdown_code_block_stripping(self, mock_cohere):
         """Markdown kod blokları (```json ... ```) temizlenip geçerli JSON olarak ayrıştırılmalıdır."""
         mock_cohere.return_value = '```json\n{"question": "Cleaned Question"}\n```'
         self.manager.providers = ["cohere"]
-        self.manager.current_idx = 0
 
         res = self.manager.generate_trivia("sys", "user")
         self.assertEqual(res["_provider"], "cohere")

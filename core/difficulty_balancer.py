@@ -18,13 +18,8 @@ SCORE_RANGES: Dict[str, Tuple[int, int]] = {
     "Zor": (9, 10),
 }
 
-# 10'luk Blok Kotası: 4 Kolay (1, 2, 3, 4), 4 Orta (5, 6, 7, 8), 2 Zor (9, 10)
-# Her 10 soruda 1'den 10'a tüm puanlar tam olarak 1'er kez yer alır.
-BASE_DIFFICULTY_QUOTA: List[Tuple[str, int]] = [
-    ("Kolay", 1), ("Kolay", 2), ("Kolay", 3), ("Kolay", 4),
-    ("Orta", 5),  ("Orta", 6),  ("Orta", 7),  ("Orta", 8),
-    ("Zor", 9),   ("Zor", 10),
-]
+DEFAULT_DIFFICULTY_COUNTS_PER_10: Dict[str, int] = {"Kolay": 4, "Orta": 4, "Zor": 2}
+DEFAULT_DIFFICULTY_COUNTS_PER_5: Dict[str, int] = {"Kolay": 2, "Orta": 2, "Zor": 1}
 
 
 @dataclass
@@ -58,26 +53,65 @@ class TargetDifficulty:
 
 
 class DifficultyBalancer:
-    """
-    Her 10 soruluk blokta katı 4 Kolay (1-4), 4 Orta (5-8), 2 Zor (9-10) dağılımı uygulayan
-    ve 1-10 puanlama aralıklarını homojen/eşit dağıtan thread-safe dengeleyici sınıfı.
-    """
+    """Varsayılanda her beş soruda 2 Kolay, 2 Orta, 1 Zor dağıtır."""
 
-    def __init__(self):
+    def __init__(self, difficulty_counts_per_10: Optional[Dict[str, int]] = None):
         self.lock = threading.Lock()
         self.quota_pool: List[Tuple[str, int]] = []
-        self.level_pools: Dict[str, List[int]] = {
-            "Kolay": [],
-            "Orta": [],
-            "Zor": []
-        }
+        self.custom_quota = difficulty_counts_per_10 is not None
+        self.difficulty_counts_per_10 = dict(
+            difficulty_counts_per_10
+            if difficulty_counts_per_10 is not None
+            else DEFAULT_DIFFICULTY_COUNTS_PER_10
+        )
+        if set(self.difficulty_counts_per_10) != set(SCORE_RANGES):
+            raise ValueError("Zorluk kotası Kolay, Orta ve Zor adetlerini içermelidir.")
+        if any(
+            isinstance(count, bool) or not isinstance(count, int) or count < 0
+            for count in self.difficulty_counts_per_10.values()
+        ) or sum(self.difficulty_counts_per_10.values()) != 10:
+            raise ValueError("Her 10 soru için zorluk adetlerinin toplamı 10 olmalıdır.")
+        self.level_pools: Dict[str, List[int]] = {"Kolay": [], "Orta": [], "Zor": []}
         self._refill_quota_pool()
 
     def _refill_quota_pool(self) -> None:
-        """Yeni 10'luk havuz oluşturur ve karıştırır (4K [1,2,3,4] - 4O [5,6,7,8] - 2Z [9,10])."""
-        self.quota_pool = list(BASE_DIFFICULTY_QUOTA)
-        random.shuffle(self.quota_pool)
-        logger.info(f"🔄 [Zorluk Kotası] Yeni 10'luk blok havuzu hazırlandı: {self.get_remaining_summary()}")
+        """Yeni kota bloğu kurar; varsayılan blokta her beşlik tam 2-2-1'dir."""
+        if self.custom_quota:
+            self.quota_pool = []
+            for level, count in self.difficulty_counts_per_10.items():
+                self.quota_pool.extend(
+                    (level, self._draw_score_for_level(level)) for _ in range(count)
+                )
+            random.shuffle(self.quota_pool)
+        else:
+            score_pools: Dict[str, List[int]] = {}
+            for level, (minimum, maximum) in SCORE_RANGES.items():
+                score_pools[level] = list(range(minimum, maximum + 1))
+                random.shuffle(score_pools[level])
+
+            halves: List[List[Tuple[str, int]]] = [[], []]
+            for level, first_half_count in DEFAULT_DIFFICULTY_COUNTS_PER_5.items():
+                for index, score in enumerate(score_pools[level]):
+                    half = 0 if index < first_half_count else 1
+                    halves[half].append((level, score))
+            for half in halves:
+                random.shuffle(half)
+            self.quota_pool = halves[0] + halves[1]
+        logger.info(
+            "[DifficultyBalancer] New block ready (%s): %s",
+            "custom 10-question quota" if self.custom_quota else "two 2-2-1 five-question blocks",
+            self.get_remaining_summary(),
+        )
+
+    def _draw_score_for_level(self, level: str) -> int:
+        if not self.level_pools[level]:
+            self._refill_level_pool(level)
+        return self.level_pools[level].pop(0)
+
+    def return_target(self, target: TargetDifficulty) -> None:
+        """Return a reserved difficulty when generation fails or hits a duplicate."""
+        with self.lock:
+            self.quota_pool.insert(0, (target.level, target.score))
 
     def _refill_level_pool(self, level: str) -> None:
         """Belirli bir seviye için puan havuzunu doldurur ve karıştırır."""

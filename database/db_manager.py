@@ -14,11 +14,16 @@ def init_firebase():
     """Firebase uygulamasını başlatır."""
     if not firebase_admin._apps:
         cred_path = os.getenv("FIREBASE_CREDENTIALS_PATH")
-        if not cred_path or not os.path.exists(cred_path):
-            raise FileNotFoundError(f"Firebase kimlik dosyası bulunamadı: {cred_path}")
-        
+        if cred_path:
+            if not os.path.exists(cred_path):
+                raise FileNotFoundError(f"Firebase kimlik dosyası bulunamadı: {cred_path}")
+            cred = credentials.Certificate(cred_path)
+        else:
+            # Cloud Run/Functions service identities provide Application Default
+            # Credentials; local desktop runs can keep using the JSON file above.
+            cred = credentials.ApplicationDefault()
+
         storage_bucket = os.getenv("FIREBASE_STORAGE_BUCKET", "knowley-1-categories")
-        cred = credentials.Certificate(cred_path)
         firebase_admin.initialize_app(cred, {
             "storageBucket": storage_bucket
         })
