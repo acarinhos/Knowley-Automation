@@ -24,6 +24,17 @@ load_dotenv(ROOT_DIR / ".env")
 
 logger = logging.getLogger("QuestionTranslation")
 
+
+class TranslationIncompleteError(RuntimeError):
+    """Raised when a translation provider still omits required locales."""
+
+    def __init__(self, languages: Sequence[str]):
+        self.languages = tuple(dict.fromkeys(str(language) for language in languages if language))
+        super().__init__(
+            "Required translations are still missing after targeted retries: "
+            + ", ".join(self.languages)
+        )
+
 _LANGUAGE_NAMES = {
     "İngilizce": ("en", "English"),
     "Almanca": ("de-DE", "German"),
@@ -85,6 +96,8 @@ _AZURE_REQUEST_USAGE: deque[tuple[float, int]] = deque()
 _AZURE_USAGE_LOCK = Lock()
 _AZURE_COOLDOWN_UNTIL = 0.0
 _AZURE_DISABLED_REASON = ""
+_AZURE_AUTH_WARNING_EMITTED = False
+_AZURE_WARNING_KEYS: set[str] = set()
 AZURE_LANGUAGE_ALIASES = {
     "de-DE": "de",
     "bn-BD": "bn",
@@ -423,16 +436,27 @@ def azure_translate_localized_batch(
                     )
                     results[source_index][language] = localized
         except Exception as exc:
-            failures.append(f"{','.join(batch_targets)}: {str(exc)[:180]}")
             status_code = getattr(getattr(exc, "response", None), "status_code", None)
+            if status_code:
+                failures.append(f"{','.join(batch_targets)}: HTTP {status_code}")
+            else:
+                failures.append(f"{','.join(batch_targets)}: {type(exc).__name__}")
             if status_code in {401, 403}:
                 # Stop retrying after authentication/authorization failures.
+                global _AZURE_AUTH_WARNING_EMITTED
                 with _AZURE_USAGE_LOCK:
                     _AZURE_COOLDOWN_UNTIL = float("inf")
                     _AZURE_DISABLED_REASON = (
-                        "authentication failed (HTTP 401)"
+                        "authentication failed (HTTP 401); check the translator key and resource region"
                         if status_code == 401
-                        else "forbidden or quota limit (HTTP 403)"
+                        else "forbidden or quota limit (HTTP 403); check the translator resource and quota"
+                    )
+                    should_warn = not _AZURE_AUTH_WARNING_EMITTED
+                    _AZURE_AUTH_WARNING_EMITTED = True
+                if should_warn:
+                    logger.warning(
+                        "Azure Translator authentication failed (HTTP %s); skipping Azure for the rest of this run and using the configured LLM fallback.",
+                        status_code,
                     )
             for failed_languages in failed_by_source:
                 failed_languages.extend(batch_targets)
@@ -606,7 +630,7 @@ def _llm_translate(
             missing.append(lang)
             continue
         if source["clarified_options"] and any(
-            not normalized["clarified_options"][letter] for letter in "ABCD"
+            not (normalized["clarified_options"] or {}).get(letter) for letter in "ABCD"
         ):
             missing.append(lang)
             continue
@@ -711,7 +735,7 @@ def _llm_translate_batch(
                 missing_by_source[index].append(lang)
                 continue
             if source["clarified_options"] and any(
-                not normalized["clarified_options"][letter] for letter in "ABCD"
+                not (normalized["clarified_options"] or {}).get(letter) for letter in "ABCD"
             ):
                 missing_by_source[index].append(lang)
                 continue
@@ -784,10 +808,10 @@ def _llm_translate_with_cooldown(
     target_languages: Sequence[str],
     llm_manager: Any,
 ) -> Tuple[Dict[str, Dict[str, Any]], str, list[str]]:
-    """Wait for a configured provider cooldown instead of failing a whole record immediately."""
+    """Use at most one short retry interactively; let the worker handle long waits."""
     guarded_backfill = os.getenv("GEMINI_QUOTA_GUARD", "").strip().casefold() in {"1", "true", "yes", "on"}
     attempt = 0
-    while guarded_backfill or attempt < 6:
+    while guarded_backfill or attempt < 2:
         try:
             return _llm_translate(
                 source_content,
@@ -800,10 +824,10 @@ def _llm_translate_with_cooldown(
             if (
                 retry_after is None
                 or guarded_backfill and not getattr(exc, "quota_limited", False)
-                or not guarded_backfill and attempt >= 5
+                or not guarded_backfill and (attempt >= 1 or int(retry_after) > 2)
             ):
                 raise
-            delay = max(1, int(retry_after)) if guarded_backfill else min(300, max(1, int(retry_after)))
+            delay = max(1, int(retry_after)) if guarded_backfill else min(2, max(1, int(retry_after)))
             logger.warning(
                 "LLM quota/cooldown active; retrying translation in %ds (attempt %d)",
                 delay,
@@ -917,7 +941,7 @@ def translate_localized_content(
     *,
     llm_manager: Any = None,
     prefer_azure: bool = True,
-    llm_batch_size: int = 5,
+    llm_batch_size: int = 4,
 ) -> Tuple[Dict[str, Dict[str, Any]], str]:
     """Translate with Azure first by default, or use the existing LLM path directly."""
     source_language = str(source_language or "en")
@@ -953,13 +977,19 @@ def translate_localized_content(
         azure_detail = str(azure_error or "").strip() or (
             "Azure returned no usable translation for " + ", ".join(azure_failed_targets)
         )
-        logger.warning(
-            "Azure translation unavailable for %d language(s) [%s]; "
-            "falling back to the existing LLM translator: %s",
-            len(azure_failed_targets),
-            ", ".join(azure_failed_targets),
-            azure_detail[:240],
-        )
+        with _AZURE_USAGE_LOCK:
+            auth_disabled = _AZURE_COOLDOWN_UNTIL == float("inf")
+            status_match = re.search(r"HTTP (\d{3})", azure_detail)
+            warning_key = f"http-{status_match.group(1)}" if status_match else "translation-unavailable"
+            should_warn = not auth_disabled and warning_key not in _AZURE_WARNING_KEYS
+            if should_warn:
+                _AZURE_WARNING_KEYS.add(warning_key)
+        if should_warn:
+            logger.warning(
+                "Azure çevirisi %d dil için kullanılamıyor (%s); etkin LLM sağlayıcısına düşülüyor.",
+                len(azure_failed_targets),
+                warning_key,
+            )
 
     if llm_manager is None:
         from core.llm_manager import get_llm_manager
@@ -989,22 +1019,36 @@ def translate_localized_content(
             if provider not in fallback_providers:
                 fallback_providers.append(provider)
             if missing_languages:
-                logger.warning(
+                logger.info(
                     "LLM omitted %d language(s) from a batch; retrying only: %s",
                     len(missing_languages),
                     ", ".join(missing_languages),
                 )
             languages_to_retry = missing_languages
 
-        for language in languages_to_retry:
-            retry_result, retry_provider, still_missing = _llm_translate_with_cooldown(
-                source, source_language, [language], llm_manager
-            )
-            if still_missing or language not in retry_result:
-                raise ValueError(f"LLM fallback did not produce {language}")
-            result.update(retry_result)
-            if retry_provider not in fallback_providers:
-                fallback_providers.append(retry_provider)
+        pending_languages = list(dict.fromkeys(languages_to_retry))
+        if not pending_languages:
+            continue
+        repair_batch_sizes = list(dict.fromkeys(
+            size for size in (len(pending_languages), min(3, len(pending_languages)), 1)
+            if size > 0
+        ))
+        for repair_batch_size in repair_batch_sizes:
+            next_pending: list[str] = []
+            for retry_start in range(0, len(pending_languages), repair_batch_size):
+                repair_languages = pending_languages[retry_start : retry_start + repair_batch_size]
+                retry_result, retry_provider, still_missing = _llm_translate_with_cooldown(
+                    source, source_language, repair_languages, llm_manager
+                )
+                result.update(retry_result)
+                if retry_provider not in fallback_providers:
+                    fallback_providers.append(retry_provider)
+                next_pending.extend(still_missing)
+            pending_languages = list(dict.fromkeys(next_pending))
+            if not pending_languages:
+                break
+        if pending_languages:
+            raise TranslationIncompleteError(pending_languages)
     if azure_result:
         fallback_providers.insert(0, "AZURE_TRANSLATOR")
     return result, "+".join(fallback_providers)
