@@ -27,3 +27,5 @@ except Exception:
 (`logging` must be imported in the target file.) Adds a "SAT Üretimi" button; it opens the panel in its own window. The run is a detached subprocess
 (`python -m sat_engine`), so it survives closing the main app. Writes need "Firebase'e kaydet" + confirmation;
 the write flag is set only in the child's environment.
+
+The panel also has a read-only "Firebase Raporu" button (day/week/month counts, breakdowns, latest questions; JSON export to `sat_engine/output/sat_report.json`); CLI: `python -m sat_engine --report [--json]`.

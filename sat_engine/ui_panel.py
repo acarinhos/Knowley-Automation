@@ -4,6 +4,7 @@ from __future__ import annotations
 import csv
 import json
 import os
+import queue
 import random
 import subprocess
 import sys
@@ -204,6 +205,8 @@ class SatPanel(ttk.Frame):
                                   font=(FONT, 9, "bold"), padx=10, pady=5, state="disabled")
         self.stop_btn.pack(side="left", padx=(0, 8))
         tk.Button(bar, text="Çıktı klasörünü aç", command=self.open_out, bg="#161b34", fg=CYAN, relief="flat",
+                  font=(FONT, 9, "bold"), padx=10, pady=5).pack(side="left", padx=(0, 8))
+        tk.Button(bar, text="Firebase Raporu", command=lambda: ReportWindow(self), bg="#161b34", fg=GREEN, relief="flat",
                   font=(FONT, 9, "bold"), padx=10, pady=5).pack(side="left")
         self.pb = ttk.Progressbar(f, maximum=100)
         self.pb.pack(fill="x")
@@ -361,6 +364,156 @@ class SatPanel(ttk.Frame):
             self._job = self.after(2000, self._tick)
         except tk.TclError:
             pass
+
+
+REPORT_JSON = OUT / "sat_report.json"
+CARDS = (("Toplam", "total", CYAN), ("Bugün", "today", GREEN), ("7 gün", "last_7_days", GREEN), ("30 gün", "last_30_days", ORANGE),
+         ("Tüm zamanlar", "all_time", CYAN))
+GROUPS = (("by_section", "Bölüm"), ("by_domain", "Alan"), ("by_skill", "Konu"), ("by_difficulty", "Zorluk"), ("by_answer_type", "Tür"),
+          ("by_has_visual", "Görsel"), ("by_module", "Modül"), ("key_letters", "Anahtar harfi (mcq)"), ("active_passive", "Aktif/pasif"),
+          ("by_status", "Durum"), ("by_verified", "Doğrulama"), ("by_provider", "Sağlayıcı"), ("by_model", "Model"), ("by_session", "Oturum"))
+
+
+def friendly_error(e):
+    t = f"{type(e).__name__}: {str(e)[:160]}"
+    if "redential" in t or "No such file" in t or "Errno 2" in t or "FileNotFound" in t or "Certificate" in t or "IsADirectory" in t:
+        return "Firebase kimlik bilgileri bulunamadı (FIREBASE_CREDENTIALS_PATH)."
+    if any(w in t for w in ("Unavailable", "DeadlineExceeded", "ConnectionError", "socket", "timed out", "Timeout")):
+        return "Firebase'e ulaşılamadı (çevrimdışı olabilir)."
+    return "Rapor alınamadı: " + t
+
+
+class ReportWindow(tk.Toplevel):
+    """Read-only 'Firebase Raporu': the fetch runs on a worker thread, results come back through a queue polled with after()."""
+
+    def __init__(self, parent, fetch=None):
+        super().__init__(parent)
+        self.title("Firebase Raporu - SAT")
+        self.geometry("980x680")
+        self.configure(bg=BG)
+        self.fetch, self.q, self.report, self._job, self._busy = fetch, queue.Queue(), None, None, False
+        self.status = tk.StringVar()
+        st = ttk.Style(self)
+        st.configure("Sat.Treeview", background="#0a0e22", fieldbackground="#0a0e22", foreground=TXT, rowheight=22, font=(FONT, 9))
+        st.configure("Sat.Treeview.Heading", background="#161b34", foreground=CYAN, font=(FONT, 9, "bold"))
+        st.map("Sat.Treeview", background=[("selected", "#23294c")])
+        top = tk.Frame(self, bg=BG, padx=12, pady=10)
+        top.pack(fill="x")
+        self.cards = {}
+        for lbl, key, col in CARDS:
+            c = tk.Frame(top, bg=PANEL, padx=14, pady=8, highlightbackground="#23294c", highlightthickness=1)
+            c.pack(side="left", padx=(0, 8))
+            tk.Label(c, text=lbl.upper(), bg=PANEL, fg=MUTED, font=(FONT, 8, "bold")).pack(anchor="w")
+            self.cards[key] = tk.Label(c, text="-", bg=PANEL, fg=col, font=(FONT, 18, "bold"))
+            self.cards[key].pack(anchor="w")
+        for text, cmd in (("JSON olarak kaydet", self.export), ("Yenile", self.refresh)):
+            tk.Button(top, text=text, command=cmd, bg="#161b34", fg=CYAN, relief="flat", font=(FONT, 9, "bold"), padx=10, pady=5).pack(side="right", padx=(8, 0))
+        tk.Label(self, textvariable=self.status, bg=BG, fg=ORANGE, font=(FONT, 9), anchor="w", padx=12).pack(fill="x")
+        nb = ttk.Notebook(self)
+        nb.pack(fill="both", expand=True, padx=12, pady=8)
+        self.t_time = self._table(nb, "Günlük / Haftalık / Aylık", ("Dönem", "Adet"))
+        self.t_cat = self._table(nb, "Bölüm / Alan / Konu", ("Kategori", "Değer", "Adet"))
+        self.t_diff = self._table(nb, "Zorluk / Tür", ("Kategori", "Değer", "Adet"))
+        self.t_last = self._table(nb, "Son eklenenler", ("Zaman", "Bölüm", "Alan / Konu", "Zorluk", "Soru"))
+        self.refresh()
+        self._job = self.after(150, self._poll)
+
+    def _table(self, nb, title, cols):
+        f = tk.Frame(nb, bg=BG)
+        nb.add(f, text=title)
+        t = ttk.Treeview(f, columns=cols, show="headings", style="Sat.Treeview")
+        for c in cols:
+            t.heading(c, text=c)
+            t.column(c, width=420 if c in ("Soru", "Değer") else 120, anchor="w")
+        sb = ttk.Scrollbar(f, orient="vertical", command=t.yview)
+        t.configure(yscrollcommand=sb.set)
+        sb.pack(side="right", fill="y")
+        t.pack(fill="both", expand=True)
+        return t
+
+    def refresh(self):
+        if self._busy:
+            return
+        self._busy = True
+        self.status.set("Yükleniyor…")
+
+        def work():
+            try:
+                from .report import build_report, fetch_docs
+                self.q.put(("ok", build_report((self.fetch or fetch_docs)())))
+            except Exception as e:  # noqa: BLE001
+                self.q.put(("err", friendly_error(e)))
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _poll(self):
+        self._job = None
+        try:
+            if not self.winfo_exists():
+                return
+            while True:
+                try:
+                    kind, val = self.q.get_nowait()
+                except queue.Empty:
+                    break
+                self._busy = False
+                if kind == "ok":
+                    try:
+                        self.show(val)
+                    except tk.TclError:
+                        raise
+                    except Exception as e:  # noqa: BLE001
+                        self.status.set(f"Rapor gösterilemedi: {friendly_error(e)}")
+                else:
+                    self.status.set(val)
+        except tk.TclError:
+            return
+        try:
+            if self.winfo_exists():
+                self._job = self.after(150, self._poll)
+        except tk.TclError:
+            pass
+
+    def show(self, r):
+        self.report = r
+        c = dict(r["counts"], total=r["total"])
+        for k, l in self.cards.items():
+            l.config(text=str(c[k]))
+        msg = ("Not: " + r["note"] + "  ") if r.get("note") else ""
+        msg += "Koleksiyon boş." if not r["total"] else ""
+        msg += f"Tarihsiz kayıt: {c['unknown_date']}" if c["unknown_date"] else ""
+        self.status.set(msg)
+        for t in (self.t_time, self.t_cat, self.t_diff, self.t_last):
+            t.delete(*t.get_children())
+        for lbl, key in (("Bugün", "today"), ("Son 7 gün", "last_7_days"), ("Son 30 gün", "last_30_days"), ("Tüm zamanlar", "all_time"),
+                         ("Tarihsiz", "unknown_date")):
+            self.t_time.insert("", "end", values=(lbl, c[key]))
+        self.t_time.insert("", "end", values=("-- günlük (30 gün) --", ""))
+        for day, n in reversed(list(r["per_day_30"].items())):
+            self.t_time.insert("", "end", values=(day, n))
+        for key, title in GROUPS:
+            tgt = self.t_cat if key in ("by_section", "by_domain", "by_skill") else self.t_diff
+            for k, v in (r.get(key) or {}).items():
+                tgt.insert("", "end", values=(title, k, v))
+        for x in r["latest"]:
+            self.t_last.insert("", "end", values=(x["created"], x["section"], f"{x['domain']} / {x['skill']}", x["difficulty"], x["stem"]))
+
+    def export(self):
+        if not self.report:
+            messagebox.showinfo("Firebase Raporu", "Önce rapor yüklenmeli.", parent=self)
+            return
+        OUT.mkdir(parents=True, exist_ok=True)
+        REPORT_JSON.write_text(json.dumps(self.report, ensure_ascii=False, indent=1), encoding="utf-8")
+        self.status.set(f"Kaydedildi: {REPORT_JSON}")
+
+    def destroy(self):
+        if self._job:
+            try:
+                self.after_cancel(self._job)
+            except tk.TclError:
+                pass
+            self._job = None
+        super().destroy()
 
 
 def install(app, bar=None):
