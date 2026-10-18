@@ -56,9 +56,19 @@ def load_prefs(path=None):
     """{'order': [...], 'enabled': [...], 'models': {...}}; {} if missing/corrupt. No secrets are ever stored."""
     try:
         d = json.loads(Path(path or PREFS).read_text(encoding="utf-8"))
-        return d if isinstance(d, dict) else {}
     except (OSError, ValueError):
         return {}
+    if not isinstance(d, dict):
+        return {}
+    out = {}
+    for k in ("order", "enabled"):
+        v = d.get(k)
+        if isinstance(v, list) and all(isinstance(x, str) and x in llm.KNOWN for x in v):
+            out[k] = v
+    m = d.get("models")
+    if isinstance(m, dict) and all(isinstance(a, str) and isinstance(b, str) for a, b in m.items()):
+        out["models"] = m
+    return out
 
 
 def save_prefs(prefs, path=None):
@@ -213,7 +223,7 @@ class SatPanel(ttk.Frame):
         self.defaults = {p: llm.model_for(p) for p in llm.KNOWN}
         saved = [p for p in pr.get("order") or [] if p in llm.KNOWN]
         self.order = saved + [p for p in llm.KNOWN if p not in saved]
-        self.enabled = {p: tk.BooleanVar(value=p in (pr.get("enabled") or self.avail + ["claude"])) for p in llm.KNOWN}
+        self.enabled = {p: tk.BooleanVar(value=p in (pr["enabled"] if "enabled" in pr else self.avail)) for p in llm.KNOWN}
         self.models = {p: tk.StringVar(value=(pr.get("models") or {}).get(p) or self.defaults[p]) for p in llm.KNOWN}
         self._claude = None  # filled by the probe thread (claude_ready() runs a subprocess)
         self._claude_shown = False
@@ -283,7 +293,7 @@ class SatPanel(ttk.Frame):
         for i, p in enumerate(shown):
             r = tk.Frame(self.pf, bg=PANEL)
             r.pack(fill="x")
-            ttk.Checkbutton(r, text=p, variable=self.enabled[p], width=9).pack(side="left")
+            ttk.Checkbutton(r, text=p, variable=self.enabled[p], width=9, command=self._render_prov).pack(side="left")
             ttk.Entry(r, textvariable=self.models[p], width=38).pack(side="left", padx=4)
             for t, d in (("▲", -1), ("▼", 1)):
                 tk.Button(r, text=t, command=lambda p=p, d=d: self._move(p, d), bg="#161b34", fg=CYAN, relief="flat", width=2).pack(side="left", padx=1)
@@ -291,6 +301,8 @@ class SatPanel(ttk.Frame):
             self.health[p].pack(side="left", padx=6)
         tk.Button(self.pf, text="Varsayılana dön", command=self._reset_prov, bg="#161b34", fg=CYAN, relief="flat",
                   font=(FONT, 9)).pack(anchor="w", pady=(4, 0))
+        if sum(self.enabled[p].get() for p in shown) == 1:
+            tk.Label(self.pf, text="Tek sağlayıcı: hakem üreticiyle aynı olacak", bg=PANEL, fg=ORANGE, font=(FONT, 9)).pack(anchor="w")
         if not shown:
             tk.Label(self.pf, text="API anahtarı olan sağlayıcı yok.", bg=PANEL, fg=RED, font=(FONT, 9)).pack(anchor="w")
 
@@ -315,6 +327,10 @@ class SatPanel(ttk.Frame):
             sel = selection(self._shown(), {p for p in llm.KNOWN if self.enabled[p].get()}, {p: v.get() for p, v in self.models.items()}, self.defaults)
         except ValueError as e:
             messagebox.showerror("SAT", str(e), parent=self)
+            return None
+        bad = [f"{p}: {v.get().strip()}" for p, v in self.models.items() if v.get().strip() and not llm.valid_model(v.get().strip())]
+        if bad:
+            messagebox.showerror("SAT", "Geçersiz model adı (yalnızca harf/rakam/._:/@+-, '-' ile başlamaz): " + ", ".join(bad), parent=self)
             return None
         save_prefs({"order": self.order, "enabled": [p for p in llm.KNOWN if self.enabled[p].get()],
                     "models": {p: v.get().strip() for p, v in self.models.items() if v.get().strip() != self.defaults[p]}})

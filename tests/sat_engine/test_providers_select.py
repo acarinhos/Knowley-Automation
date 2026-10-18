@@ -78,3 +78,33 @@ def test_selection_and_prefs(tmp_path):
     f.write_text("{bad")
     assert u.load_prefs(f) == {}
     assert u.provider_health({"providers": {"groq": {"cooldown_s": 5, "n429": 2}}}, "groq").startswith("bekleme 5s")
+
+
+def test_model_name_validation(keys):
+    for bad in ("gemini=--flag", "gemini=a b", "gemini=a;rm", "gemini=-x"):
+        with pytest.raises(ValueError):
+            llm.parse_models(bad)
+    with pytest.raises(SystemExit):
+        cli.main(["--seed", "1", "--models", "gemini=--evil"])
+
+
+def test_empty_providers_is_error_not_all(monkeypatch):
+    from sat_engine.pipeline import balance
+    with pytest.raises(ValueError, match="boş"):
+        llm._run("p", None, None, [], False, lambda t: t)
+    with pytest.raises(ValueError, match="claude dışında"):
+        balance.rewrite_distractors(SimpleNamespace(), ["claude"])
+    q, why = balance.fix_length(SimpleNamespace(), None, ["claude"])
+    assert q is None and "claude dışında" in why
+
+
+def test_load_prefs_drops_corrupt_parts(tmp_path):
+    f = tmp_path / "p.json"
+    f.write_text('{"order": ["gemini", 3], "enabled": "x", "models": {"groq": 5}}', encoding="utf-8")
+    assert u.load_prefs(f) == {}
+    f.write_text('{"order": ["groq"], "enabled": [], "models": {"groq": "m"}}', encoding="utf-8")
+    assert u.load_prefs(f) == {"order": ["groq"], "enabled": [], "models": {"groq": "m"}}
+    f.write_text('{"enabled": ["nope"]}', encoding="utf-8")
+    assert u.load_prefs(f) == {}
+    f.write_text("[1]", encoding="utf-8")
+    assert u.load_prefs(f) == {}
