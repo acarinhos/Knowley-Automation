@@ -14,9 +14,12 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox, scrolledtext, ttk
 
+from . import llm
+
 ROOT = Path(__file__).resolve().parent.parent
 OUT = Path(__file__).resolve().parent / "output"
 PROGRESS, CONSOLE, CONSOLE_ERR, PIDFILE = (OUT / n for n in ("progress.json", "console.log", "console.err", "ui_run.pid"))
+PREFS = OUT / "ui_prefs.json"
 WRITE_FLAG = "KNOWLEY_GENERATION_WRITES_ENABLED"
 COLLECTION = "generated_sat_questions"
 TARGETS = {"rw": 54, "math": 44}
@@ -31,7 +34,7 @@ def session_id(seed, section):
     return f"seed{seed}-{'-'.join(('rw', 'math') if section == 'both' else (section,))}"
 
 
-def build_command(section="both", seed=None, workers=10, save=False, limit=None, extra=()):
+def build_command(section="both", seed=None, workers=10, save=False, limit=None, extra=(), providers=None, models=None):
     """extra=('--audit',) etc. builds a utility command; otherwise a generation run."""
     cmd = [sys.executable, "-u", "-m", "sat_engine", *extra, "--section", section]
     if not extra:
@@ -40,9 +43,46 @@ def build_command(section="both", seed=None, workers=10, save=False, limit=None,
             cmd += ["--limit", str(limit)]
         if save:
             cmd.append("--save")
+        if providers:
+            cmd += ["--providers", ",".join(providers)]
+        if models:
+            cmd += ["--models", ",".join(f"{k}={v}" for k, v in models.items())]
     if seed is not None:
         cmd += ["--seed", str(seed)]
     return cmd
+
+
+def load_prefs(path=None):
+    """{'order': [...], 'enabled': [...], 'models': {...}}; {} if missing/corrupt. No secrets are ever stored."""
+    try:
+        d = json.loads(Path(path or PREFS).read_text(encoding="utf-8"))
+        return d if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def save_prefs(prefs, path=None):
+    p = Path(path or PREFS)
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(prefs, ensure_ascii=False, indent=1), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def selection(order, enabled, models, defaults):
+    """-> (providers in order, {provider: model} for models that differ from the default). ValueError if nothing is selected."""
+    prov = [p for p in order if p in enabled]
+    if not prov:
+        raise ValueError("En az bir sağlayıcı seçin.")
+    return prov, {p: m.strip() for p in prov if (m := models.get(p, "").strip()) and m.strip() != defaults.get(p)}
+
+
+def provider_health(d, name):
+    v = ((d or {}).get("providers") or {}).get(name) or {}
+    if v.get("cooldown_s"):
+        return f"bekleme {v['cooldown_s']}s (429x{v.get('n429', 0)})"
+    return f"429x{v['n429']}" if v.get("n429") else ""
 
 
 def build_env(save=False, confirmed=False, base=None):
@@ -168,6 +208,16 @@ class SatPanel(ttk.Frame):
         self.dry = tk.BooleanVar(value=True)
         self.save = tk.BooleanVar(value=False)
         self.status = tk.StringVar(value="Hazır")
+        pr = load_prefs()
+        self.avail = [p for p in llm.DEFAULT_ORDER if llm.provider_available(p)]
+        self.defaults = {p: llm.model_for(p) for p in llm.KNOWN}
+        saved = [p for p in pr.get("order") or [] if p in llm.KNOWN]
+        self.order = saved + [p for p in llm.KNOWN if p not in saved]
+        self.enabled = {p: tk.BooleanVar(value=p in (pr.get("enabled") or self.avail + ["claude"])) for p in llm.KNOWN}
+        self.models = {p: tk.StringVar(value=(pr.get("models") or {}).get(p) or self.defaults[p]) for p in llm.KNOWN}
+        self._claude = None  # filled by the probe thread (claude_ready() runs a subprocess)
+        self._claude_shown = False
+        self.health = {}
         self._build()
         self._probe()
         self._job = self.after(500, self._tick)
@@ -193,6 +243,9 @@ class SatPanel(ttk.Frame):
         self.resume.pack(anchor="w", pady=(6, 0))
         ttk.Checkbutton(f, text="Sadece deneme (dry-run)", variable=self.dry, command=lambda: self.dry.get() and self.save.set(False)).pack(anchor="w")
         ttk.Checkbutton(f, text="Firebase'e kaydet", variable=self.save, command=lambda: self.save.get() and self.dry.set(False)).pack(anchor="w")
+        self.pf = tk.LabelFrame(f, text=" Modeller / Sağlayıcılar ", bg=PANEL, fg=CYAN, font=(FONT, 9, "bold"), padx=8, pady=4)
+        self.pf.pack(fill="x", pady=(8, 0))
+        self._render_prov()
         bar = tk.Frame(f, bg=PANEL)
         bar.pack(fill="x", pady=8)
         self.btns = []
@@ -219,6 +272,54 @@ class SatPanel(ttk.Frame):
         for v in (self.seed, self.section):
             v.trace_add("write", lambda *a: self._hint())
 
+    def _shown(self):
+        return [p for p in self.order if p in self.avail or (p == "claude" and self._claude)]
+
+    def _render_prov(self):
+        for w in self.pf.winfo_children():
+            w.destroy()
+        self.health = {}
+        shown = self._shown()
+        for i, p in enumerate(shown):
+            r = tk.Frame(self.pf, bg=PANEL)
+            r.pack(fill="x")
+            ttk.Checkbutton(r, text=p, variable=self.enabled[p], width=9).pack(side="left")
+            ttk.Entry(r, textvariable=self.models[p], width=38).pack(side="left", padx=4)
+            for t, d in (("▲", -1), ("▼", 1)):
+                tk.Button(r, text=t, command=lambda p=p, d=d: self._move(p, d), bg="#161b34", fg=CYAN, relief="flat", width=2).pack(side="left", padx=1)
+            self.health[p] = tk.Label(r, text="", bg=PANEL, fg=ORANGE, font=(FONT, 9))
+            self.health[p].pack(side="left", padx=6)
+        tk.Button(self.pf, text="Varsayılana dön", command=self._reset_prov, bg="#161b34", fg=CYAN, relief="flat",
+                  font=(FONT, 9)).pack(anchor="w", pady=(4, 0))
+        if not shown:
+            tk.Label(self.pf, text="API anahtarı olan sağlayıcı yok.", bg=PANEL, fg=RED, font=(FONT, 9)).pack(anchor="w")
+
+    def _move(self, p, d):
+        sh = self._shown()
+        j = sh.index(p) + d
+        if 0 <= j < len(sh):
+            a, b = self.order.index(p), self.order.index(sh[j])
+            self.order[a], self.order[b] = self.order[b], self.order[a]
+            self._render_prov()
+
+    def _reset_prov(self):
+        self.order = list(llm.KNOWN)
+        for p in llm.KNOWN:
+            self.enabled[p].set(p in self.avail)
+            self.models[p].set(self.defaults[p])
+        self._render_prov()
+
+    def _providers(self):
+        """-> (providers, models) or None after a friendly error; remembers the choice."""
+        try:
+            sel = selection(self._shown(), {p for p in llm.KNOWN if self.enabled[p].get()}, {p: v.get() for p, v in self.models.items()}, self.defaults)
+        except ValueError as e:
+            messagebox.showerror("SAT", str(e), parent=self)
+            return None
+        save_prefs({"order": self.order, "enabled": [p for p in llm.KNOWN if self.enabled[p].get()],
+                    "models": {p: v.get().strip() for p, v in self.models.items() if v.get().strip() != self.defaults[p]}})
+        return sel
+
     def _args(self):
         try:
             return parse_args(self.section.get(), self.seed.get(), self.workers.get(), self.limit.get())
@@ -237,6 +338,8 @@ class SatPanel(ttk.Frame):
                 pid = read_pid()
                 self._ext_pid = pid if pid is not None and _pid_alive(pid) else None
                 self._ext = self._ext_pid is not None or (pid is None and is_running())
+                if self._claude is None:
+                    self._claude = llm.claude_ready()
             finally:
                 self._probe_busy = False
 
@@ -270,6 +373,9 @@ class SatPanel(ttk.Frame):
         if not a or self._busy():
             return
         sec, seed, w, lim = a
+        sel = self._providers()
+        if not sel:
+            return
         seed = random.randint(1, 999999) if seed is None else seed
         save = bool(self.save.get()) and not self.dry.get()
         if save:
@@ -277,7 +383,7 @@ class SatPanel(ttk.Frame):
             if not messagebox.askyesno("Firebase'e kaydet", f"{n} '{COLLECTION}' koleksiyonuna YAZILACAK. Devam edilsin mi?", parent=self):
                 return
         self.seed.set(str(seed))
-        self._spawn(build_command(sec, seed, w, save, lim), build_env(save, save))
+        self._spawn(build_command(sec, seed, w, save, lim, providers=sel[0], models=sel[1]), build_env(save, save))
 
     def _util(self, flag):
         a = self._args()
@@ -334,7 +440,13 @@ class SatPanel(ttk.Frame):
             if not self.winfo_exists():
                 return
             self._probe()
-            p = parse_progress(load_progress())
+            d = load_progress()
+            p = parse_progress(d)
+            if self._claude and not self._claude_shown:
+                self._claude_shown = True
+                self._render_prov()
+            for n, l in self.health.items():
+                l.config(text=provider_health(d, n))
             self.pb["value"] = p["percent"]
             for k, l in self.lbl.items():
                 l.config(text=p[k] + (f"  (geçen {p['elapsed']})" if k == "eta" else ""))
