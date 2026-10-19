@@ -65,7 +65,7 @@ class PlanTests(unittest.TestCase):
         return data
 
     def test_legacy_document_gets_every_final_change(self):
-        update = plan_character_update(self.legacy(), self.expected)
+        update = plan_character_update(self.legacy(), self.expected, keep_remote=False)
         self.assertEqual(update["rarity"], DELETE)
         self.assertIs(update["is_active"], True)
         self.assertEqual(update["unlock_threshold"], 50)
@@ -86,10 +86,10 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(urls, {l: f"https://storage.googleapis.com/b/characters/avatars/abc/{l}.png" for l in ("lvl1", "lvl2", "lvl3")})
 
     def test_post_write_verification_checks_avatar_urls(self):
-        self.assertTrue(is_final_document(self.expected, self.expected))
-        self.assertFalse(is_final_document({**self.expected, "avatar_urls": {}}, self.expected))
-        self.assertFalse(is_final_document({**self.expected, "avatar_url": default_avatar_url()}, self.expected))
-        self.assertFalse(is_final_document({**self.expected, "rarity": "x"}, self.expected))
+        self.assertTrue(is_final_document(self.expected, self.expected, keep_remote=False))
+        self.assertFalse(is_final_document({**self.expected, "avatar_urls": {}}, self.expected, keep_remote=False))
+        self.assertFalse(is_final_document({**self.expected, "avatar_url": default_avatar_url()}, self.expected, keep_remote=False))
+        self.assertFalse(is_final_document({**self.expected, "rarity": "x"}, self.expected, keep_remote=False))
 
 
 class CatalogueConsistencyTests(unittest.TestCase):

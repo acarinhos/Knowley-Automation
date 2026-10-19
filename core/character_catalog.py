@@ -20,6 +20,19 @@ DEFAULT_BUCKET = "knowley-1-categories"
 DEFAULT_AVATAR_PATH = "characters/default_robot.png"
 UNLOCK_THRESHOLD = 50
 LEVEL_THRESHOLDS = {"lvl1": 50, "lvl2": 100, "lvl3": 200}  # category points needed for each skill level
+DAILY_RESET_HOUR_LOCAL = 10  # skills refill every day at 10:00 DEVICE-LOCAL time (any timezone, 12h/24h display)
+
+
+def reset_day_key(local_now: Any, reset_hour: int = DAILY_RESET_HOUR_LOCAL) -> str:
+    """YYYY-MM-DD key of the daily-use window: (device-local now - reset_hour hours).date().
+
+    Compare it with users/{uid}/characters/{id}.last_reset_date; when different, daily_uses restart at 0 and the
+    key is stored. Example: 09:59 on Mar 5 -> "03-04" window, 10:00 on Mar 5 -> "03-05" window."""
+    from datetime import timedelta
+
+    return (local_now - timedelta(hours=int(reset_hour))).date().isoformat()
+
+
 # Where the player's points for a character's category live (all-time total per category name).
 POINTS_SOURCE = "users/{uid}.categoryTotalScores.{category_name}"
 
@@ -88,6 +101,7 @@ class CharacterDocument(BaseModel):
     avatar_urls: Optional[dict[str, str]] = None
     unlock_threshold: Optional[int] = None
     level_thresholds: dict[str, int] = Field(default_factory=dict)
+    daily_reset_hour_local: int = Field(default=DAILY_RESET_HOUR_LOCAL, ge=0, le=23)
     is_active: bool = True
     translations: dict[str, dict[str, str]]
     skills: list[CharacterSkill]

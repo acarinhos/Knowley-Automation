@@ -17,7 +17,8 @@ PLAYER_READS = [
     "characters/{character_id}.level_thresholds",
     # level_from_points: <50 locked, 50-99 lvl1, 100-199 lvl2, >=200 lvl3 (derived, never stored)
     "users/{uid}/characters/{character_id}.daily_uses.slot_{skill_slot}",
-    "users/{uid}/characters/{character_id}.last_reset_date",
+    "users/{uid}/characters/{character_id}.last_reset_date",  # compare with reset_day_key
+    "characters/{character_id}.daily_reset_hour_local",  # 10: reset_day_key = (device-local now - 10h).date(); daily_uses reset when it differs from last_reset_date
     "users/{uid}/characters/{character_id}.is_equipped",
     "characters/{character_id}.skills[{skill_slot}].daily_limits.lvl{level_from_points}",
     "characters/{character_id}.skills[{skill_slot}].cooldown_questions",

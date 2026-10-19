@@ -25,7 +25,7 @@ def build_tables(catalog: dict[str, Any]) -> dict[str, tuple[list[str], list[lis
         "character_id", "schema_version", "character_type", "region_code", "category_id",
         "category_name", "sub_category_id", "sub_category_name", "name", "title_en", "role_en",
         "avatar_url", "unlock_threshold", "level_thresholds_json", "is_active", "source_sheet", "source_row",
-        "scope_basis", "display_order", "question_mix",
+        "scope_basis", "question_mix",
     ]
     character_rows = []
     locale_headers = ["character_id", "locale", "name", "title", "role", "translation_source", "source_sheet", "source_row"]
@@ -47,7 +47,7 @@ def build_tables(catalog: dict[str, Any]) -> dict[str, tuple[list[str], list[lis
             character["category_id"], character["category_name"], character["sub_category_id"],
             character["sub_category_name"], character["name"], character["title"], character["role"],
             character["avatar_url"], character["unlock_threshold"], json_cell(character["level_thresholds"]), character["is_active"],
-            source["sheet"], source["row"], source["scope_basis"], source.get("display_order"), None,
+            source["sheet"], source["row"], source["scope_basis"], None,
         ])
         for locale in CHARACTER_LOCALES:
             localized = character["translations"][locale]
@@ -148,7 +148,7 @@ def build_tables(catalog: dict[str, Any]) -> dict[str, tuple[list[str], list[lis
         ["level_from_points", "rule", "derived", "App/server", "points < 50 locked; 50-99 lvl1; 100-199 lvl2; >= 200 lvl3 (characters.level_thresholds / unlock_threshold). Not stored."],
         ["(no users/{uid}/characters documents are created by the catalogue)", "-", "-", "App", "The app creates the fields below on demand."],
         ["daily_uses", "map", "{slot_1:0,slot_2:0,slot_3:0}", "Server transaction", "Reset by date; enforce slot-specific daily_limits from the character skill."],
-        ["last_reset_date", "YYYY-MM-DD", "empty until initialized", "Server clock", "Pick and document one reset timezone; do not trust client clock."],
+        ["last_reset_date", "YYYY-MM-DD", "empty until initialized", "Device local clock", "reset_day_key = (device-local now - characters.daily_reset_hour_local hours).date(); different from last_reset_date -> daily_uses reset to 0 and key stored. Default 10:00 device-local, any timezone, 12h/24h irrelevant."],
         ["is_equipped", "boolean", False, "Server transaction", "Enforce one equipped character per category if that is the game rule."],
         ["schema_version", "string", CHARACTER_SCHEMA_VERSION, "Application", "Progression document contract version."],
     ]

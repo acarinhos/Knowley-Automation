@@ -66,12 +66,23 @@ def merge_skills(current: List[Mapping[str, Any]], expected: List[Mapping[str, A
     return result
 
 
-def plan_character_update(current: Mapping[str, Any], expected: Mapping[str, Any]) -> Dict[str, Any]:
-    """Changed top-level fields only; DELETE marks a field to remove. {} when the document is already final."""
+REMOTE_OWNED = ("avatar_url", "avatar_urls", "schema_version")  # other sessions may have moved these forward
+
+
+def plan_character_update(current: Mapping[str, Any], expected: Mapping[str, Any], keep_remote: bool = True) -> Dict[str, Any]:
+    """Changed fields only; DELETE marks a field to remove. {} when the document is already final.
+
+    SAFETY: with `keep_remote` (default) avatar_url, avatar_urls and schema_version are never overwritten once
+    Firestore has a value; pass --overwrite-remote to force the catalogue values."""
     update: Dict[str, Any] = {}
-    for field in ("name", "title", "role", "avatar_url", "avatar_urls", "unlock_threshold", "level_thresholds", "schema_version"):
+    for field in ("name", "title", "role", "avatar_url", "avatar_urls", "unlock_threshold", "level_thresholds",
+                  "daily_reset_hour_local", "schema_version"):
+        if keep_remote and field in REMOTE_OWNED and current.get(field) not in (None, "", {}):
+            continue
         if current.get(field) != expected[field]:
             update[field] = expected[field]
+    if isinstance(current.get("source"), Mapping) and "display_order" in current["source"]:
+        update["source.display_order"] = DELETE
     if current.get("is_active") is not True:
         update["is_active"] = True
     translations = migrate_translations(current.get("translations") or {}, expected["translations"])
@@ -85,14 +96,12 @@ def plan_character_update(current: Mapping[str, Any], expected: Mapping[str, Any
     return update
 
 
-def is_final_document(after: Mapping[str, Any], expected: Mapping[str, Any]) -> bool:
+def is_final_document(after: Mapping[str, Any], expected: Mapping[str, Any], keep_remote: bool = True) -> bool:
     """Post-write verification of the fields this script is responsible for."""
-    return (
-        after.get("is_active") is True
-        and "rarity" not in after
-        and after.get("avatar_url") == expected["avatar_url"]
-        and after.get("avatar_urls") == expected["avatar_urls"]
-    )
+    basics = after.get("is_active") is True and "rarity" not in after and after.get("daily_reset_hour_local") == 10
+    if keep_remote:
+        return bool(basics and after.get("avatar_url"))
+    return bool(basics and after.get("avatar_url") == expected["avatar_url"] and after.get("avatar_urls") == expected["avatar_urls"])
 
 
 def summarize(update: Mapping[str, Any]) -> List[str]:
@@ -128,6 +137,8 @@ def main() -> int:
     parser.add_argument("--upload-avatar", action="store_true")
     parser.add_argument("--delete-orphans", action="store_true")
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--overwrite-remote", action="store_true",
+                        help="Also overwrite avatar_url / avatar_urls / schema_version that Firestore already has (default: keep).")
     args = parser.parse_args()
     if args.apply and args.project_id != "knowley-1":
         parser.error("--apply requires --project-id knowley-1")
@@ -162,7 +173,7 @@ def main() -> int:
             unchanged += 1
         else:
             current = snap.to_dict() or {}
-            update = plan_character_update(current, expected)
+            update = plan_character_update(current, expected, keep_remote=not args.overwrite_remote)
             if update:
                 updates.append((doc_id, update, current))
             else:
@@ -229,7 +240,7 @@ def main() -> int:
         if state != "written":
             continue
         after = db.collection("characters").document(doc_id).get().to_dict() or {}
-        if is_final_document(after, catalogue[doc_id]):
+        if is_final_document(after, catalogue[doc_id], keep_remote=not args.overwrite_remote):
             verified += 1
         else:
             bad += 1

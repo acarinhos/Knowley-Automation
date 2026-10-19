@@ -14,7 +14,7 @@ LOCALIZED = ROOT / "data" / "global_character_locales.json"
 OUTPUT = ROOT / "data" / "global_character_catalog.json"
 ALIASES = ROOT / "data" / "global_character_aliases.json"
 from core.character_catalog import (  # noqa: E402
-    CHARACTER_LOCALES, CHARACTER_SCHEMA_VERSION, LEVEL_THRESHOLDS, UNLOCK_THRESHOLD, level_avatar_urls,
+    CHARACTER_LOCALES, CHARACTER_SCHEMA_VERSION, DAILY_RESET_HOUR_LOCAL, LEVEL_THRESHOLDS, UNLOCK_THRESHOLD, level_avatar_urls,
 )
 from core.translation_service import canonical_language_code  # noqa: E402
 
@@ -429,6 +429,7 @@ def main() -> int:
             "avatar_urls": level_avatar_urls(raw_id),
             "unlock_threshold": UNLOCK_THRESHOLD,
             "level_thresholds": dict(LEVEL_THRESHOLDS),
+            "daily_reset_hour_local": DAILY_RESET_HOUR_LOCAL,
             "is_active": True,
             "translations": translations,
             "skills": skills,
@@ -437,7 +438,6 @@ def main() -> int:
                 "sheet": row.get("source_sheet"),
                 "row": row.get("source_row"),
                 "scope_basis": row.get("scope_basis"),
-                "display_order": row.get("display_order"),
                 "source_category_name": category,
                 "source_subcategory_name": subcategory,
                 "taxonomy_status": "source_sheet_taxonomy",
