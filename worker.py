@@ -175,6 +175,9 @@ def save_worker_question(db: Any, question_obj: GeneratedQuestion) -> bool:
             return False
 
         q_dict["question_hash"] = q_hash
+        from core.category_ids import apply_category_ids
+
+        apply_category_ids(q_dict)  # category_ids / sub_category_ids parallel to the names
         from core.community_distribution import apply_simulated_distribution
 
         apply_simulated_distribution(q_hash, q_dict)  # simulated until real votes exist

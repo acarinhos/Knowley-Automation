@@ -10,7 +10,7 @@ Per existing document (ids never change; users/* is never touched):
   (the short key wins on duplicates, extra fields are kept); `rarity` deleted; is_active=true; avatar_url/avatar_urls (per-level);
   unlock_threshold=50; level_thresholds; schema_version.
 Missing catalogue characters are created (with created_at). --delete-orphans removes documents that are not in the
-catalogue (backed up first; refused while users/*/characters references them). Nothing else is deleted.
+catalogue (backed up first; refused while users/*/characterProgress references them). Nothing else is deleted.
 """
 
 from __future__ import annotations
@@ -181,7 +181,7 @@ def main() -> int:
     orphan_ids = sorted(set(existing) - set(catalogue)) if args.delete_orphans else []
     referenced = set()
     if orphan_ids:
-        referenced = {s.id for s in db.collection_group("characters").stream() if s.reference.path.startswith("users/")} & set(orphan_ids)
+        referenced = {s.id for s in db.collection_group("characterProgress").stream() if s.reference.path.startswith("users/")} & set(orphan_ids)
     fields: Dict[str, int] = {}
     for _id, update, _cur in updates:
         for field in update:
@@ -228,7 +228,7 @@ def main() -> int:
         PROGRESS_FILE.write_text(json.dumps(sorted(done_now)), encoding="utf-8")
     for orphan in orphan_ids:
         if orphan in referenced:
-            states[orphan] = "skipped: referenced under users/*/characters"
+            states[orphan] = "skipped: referenced under users/*/characterProgress"
         else:
             db.collection("characters").document(orphan).delete()
             states[orphan] = "deleted (backed up)"

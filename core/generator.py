@@ -26,6 +26,7 @@ try:
     SERVER_TIMESTAMP = firestore.SERVER_TIMESTAMP
 except Exception:
     SERVER_TIMESTAMP = None
+from core.category_ids import category_ids_for
 from core.llm_manager import AllProvidersCoolingDown, MultiLLMManager
 from core.translation_service import (
     COUNTRY_LANGUAGE_CODES,
@@ -123,6 +124,8 @@ class GeneratedQuestion(BaseModel):
     categories_meta: List[CategoryMeta] = Field(default_factory=list, description="Kategori meta bilgileri (isim ve renk)")
     sub_categories: List[str] = Field(default_factory=list, description="Alt dallar")
     sub_categories_meta: List[SubCategoryMeta] = Field(default_factory=list, description="Alt kategori meta bilgileri (isim ve görsel URL)")
+    category_ids: List[str] = Field(default_factory=list, description="categories ile aynı sırada kategori kimlikleri (slug); sunucu hesaplar")
+    sub_category_ids: List[str] = Field(default_factory=list, description="sub_categories ile aynı sırada alt kategori kimlikleri (slug); sunucu hesaplar")
     question_image_url: Optional[str] = Field(default=None, description="Soruya özel görsel URL'si; görsel yoksa null")
     is_visual_question: bool = Field(default=False, description="Soru cevaplanırken görsel zorunlu mu")
     question_image_search_query: Optional[str] = Field(
@@ -1060,6 +1063,7 @@ def generate_question_with_fallback(
     )
 
     q = populate_question_meta(q, primary_category)
+    q.category_ids, q.sub_category_ids = category_ids_for(q.categories, q.sub_categories)  # additive fields, schema version unchanged
     if balance_options:
         from core.option_balancer import get_option_balancer
         b = balancer or get_option_balancer()

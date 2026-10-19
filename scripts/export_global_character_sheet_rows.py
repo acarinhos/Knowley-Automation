@@ -146,7 +146,7 @@ def build_tables(catalog: dict[str, Any]) -> dict[str, tuple[list[str], list[lis
     progression_rows = [
         ["points_source", "users/{uid}.categoryTotalScores.{category_name}", "read-only", "Question scoring", "All-time points the player earned from question scores in the character's category."],
         ["level_from_points", "rule", "derived", "App/server", "points < 50 locked; 50-99 lvl1; 100-199 lvl2; >= 200 lvl3 (characters.level_thresholds / unlock_threshold). Not stored."],
-        ["(no users/{uid}/characters documents are created by the catalogue)", "-", "-", "App", "The app creates the fields below on demand."],
+        ["(no users/{uid}/characterProgress documents are created by the catalogue)", "-", "-", "App", "The app creates the fields below on demand."],
         ["daily_uses", "map", "{slot_1:0,slot_2:0,slot_3:0}", "Server transaction", "Reset by date; enforce slot-specific daily_limits from the character skill."],
         ["last_reset_date", "YYYY-MM-DD", "empty until initialized", "Device local clock", "reset_day_key = (device-local now - characters.daily_reset_hour_local hours).date(); different from last_reset_date -> daily_uses reset to 0 and key stored. Default 10:00 device-local, any timezone, 12h/24h irrelevant."],
         ["is_equipped", "boolean", False, "Server transaction", "Enforce one equipped character per category if that is the game rule."],

@@ -26,7 +26,7 @@ DAILY_RESET_HOUR_LOCAL = 10  # skills refill every day at 10:00 DEVICE-LOCAL tim
 def reset_day_key(local_now: Any, reset_hour: int = DAILY_RESET_HOUR_LOCAL) -> str:
     """YYYY-MM-DD key of the daily-use window: (device-local now - reset_hour hours).date().
 
-    Compare it with users/{uid}/characters/{id}.last_reset_date; when different, daily_uses restart at 0 and the
+    Compare it with users/{uid}/characterProgress/{characterId}.last_reset_date; when different, daily_uses restart at 0 and the
     key is stored. Example: 09:59 on Mar 5 -> "03-04" window, 10:00 on Mar 5 -> "03-05" window."""
     from datetime import timedelta
 
@@ -172,7 +172,7 @@ def get_global_characters(
 
 
 def user_character_progression_template() -> dict[str, Any]:
-    """Documentation of users/{uid}/characters/{character_id} only. The catalogue never creates these documents:
+    """Documentation of users/{uid}/characterProgress/{characterId} only. The catalogue never creates these documents:
     the app creates them on demand; unlock and level come from category points (see level_from_points)."""
     return {
         "is_unlocked": False,
