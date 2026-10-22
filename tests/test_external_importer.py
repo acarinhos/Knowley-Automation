@@ -88,7 +88,7 @@ class ExternalImporterTests(unittest.TestCase):
 
     def test_full_schema_translation_uses_all_supported_languages(self):
         class TranslationManager:
-            def generate_trivia(self, _system, _prompt, response_schema=None):
+            def generate_trivia(self, _system, _prompt, response_schema=None, **_kw):
                 # Answer exactly the languages the importer asked for (scope/country are chosen by the planner).
                 languages = response_schema["properties"]["translations"]["properties"]
                 return {

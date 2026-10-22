@@ -56,7 +56,7 @@ class BackfillPureTests(unittest.TestCase):
         class LLM:
             calls = 0
 
-            def generate_trivia(self, system, prompt, response_schema=None):
+            def generate_trivia(self, system, prompt, response_schema=None, **_kw):
                 LLM.calls += 1
                 return {"hint": "new hint", "weakest_distractor_index": 1, "strongest_distractor_index": 3, "option_difficulty_order": [1, 0, 2, 3]}
 

@@ -16,7 +16,7 @@ class FakeLLM:
     def __init__(self, drop):
         self.drop = drop
 
-    def generate_trivia(self, system, prompt, response_schema=None):
+    def generate_trivia(self, system, prompt, response_schema=None, **_kw):
         partial = {k: v for k, v in FULL.items() if k != self.drop}
         return {"_provider": "fake", "translations": {"bn-BD": dict(FULL), "da-DK": partial}}
 
