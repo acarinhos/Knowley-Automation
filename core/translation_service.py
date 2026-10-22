@@ -139,8 +139,13 @@ def _env_int(name: str, default: int) -> int:
 
 
 def _llm_batch_size(explicit: Optional[int] = None) -> int:
-    """Languages per LLM translation call (env TRANSLATION_LLM_BATCH_SIZE, default 10)."""
-    return max(1, int(explicit)) if explicit else _env_int("TRANSLATION_LLM_BATCH_SIZE", 10)
+    """Languages per LLM translation call (env TRANSLATION_LLM_BATCH_SIZE, default 8)."""
+    return max(1, int(explicit)) if explicit else _env_int("TRANSLATION_LLM_BATCH_SIZE", 8)
+
+
+def _translation_max_tokens(languages: int, items: int = 1) -> int:
+    """Output-token budget for one translation call (env TRANSLATION_TOKENS_PER_LANGUAGE, default 450)."""
+    return min(16000, max(4096, languages * items * _env_int("TRANSLATION_TOKENS_PER_LANGUAGE", 450)))
 
 
 def _llm_workers() -> int:
@@ -544,6 +549,9 @@ def _generate_translation_response(
             "You are a precise trivia localization engine. Return valid JSON only.",
             prompt,
             response_schema=dict(response_schema),
+            max_output_tokens=_translation_max_tokens(
+                len(target_languages), len(item_ids) if item_ids else 1
+            ),
         )
         if isinstance(data, Mapping):
             provider = str(data.get("_provider") or "LLM").upper()
@@ -951,8 +959,13 @@ def translate_localized_content(
     llm_manager: Any = None,
     prefer_azure: bool = True,
     llm_batch_size: Optional[int] = None,
+    azure_cache: Optional[Dict[str, Any]] = None,
 ) -> Tuple[Dict[str, Dict[str, Any]], str]:
-    """Translate with Azure first by default, or use the existing LLM path directly."""
+    """Translate with Azure first by default, or use the existing LLM path directly.
+
+    ``azure_cache`` lets a caller's retry reuse a completed Azure stage (no second
+    Azure call/budget wait); only the languages Azure failed go to the LLM.
+    """
     source_language = str(source_language or "en")
     targets = list(dict.fromkeys(str(lang) for lang in target_languages if str(lang)))
     if not targets:
@@ -967,9 +980,14 @@ def translate_localized_content(
 
     if prefer_azure:
         try:
-            azure_result, azure_failed_targets, azure_error = _azure_translate(
-                source, source_language, other_targets
-            )
+            if azure_cache is not None and "azure" in azure_cache:
+                azure_result, azure_failed_targets, azure_error = azure_cache["azure"]
+            else:
+                azure_result, azure_failed_targets, azure_error = _azure_translate(
+                    source, source_language, other_targets
+                )
+                if azure_cache is not None:
+                    azure_cache["azure"] = (azure_result, azure_failed_targets, azure_error)
             result.update(azure_result)
             if not azure_failed_targets:
                 return result, "AZURE_TRANSLATOR"
@@ -1079,9 +1097,10 @@ def translate_localized_content(
                     future.cancel()
                 raise
     # Merge in batch order so the result does not depend on thread timing.
-    for group_result, group_providers, pending_languages in outcomes:
-        if pending_languages:
-            raise TranslationIncompleteError(pending_languages)
+    all_pending = list(dict.fromkeys(lang for _r, _p, pending in outcomes for lang in pending))
+    if all_pending:
+        raise TranslationIncompleteError(all_pending)
+    for group_result, group_providers, _pending in outcomes:
         result.update(group_result)
         for name in group_providers:
             if name not in fallback_providers:

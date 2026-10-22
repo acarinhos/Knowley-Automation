@@ -35,7 +35,7 @@ class TranslationBatchingTests(unittest.TestCase):
                 SOURCE, "en", LANGS, llm_manager=Mock(), prefer_azure=False
             )
 
-    def test_default_batch_size_10_and_deterministic_order(self):
+    def test_default_batch_size_8_and_deterministic_order(self):
         seen = []
 
         def fake(source, sl, langs, manager):
@@ -45,9 +45,9 @@ class TranslationBatchingTests(unittest.TestCase):
             return {lang: {"question": lang} for lang in langs}, f"P{langs[0]}", []
 
         result, provider = self.run_translate(fake)
-        self.assertEqual(sorted(len(b) for b in seen), [5, 10, 10])
+        self.assertEqual(sorted(len(b) for b in seen), [1, 8, 8, 8])
         self.assertEqual(list(result), ["en"] + LANGS[1:])
-        self.assertEqual(provider, "Pl00+Pl10+Pl20")
+        self.assertEqual(provider, "Pl00+Pl08+Pl16+Pl24")
 
     def test_batches_run_concurrently_and_workers_env(self):
         active = {"now": 0, "max": 0}
@@ -86,21 +86,14 @@ class TranslationBatchingTests(unittest.TestCase):
 
 
 class SourceReuseTests(unittest.TestCase):
-    def test_translation_failure_does_not_regenerate_source(self):
+    def _run_stage(self, translate_fn, env=None):
         manager = Mock()
         manager.generate_trivia.return_value = {"_provider": "gemini"}
         candidate = MagicMock()
         candidate.translations = {"en": MagicMock(model_dump=lambda: dict(SOURCE))}
-        calls = {"n": 0}
 
         class Stop(Exception):
             pass
-
-        def flaky_translate(*args, **kwargs):
-            calls["n"] += 1
-            if calls["n"] < 3:
-                raise RuntimeError("translation hiccup")
-            return {"en": SOURCE}, "P"
 
         planner = MagicMock()
         planner.create_plan.return_value = SimpleNamespace(
@@ -111,7 +104,9 @@ class SourceReuseTests(unittest.TestCase):
         repo = MagicMock()
         repo.country_code.return_value = "XX"
         repo.question_languages.return_value = ["en"]
-        with patch.object(generator, "translate_localized_content", side_effect=flaky_translate), \
+        with patch.dict(os.environ, env or {}), \
+             patch.object(generator.time, "sleep") as sleep, \
+             patch.object(generator, "translate_localized_content", side_effect=translate_fn), \
              patch.object(generator, "normalize_generated_payload", side_effect=lambda d, t: d), \
              patch.object(generator.GeneratedQuestion, "model_validate", return_value=candidate), \
              patch.object(generator.LocalizedContent, "model_validate", side_effect=lambda c: c), \
@@ -126,14 +121,54 @@ class SourceReuseTests(unittest.TestCase):
                     generation_planner=planner, difficulty_balancer=balancer,
                     balance_options=False, base_difficulty="Orta", target_score=5,
                 )
+        return manager, sleep
+
+    def test_translation_failure_does_not_regenerate_source(self):
+        calls = {"n": 0}
+
+        def flaky_translate(*args, **kwargs):
+            calls["n"] += 1
+            if calls["n"] < 3:
+                raise RuntimeError("translation hiccup")
+            return {"en": SOURCE}, "P"
+
+        manager, sleep = self._run_stage(flaky_translate, {"TRANSLATION_STAGE_ATTEMPTS": "3"})
         self.assertEqual(calls["n"], 3)
+        self.assertEqual(manager.generate_trivia.call_count, 1)
+        self.assertEqual(sleep.call_count, 2)
+        self.assertTrue(all(0.5 <= c.args[0] <= 1.0 for c in sleep.call_args_list))
+
+    def test_retry_reuses_azure_stage_and_no_extra_source_calls(self):
+        import core.translation_service as ts
+
+        azure_calls, llm_calls = [], []
+
+        def fake_azure(source, source_language, langs):
+            azure_calls.append(list(langs))
+            return {"l1": {"question": "az"}}, ["l2"], "partial"
+
+        def fake_llm(source, source_language, langs, manager):
+            llm_calls.append(list(langs))
+            if len(llm_calls) == 1:
+                raise ValueError("boom")
+            return {lang: {"question": lang} for lang in langs}, "P", []
+
+        def real_translate(content, sl, langs, **kw):
+            return ts.translate_localized_content(content, sl, ["en", "l1", "l2"], llm_manager=Mock(), **{
+                k: v for k, v in kw.items() if k == "azure_cache"})
+
+        with patch.object(ts, "_azure_translate", side_effect=fake_azure), \
+             patch.object(ts, "_llm_translate_with_cooldown", side_effect=fake_llm):
+            manager, _ = self._run_stage(real_translate)
+        self.assertEqual(azure_calls, [["l1", "l2"]])  # Azure once for the language set
+        self.assertEqual(llm_calls, [["l2"], ["l2"]])  # only the failed language retried
         self.assertEqual(manager.generate_trivia.call_count, 1)
 
     def test_stage_attempts_env(self):
         with patch.dict(os.environ, {"TRANSLATION_STAGE_ATTEMPTS": "5"}):
             self.assertEqual(generator._translation_stage_attempts(), 5)
         with patch.dict(os.environ, {"TRANSLATION_STAGE_ATTEMPTS": "x"}):
-            self.assertEqual(generator._translation_stage_attempts(), 3)
+            self.assertEqual(generator._translation_stage_attempts(), 2)
 
 
 class ProviderHealthTests(unittest.TestCase):
@@ -211,6 +246,87 @@ class ProviderHealthTests(unittest.TestCase):
             self.assertEqual(groq.call_args.kwargs["timeout"], 7.0)
             self.assertEqual(co.call_args.kwargs["timeout"], 9.0)
             self.assertEqual(ge.call_args.kwargs["http_options"]["timeout"], 5000)
+
+
+class TranslationIncompleteTests(unittest.TestCase):
+    def test_error_reports_missing_languages_from_all_batches(self):
+        from core.translation_service import TranslationIncompleteError
+
+        def fake(source, sl, langs, manager):
+            miss = [l for l in langs if l in ("l00", "l09")]  # first and second batch
+            return {l: {"question": l} for l in langs if l not in miss}, "P", miss
+
+        with patch("core.translation_service._llm_translate_with_cooldown", side_effect=fake):
+            with self.assertRaises(TranslationIncompleteError) as ctx:
+                translate_localized_content(SOURCE, "en", LANGS, llm_manager=Mock(), prefer_azure=False)
+        self.assertEqual(sorted(ctx.exception.languages), ["l00", "l09"])
+
+    def test_default_batch_size_and_max_tokens(self):
+        from core.translation_service import _llm_batch_size, _translation_max_tokens
+
+        self.assertEqual(_llm_batch_size(), 8)
+        self.assertGreaterEqual(_translation_max_tokens(8), 4096)
+        self.assertGreater(_translation_max_tokens(30), _translation_max_tokens(8))
+        with patch.dict(os.environ, {"TRANSLATION_TOKENS_PER_LANGUAGE": "1000"}):
+            self.assertEqual(_translation_max_tokens(8), 8000)
+
+
+class Concurrent429Tests(unittest.TestCase):
+    def make(self):
+        with patch.dict(os.environ, {"NVIDIA_API_KEY": "t", "LLM_ALLOWED_PROVIDERS": "nvidia"}):
+            m = MultiLLMManager()
+        m.providers = ["groq", "cohere"]
+        m._health_ordered_providers = lambda: ["groq", "cohere"]
+        return m
+
+    @staticmethod
+    def err429():
+        e = requests.HTTPError("429")
+        e.status_code = 429
+        return e
+
+    def test_concurrent_429s_count_as_one(self):
+        m = self.make()
+        barrier = threading.Barrier(5)
+
+        def slow_429(*a, **k):
+            barrier.wait(timeout=5)  # all workers are in flight before any fails
+            raise self.err429()
+
+        with patch.object(MultiLLMManager, "_call_groq", side_effect=slow_429), \
+             patch.object(MultiLLMManager, "_call_cohere", return_value='{"ok": 1}'):
+            threads = [threading.Thread(target=lambda: m.generate_trivia("s", "u")) for _ in range(5)]
+            [t.start() for t in threads]
+            [t.join() for t in threads]
+        self.assertEqual(m._provider_429_count.get("groq"), 1)
+        self.assertNotIn("groq", m._provider_disabled_reason)
+
+    def test_sequential_429s_still_disable(self):
+        m = self.make()
+        with patch.object(MultiLLMManager, "_call_groq", side_effect=self.err429()), \
+             patch.object(MultiLLMManager, "_call_cohere", return_value='{"ok": 1}'):
+            m.generate_trivia("s", "u")
+            m._provider_cooldown_until["groq"] = 0.0  # cooldown expired
+            m.generate_trivia("s", "u")
+        self.assertIn("groq", m._provider_disabled_reason)
+
+    def test_translation_max_tokens_forwarded_only_when_set(self):
+        m = self.make()
+        with patch.object(MultiLLMManager, "_call_groq", return_value='{"ok": 1}') as g:
+            m.generate_trivia("s", "u")
+            m.generate_trivia("s", "u", max_output_tokens=5000)
+        self.assertEqual(g.call_args_list[0].kwargs, {})
+        self.assertEqual(g.call_args_list[1].kwargs, {"max_output_tokens": 5000})
+
+    def test_nvidia_timeout_default_30(self):
+        m = self.make()
+        m.nvidia_models, m.nvidia_base_url, m.nvidia_key = ["m"], "http://x", "k"
+        resp = MagicMock()
+        resp.json.return_value = {"choices": [{"message": {"content": "{}"}}]}
+        with patch("core.llm_manager.requests.post", return_value=resp) as post:
+            m._call_nvidia("s", "u", max_output_tokens=7000)
+        self.assertEqual(post.call_args.kwargs["timeout"], 30.0)
+        self.assertEqual(post.call_args.kwargs["json"]["max_tokens"], 7000)
 
 
 if __name__ == "__main__":

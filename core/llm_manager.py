@@ -518,7 +518,7 @@ class MultiLLMManager:
         text = re.sub(r"(?i)\bBearer\s+[^\s,;]+", "Bearer [redacted]", text)
         return text[:300]
 
-    def _call_groq(self, system_prompt: str, user_prompt: str) -> str:
+    def _call_groq(self, system_prompt: str, user_prompt: str, max_output_tokens: Optional[int] = None) -> str:
         last_error: Optional[Exception] = None
         for model_name in self.groq_models:
             try:
@@ -532,7 +532,7 @@ class MultiLLMManager:
                     # Free/on-demand Groq hesaplarında istem + azami çıktı
                     # birlikte TPM limitine sayılır. 2048 bu projenin uzun
                     # istemiyle 8000'i az farkla aşıyordu.
-                    "max_tokens": _int_env("GROQ_MAX_OUTPUT_TOKENS", 1800),
+                    "max_tokens": max_output_tokens or _int_env("GROQ_MAX_OUTPUT_TOKENS", 1800),
                     "temperature": 0.7,
                 }
                 headers: Dict[str, Any] = {}
@@ -574,7 +574,7 @@ class MultiLLMManager:
             raise ProviderCallError("Groq", last_error) from last_error
         raise RuntimeError("Groq modellerinin hiçbirine erişilemedi.")
 
-    def _call_cohere(self, system_prompt: str, user_prompt: str) -> str:
+    def _call_cohere(self, system_prompt: str, user_prompt: str, max_output_tokens: Optional[int] = None) -> str:
         last_error: Optional[Exception] = None
         for model_name in self.cohere_models:
             try:
@@ -585,7 +585,7 @@ class MultiLLMManager:
                         {"role": "user", "content": f"{user_prompt}\n\nNOT: Yalnızca ham JSON nesnesi döndür."},
                     ],
                     response_format={"type": "json_object"},
-                    max_tokens=4096,
+                    max_tokens=max_output_tokens or 4096,
                     temperature=0.7,
                 )
                 usage = getattr(response, "usage", None)
@@ -722,7 +722,7 @@ class MultiLLMManager:
             raise ProviderCallError("Gemini", last_error) from last_error
         raise RuntimeError("Gemini modellerinin hiçbirine erişilemedi.")
 
-    def _call_nvidia(self, system_prompt: str, user_prompt: str) -> str:
+    def _call_nvidia(self, system_prompt: str, user_prompt: str, max_output_tokens: Optional[int] = None) -> str:
         last_error: Optional[Exception] = None
         for model_name in self.nvidia_models:
             try:
@@ -739,13 +739,13 @@ class MultiLLMManager:
                             {"role": "user", "content": user_prompt},
                         ],
                         "response_format": {"type": "json_object"},
-                        "max_tokens": 4096,
+                        "max_tokens": max_output_tokens or 4096,
                         "temperature": 0.7,
                     },
                     # Large structured question prompts often take longer than
                     # 12s on the shared inference endpoint; allow an actual
                     # response before this provider is marked failed.
-                    timeout=_float_env("NVIDIA_TIMEOUT_SECONDS", 20.0),
+                    timeout=_float_env("NVIDIA_TIMEOUT_SECONDS", 30.0),
                 )
                 response.raise_for_status()
                 payload = response.json()
@@ -821,8 +821,11 @@ class MultiLLMManager:
         user_prompt: str,
         *,
         response_schema: Optional[Dict[str, Any]] = None,
+        max_output_tokens: Optional[int] = None,
     ) -> Dict[str, Any]:
         errors: List[str] = []
+        # Only forwarded when set (translation calls), so generation is unchanged.
+        token_kwargs = {"max_output_tokens": max_output_tokens} if max_output_tokens else {}
         # Health-ordered provider selection (replaces blind rotation).
         ordered_providers = self._health_ordered_providers()
         for provider in ordered_providers:
@@ -838,11 +841,11 @@ class MultiLLMManager:
             call_started = time.monotonic()
             try:
                 if provider == "groq":
-                    raw = self._call_groq(system_prompt, user_prompt)
+                    raw = self._call_groq(system_prompt, user_prompt, **token_kwargs)
                 elif provider == "cohere":
-                    raw = self._call_cohere(system_prompt, user_prompt)
+                    raw = self._call_cohere(system_prompt, user_prompt, **token_kwargs)
                 elif provider == "nvidia":
-                    raw = self._call_nvidia(system_prompt, user_prompt)
+                    raw = self._call_nvidia(system_prompt, user_prompt, **token_kwargs)
                 else:
                     raw = self._call_gemini(system_prompt, user_prompt, response_schema)
                 clean = raw.strip()
@@ -874,6 +877,9 @@ class MultiLLMManager:
                     else "error",
                 )
                 with self._lock:
+                    # A 429 that lands while an earlier 429's cooldown is still
+                    # active (concurrent workers) must not count as a second one.
+                    in_prior_cooldown = float(self._provider_cooldown_until.get(provider, 0.0)) > time.time()
                     retry_after = getattr(exc, "retry_after", None)
                     if isinstance(exc, json.JSONDecodeError):
                         # A malformed model response is not provider downtime;
@@ -904,7 +910,7 @@ class MultiLLMManager:
                         self._provider_disabled_reason[provider] = (
                             "provider daily or monthly free quota exhausted (HTTP 429)"
                         )
-                elif status == 429:
+                elif status == 429 and not in_prior_cooldown:
                     with self._lock:
                         count = self._provider_429_count.get(provider, 0) + 1
                         self._provider_429_count[provider] = count

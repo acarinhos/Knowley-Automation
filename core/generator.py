@@ -4,6 +4,7 @@ import json
 import re
 import random
 import logging
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Literal, Optional, Dict, Any
@@ -850,11 +851,11 @@ def populate_question_meta(q: GeneratedQuestion, primary_cat: str) -> GeneratedQ
     return q
 
 def _translation_stage_attempts() -> int:
-    """Translation-only retries per validated source (env TRANSLATION_STAGE_ATTEMPTS, default 3)."""
+    """Translation-only retries per validated source (env TRANSLATION_STAGE_ATTEMPTS, default 2)."""
     try:
-        return max(1, int(os.getenv("TRANSLATION_STAGE_ATTEMPTS", "") or 3))
+        return max(1, int(os.getenv("TRANSLATION_STAGE_ATTEMPTS", "") or 2))
     except ValueError:
-        return 3
+        return 2
 
 
 def generate_question_with_fallback(
@@ -1009,6 +1010,7 @@ def generate_question_with_fallback(
             # The source passed validation: retry only translation (bounded) so a
             # translation hiccup does not re-spend source-generation LLM calls.
             translation_attempts = _translation_stage_attempts()
+            azure_cache: Dict[str, Any] = {}  # reused so retries never re-run Azure
             for translation_attempt in range(1, translation_attempts + 1):
                 try:
                     translated_content, translation_provider = translate_localized_content(
@@ -1016,6 +1018,7 @@ def generate_question_with_fallback(
                         source_language,
                         requested_languages,
                         llm_manager=active_llm_manager,
+                        azure_cache=azure_cache,
                     )
                     break
                 except (AllProvidersCoolingDown, TranslationIncompleteError):
@@ -1027,6 +1030,7 @@ def generate_question_with_fallback(
                         f"Çeviri denemesi ({translation_attempt}/{translation_attempts}) başarısız; "
                         f"kaynak soru korunuyor: {translation_error}"
                     )
+                    time.sleep(random.uniform(0.5, 1.0))
             candidate_q.translations = {
                 language: LocalizedContent.model_validate(content)
                 for language, content in translated_content.items()
