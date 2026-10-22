@@ -10,6 +10,7 @@ import time
 import unicodedata
 import uuid
 from collections import deque
+from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from pathlib import Path
 from threading import Lock
@@ -128,6 +129,23 @@ def azure_character_budget_per_minute() -> int:
         )
     except (TypeError, ValueError):
         return 30_000
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return max(1, int(os.getenv(name, "") or default))
+    except (TypeError, ValueError):
+        return default
+
+
+def _llm_batch_size(explicit: Optional[int] = None) -> int:
+    """Languages per LLM translation call (env TRANSLATION_LLM_BATCH_SIZE, default 10)."""
+    return max(1, int(explicit)) if explicit else _env_int("TRANSLATION_LLM_BATCH_SIZE", 10)
+
+
+def _llm_workers() -> int:
+    """Concurrent LLM translation batches (env TRANSLATION_LLM_WORKERS, default 3)."""
+    return _env_int("TRANSLATION_LLM_WORKERS", 3)
 
 
 def _wait_for_azure_character_budget(characters: int) -> None:
@@ -932,7 +950,7 @@ def translate_localized_content(
     *,
     llm_manager: Any = None,
     prefer_azure: bool = True,
-    llm_batch_size: int = 4,
+    llm_batch_size: Optional[int] = None,
 ) -> Tuple[Dict[str, Dict[str, Any]], str]:
     """Translate with Azure first by default, or use the existing LLM path directly."""
     source_language = str(source_language or "en")
@@ -986,60 +1004,88 @@ def translate_localized_content(
         from core.llm_manager import get_llm_manager
 
         llm_manager = get_llm_manager()
-    fallback_providers = []
-    batch_size = max(1, int(llm_batch_size))
-    for start in range(0, len(azure_failed_targets), batch_size):
-        batch = azure_failed_targets[start : start + batch_size]
-        try:
-            fallback_result, provider, missing_languages = _llm_translate_with_cooldown(
-                source, source_language, batch, llm_manager
-            )
-        except Exception as batch_error:
-            if getattr(batch_error, "retry_after", None) is not None:
-                raise
-            if len(batch) == 1:
-                raise
-            logger.warning(
-                "LLM translation batch failed; retrying its %d languages individually: %s",
-                len(batch),
-                str(batch_error)[:180],
-            )
-            languages_to_retry = batch
-        else:
-            result.update(fallback_result)
-            if provider not in fallback_providers:
-                fallback_providers.append(provider)
-            if missing_languages:
+    fallback_providers: list[str] = []
+    batch_size = _llm_batch_size(llm_batch_size)
+    batches = [
+        azure_failed_targets[start : start + batch_size]
+        for start in range(0, len(azure_failed_targets), batch_size)
+    ]
+
+    def _run_translation_group(languages: list[str]) -> Tuple[Dict[str, Dict[str, Any]], list[str], list[str]]:
+        """One LLM call; binary-split on failure, then repair omitted languages."""
+        group_result: Dict[str, Dict[str, Any]] = {}
+        group_providers: list[str] = []
+
+        def add_provider(name: str) -> None:
+            if name not in group_providers:
+                group_providers.append(name)
+
+        def translate_split(langs: list[str]) -> list[str]:
+            try:
+                partial, provider, missing = _llm_translate_with_cooldown(
+                    source, source_language, langs, llm_manager
+                )
+            except Exception as batch_error:
+                if getattr(batch_error, "retry_after", None) is not None or len(langs) == 1:
+                    raise
+                logger.warning(
+                    "LLM translation batch failed; splitting its %d languages in half: %s",
+                    len(langs),
+                    str(batch_error)[:180],
+                )
+                mid = len(langs) // 2
+                return translate_split(langs[:mid]) + translate_split(langs[mid:])
+            group_result.update(partial)
+            add_provider(provider)
+            if missing:
                 logger.info(
                     "LLM omitted %d language(s) from a batch; retrying only: %s",
-                    len(missing_languages),
-                    ", ".join(missing_languages),
+                    len(missing),
+                    ", ".join(missing),
                 )
-            languages_to_retry = missing_languages
+            return list(missing)
 
-        pending_languages = list(dict.fromkeys(languages_to_retry))
-        if not pending_languages:
-            continue
-        repair_batch_sizes = list(dict.fromkeys(
-            size for size in (len(pending_languages), min(3, len(pending_languages)), 1)
-            if size > 0
-        ))
-        for repair_batch_size in repair_batch_sizes:
-            next_pending: list[str] = []
-            for retry_start in range(0, len(pending_languages), repair_batch_size):
-                repair_languages = pending_languages[retry_start : retry_start + repair_batch_size]
-                retry_result, retry_provider, still_missing = _llm_translate_with_cooldown(
-                    source, source_language, repair_languages, llm_manager
-                )
-                result.update(retry_result)
-                if retry_provider not in fallback_providers:
-                    fallback_providers.append(retry_provider)
-                next_pending.extend(still_missing)
-            pending_languages = list(dict.fromkeys(next_pending))
-            if not pending_languages:
-                break
+        pending_languages = list(dict.fromkeys(translate_split(languages)))
+        if pending_languages:
+            repair_batch_sizes = list(dict.fromkeys(
+                size for size in (len(pending_languages), min(3, len(pending_languages)), 1)
+                if size > 0
+            ))
+            for repair_batch_size in repair_batch_sizes:
+                next_pending: list[str] = []
+                for retry_start in range(0, len(pending_languages), repair_batch_size):
+                    repair_languages = pending_languages[retry_start : retry_start + repair_batch_size]
+                    retry_result, retry_provider, still_missing = _llm_translate_with_cooldown(
+                        source, source_language, repair_languages, llm_manager
+                    )
+                    group_result.update(retry_result)
+                    add_provider(retry_provider)
+                    next_pending.extend(still_missing)
+                pending_languages = list(dict.fromkeys(next_pending))
+                if not pending_languages:
+                    break
+        return group_result, group_providers, pending_languages
+
+    workers = min(_llm_workers(), len(batches))
+    if workers <= 1:
+        outcomes = [_run_translation_group(batch) for batch in batches]
+    else:
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="translate") as pool:
+            futures = [pool.submit(_run_translation_group, batch) for batch in batches]
+            try:
+                outcomes = [future.result() for future in futures]
+            except BaseException:
+                for future in futures:
+                    future.cancel()
+                raise
+    # Merge in batch order so the result does not depend on thread timing.
+    for group_result, group_providers, pending_languages in outcomes:
         if pending_languages:
             raise TranslationIncompleteError(pending_languages)
+        result.update(group_result)
+        for name in group_providers:
+            if name not in fallback_providers:
+                fallback_providers.append(name)
     if azure_result:
         fallback_providers.insert(0, "AZURE_TRANSLATOR")
     return result, "+".join(fallback_providers)

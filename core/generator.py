@@ -849,6 +849,14 @@ def populate_question_meta(q: GeneratedQuestion, primary_cat: str) -> GeneratedQ
         }
     return q
 
+def _translation_stage_attempts() -> int:
+    """Translation-only retries per validated source (env TRANSLATION_STAGE_ATTEMPTS, default 3)."""
+    try:
+        return max(1, int(os.getenv("TRANSLATION_STAGE_ATTEMPTS", "") or 3))
+    except ValueError:
+        return 3
+
+
 def generate_question_with_fallback(
     primary_category: Optional[str] = None,
     secondary_category: Optional[str] = None,
@@ -998,12 +1006,27 @@ def generate_question_with_fallback(
             validate_trivia_compliance(candidate_q)
             validate_skill_support_fields(candidate_q, source_language)
             source_content = candidate_q.translations[source_language].model_dump()
-            translated_content, translation_provider = translate_localized_content(
-                source_content,
-                source_language,
-                requested_languages,
-                llm_manager=active_llm_manager,
-            )
+            # The source passed validation: retry only translation (bounded) so a
+            # translation hiccup does not re-spend source-generation LLM calls.
+            translation_attempts = _translation_stage_attempts()
+            for translation_attempt in range(1, translation_attempts + 1):
+                try:
+                    translated_content, translation_provider = translate_localized_content(
+                        source_content,
+                        source_language,
+                        requested_languages,
+                        llm_manager=active_llm_manager,
+                    )
+                    break
+                except (AllProvidersCoolingDown, TranslationIncompleteError):
+                    raise
+                except Exception as translation_error:
+                    if translation_attempt >= translation_attempts:
+                        raise
+                    logging.warning(
+                        f"Çeviri denemesi ({translation_attempt}/{translation_attempts}) başarısız; "
+                        f"kaynak soru korunuyor: {translation_error}"
+                    )
             candidate_q.translations = {
                 language: LocalizedContent.model_validate(content)
                 for language, content in translated_content.items()

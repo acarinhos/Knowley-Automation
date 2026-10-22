@@ -333,6 +333,26 @@ def _int_env(name: str, default: Optional[int]) -> Optional[int]:
         return default
 
 
+def _float_env(name: str, default: float) -> float:
+    try:
+        value = float(os.getenv(name, "") or default)
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+def _is_timeout_error(error: Exception) -> bool:
+    """True for client/server deadline errors; the remaining models of that provider are skipped."""
+    text = str(error).casefold()
+    return (
+        isinstance(error, (requests.Timeout, TimeoutError))
+        or "timeout" in type(error).__name__.casefold()
+        or "timed out" in text
+        or "timeout" in text
+        or "deadline_exceeded" in text
+    )
+
+
 class MultiLLMManager:
     """Free-tier multi-provider router with rotation and quota-aware fallback.
 
@@ -359,6 +379,7 @@ class MultiLLMManager:
         self.providers: List[str] = []
         self._lock = threading.Lock()
         self._provider_cursor = 0
+        self._provider_health: Dict[str, deque] = {}
         self._probe_cache: Dict[str, Any] = {"at": 0.0, "providers": {}}
         self._provider_cooldown_until: Dict[str, float] = {}
         self._provider_cooldown_retryable: Dict[str, bool] = {}
@@ -396,7 +417,7 @@ class MultiLLMManager:
                 # backfills to request a longer deadline via environment.
                 self.gemini_client = genai.Client(
                     api_key=self.gemini_key,
-                    http_options={"timeout": _int_env("GEMINI_TIMEOUT_MS", 25000)},
+                    http_options={"timeout": _int_env("GEMINI_TIMEOUT_MS", 20000)},
                 )
                 self.providers.append("gemini")
             except Exception as exc:
@@ -405,7 +426,11 @@ class MultiLLMManager:
         self.groq_key = os.getenv("GROQ_API_KEY")
         if self.groq_key and (allowed_providers is None or "groq" in allowed_providers):
             try:
-                self.groq_client = Groq(api_key=self.groq_key, timeout=20.0, max_retries=0)
+                self.groq_client = Groq(
+                    api_key=self.groq_key,
+                    timeout=_float_env("GROQ_TIMEOUT_SECONDS", 15.0),
+                    max_retries=0,
+                )
                 self.providers.append("groq")
             except Exception as exc:
                 logger.warning("Groq başlatılamadı: %s", exc)
@@ -414,7 +439,9 @@ class MultiLLMManager:
         if self.cohere_key and (allowed_providers is None or "cohere" in allowed_providers):
             try:
                 self.cohere_client = cohere.ClientV2(
-                    api_key=self.cohere_key, timeout=20.0, max_retries=0
+                    api_key=self.cohere_key,
+                    timeout=_float_env("COHERE_TIMEOUT_SECONDS", 15.0),
+                    max_retries=0,
                 )
                 self.providers.append("cohere")
             except Exception as exc:
@@ -531,7 +558,8 @@ class MultiLLMManager:
                 if status is None:
                     status = getattr(getattr(exc, "response", None), "status_code", None)
                 if (
-                    status in (401, 403, 413, 429)
+                    _is_timeout_error(exc)
+                    or status in (401, 403, 413, 429)
                     or "413" in error_text
                     or "429" in error_text
                     or "401" in error_text
@@ -576,7 +604,8 @@ class MultiLLMManager:
                 if status is None:
                     status = getattr(getattr(exc, "response", None), "status_code", None)
                 if (
-                    status in (401, 403, 429)
+                    _is_timeout_error(exc)
+                    or status in (401, 403, 429)
                     or "429" in error_text
                     or "401" in error_text
                     or "403" in error_text
@@ -674,9 +703,9 @@ class MultiLLMManager:
                     marker in error_text
                     for marker in ("unauthorized", "invalid api key", "invalid_api_key", "authentication failed")
                 )
-                if auth_error and "quota" not in error_text:
-                    # A credential/authorization error is common to all models;
-                    # trying each model repeats the same failed network call.
+                if _is_timeout_error(exc) or auth_error and "quota" not in error_text:
+                    # A credential/authorization error or a timeout is common to all
+                    # models; trying each one repeats the same slow failed call.
                     break
         if quota_waits and self.gemini_quota_guard and (
             local_quota_block or api_errors_are_quota or api_errors_are_retryable
@@ -716,7 +745,7 @@ class MultiLLMManager:
                     # Large structured question prompts often take longer than
                     # 12s on the shared inference endpoint; allow an actual
                     # response before this provider is marked failed.
-                    timeout=float(os.getenv("NVIDIA_TIMEOUT_SECONDS", "30")),
+                    timeout=_float_env("NVIDIA_TIMEOUT_SECONDS", 20.0),
                 )
                 response.raise_for_status()
                 payload = response.json()
@@ -732,7 +761,7 @@ class MultiLLMManager:
             except Exception as exc:
                 last_error = exc
                 status = getattr(getattr(exc, "response", None), "status_code", None)
-                if isinstance(exc, requests.Timeout) or status in (401, 403, 413, 429):
+                if _is_timeout_error(exc) or status in (401, 403, 413, 429):
                     break
         if last_error:
             raise ProviderCallError("NVIDIA", last_error) from last_error
@@ -752,6 +781,40 @@ class MultiLLMManager:
             return 300
         return 45
 
+    HEALTH_WINDOW_SECONDS = 300.0
+    HEALTH_WINDOW_SIZE = 20
+
+    def _record_health(self, provider: str, latency: float, outcome: str) -> None:
+        with self._lock:
+            window = self._provider_health.setdefault(provider, deque(maxlen=self.HEALTH_WINDOW_SIZE))
+            window.append((time.monotonic(), float(latency), outcome))
+
+    def _health_score(self, provider: str, now: float) -> tuple:
+        """Lower is better: failure rate (10% buckets) then mean latency (2s buckets)."""
+        samples = [row for row in self._provider_health.get(provider, ()) if now - row[0] <= self.HEALTH_WINDOW_SECONDS]
+        if not samples:
+            return (0, 0)
+        failures = sum(1 for row in samples if row[2] != "ok")
+        ok_latencies = [row[1] for row in samples if row[2] == "ok"]
+        # A timeout counts at its full latency so slow providers sink even without successes.
+        mean_latency = sum(row[1] for row in samples) / len(samples) if not ok_latencies else sum(ok_latencies) / len(ok_latencies)
+        return (round(failures / len(samples) * 10), int(mean_latency // 2))
+
+    def _health_ordered_providers(self) -> List[str]:
+        """Usable providers by health, then cooling/disabled ones last; ties rotate in selection order."""
+        now = time.time()
+        with self._lock:
+            monotonic_now = time.monotonic()
+            # Equally healthy providers still rotate so free-tier quota is spread.
+            cursor = self._provider_cursor % max(1, len(self.providers))
+            self._provider_cursor = cursor + 1
+            def rank(item: tuple) -> tuple:
+                index, provider = item
+                disabled = provider in self._provider_disabled_reason
+                cooling = float(self._provider_cooldown_until.get(provider, 0.0)) > now
+                return (disabled, cooling, self._health_score(provider, monotonic_now), (index - cursor) % len(self.providers))
+            return [provider for _i, provider in sorted(enumerate(self.providers), key=rank)]
+
     def generate_trivia(
         self,
         system_prompt: str,
@@ -760,15 +823,8 @@ class MultiLLMManager:
         response_schema: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         errors: List[str] = []
-        # Rotate the primary provider across configured free-tier keys. A failed
-        # provider still falls through to the remaining providers for this question.
-        with self._lock:
-            if self.providers:
-                start_index = self._provider_cursor % len(self.providers)
-                self._provider_cursor = (start_index + 1) % len(self.providers)
-                ordered_providers = self.providers[start_index:] + self.providers[:start_index]
-            else:
-                ordered_providers = []
+        # Health-ordered provider selection (replaces blind rotation).
+        ordered_providers = self._health_ordered_providers()
         for provider in ordered_providers:
             with self._lock:
                 disabled_reason = self._provider_disabled_reason.get(provider)
@@ -779,6 +835,7 @@ class MultiLLMManager:
             if cooldown_until > time.time():
                 errors.append(f"{provider}: cooldown ({int(cooldown_until - time.time())}s)")
                 continue
+            call_started = time.monotonic()
             try:
                 if provider == "groq":
                     raw = self._call_groq(system_prompt, user_prompt)
@@ -799,6 +856,7 @@ class MultiLLMManager:
                         raise
                     data = json.loads(repaired)
                 data["_provider"] = provider
+                self._record_health(provider, time.monotonic() - call_started, "ok")
                 with self._lock:
                     data["_quota"] = dict(self.last_call)
                     self._provider_cooldown_until.pop(provider, None)
@@ -808,6 +866,13 @@ class MultiLLMManager:
                 return data
             except Exception as exc:
                 self._record_error(provider, exc)
+                self._record_health(
+                    provider,
+                    time.monotonic() - call_started,
+                    "timeout" if _is_timeout_error(exc)
+                    else "429" if getattr(exc, "status_code", None) == 429 or "429" in str(exc)
+                    else "error",
+                )
                 with self._lock:
                     retry_after = getattr(exc, "retry_after", None)
                     if isinstance(exc, json.JSONDecodeError):
