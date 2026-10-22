@@ -10,7 +10,7 @@ from sat_engine import ui_panel as u
 
 def test_build_command():
     c = u.build_command("rw", 5, 7, True, 2)
-    assert c[:4] == [sys.executable, "-u", "-m", "sat_engine"]
+    assert c[:4] == [u.project_python(), "-u", "-m", "sat_engine"]
     assert c[c.index("--section") + 1] == "rw" and "--save" in c and c[c.index("--limit") + 1] == "2" and c[c.index("--seed") + 1] == "5"
     assert "--save" not in u.build_command("both", 1)
     a = u.build_command("both", 9, extra=("--audit",))
@@ -258,3 +258,44 @@ def test_global_llm_defaults_follow_core_settings(monkeypatch):
     monkeypatch.setattr(g, "load_models", lambda *a, **k: {"groq": ["x-model"], "gemini": g.available_models("gemini")})
     sel, models = ui_panel.global_llm_defaults()
     assert sel == ["groq", "gemini"] and models == {"groq": "x-model"} and "claude" not in sel
+
+
+def test_project_python_selection(tmp_path):
+    assert u.project_python(tmp_path, {}) == sys.executable
+    v = tmp_path / "venv" / "Scripts"
+    v.mkdir(parents=True)
+    (v / "python.exe").write_text("")
+    assert u.project_python(tmp_path, {}) == str(v / "python.exe")
+    d = tmp_path / ".venv" / "Scripts"
+    d.mkdir(parents=True)
+    (d / "python.exe").write_text("")
+    assert u.project_python(tmp_path, {}) == str(d / "python.exe")  # .venv wins over venv
+    assert u.project_python(tmp_path, {"SAT_PYTHON": "X:/py.exe"}) == "X:/py.exe"
+
+
+def test_build_command_uses_project_python(monkeypatch):
+    monkeypatch.setattr(u, "project_python", lambda *a: "VENV_PY")
+    assert u.build_command("rw", 1)[0] == "VENV_PY"
+    assert u.build_command("rw", 1, extra=("--audit",))[0] == "VENV_PY"
+
+
+def test_missing_deps_and_warning(monkeypatch):
+    class R:
+        def __init__(self, rc): self.returncode = rc
+    def fake(cmd, **k):
+        assert cmd[0] == "PY"
+        if "firebase_admin" in cmd[-1]:
+            raise OSError
+        return R(1 if "matplotlib" in cmd[-1] else 0)
+    monkeypatch.setattr(u.subprocess, "run", fake)
+    m = u.missing_deps("PY")
+    assert m == ["matplotlib", "firebase_admin"]
+    w = u.deps_warning(m)
+    assert w.startswith("Eksik paket: matplotlib, firebase_admin") and "run_ui.bat" in w
+    assert u.deps_warning([]) == ""
+
+
+def test_report_does_not_need_matplotlib(monkeypatch):
+    import importlib
+    monkeypatch.setitem(sys.modules, "matplotlib", None)  # import matplotlib -> ImportError
+    importlib.reload(importlib.import_module("sat_engine.report"))

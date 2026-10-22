@@ -34,9 +34,43 @@ def session_id(seed, section):
     return f"seed{seed}-{'-'.join(('rw', 'math') if section == 'both' else (section,))}"
 
 
+def project_python(root=None, environ=None):
+    """Interpreter for panel subprocesses: SAT_PYTHON, else the repo's .venv/venv, else the running one."""
+    root, environ = Path(root or ROOT), os.environ if environ is None else environ
+    if environ.get("SAT_PYTHON"):
+        return environ["SAT_PYTHON"]
+    for v in (".venv", "venv"):
+        for rel in (("Scripts", "python.exe"), ("bin", "python")):
+            c = root.joinpath(v, *rel)
+            if c.is_file():
+                return str(c)
+    return sys.executable
+
+
+RUNTIME_DEPS = ("matplotlib", "pydantic", "dotenv", "firebase" + "_admin")  # split: report test greps this file for the SDK name
+
+
+def missing_deps(python=None, deps=RUNTIME_DEPS):
+    """Names the interpreter cannot import (blocking: call from a thread). Unrunnable interpreter -> all missing."""
+    py = python or project_python()
+    out = []
+    for d in deps:
+        try:
+            ok = subprocess.run([py, "-c", f"import {d}"], capture_output=True, timeout=60, creationflags=NO_WINDOW).returncode == 0
+        except (OSError, subprocess.SubprocessError):
+            ok = False
+        if not ok:
+            out.append(d)
+    return out
+
+
+def deps_warning(missing):
+    return ("Eksik paket: " + ", ".join(missing) + " — uygulamayı run_ui.bat ile başlatın veya .venv kullanın") if missing else ""
+
+
 def build_command(section="both", seed=None, workers=10, save=False, limit=None, extra=(), providers=None, models=None):
     """extra=('--audit',) etc. builds a utility command; otherwise a generation run."""
-    cmd = [sys.executable, "-u", "-m", "sat_engine", *extra, "--section", section]
+    cmd = [project_python(), "-u", "-m", "sat_engine", *extra, "--section", section]
     if not extra:
         cmd += ["--workers", str(workers)]
         if limit:
@@ -248,6 +282,9 @@ class SatPanel(ttk.Frame):
     def _build(self):
         f = tk.Frame(self, bg=PANEL, padx=14, pady=12)
         f.pack(fill="both", expand=True)
+        self.warn = tk.Label(f, text="", bg=PANEL, fg="#ff6b6b", font=(FONT, 9, "bold"), wraplength=900, justify="left", anchor="w")
+        self.warn.pack(fill="x")
+        threading.Thread(target=self._check_deps, daemon=True).start()
         row = tk.Frame(f, bg=PANEL)
         row.pack(fill="x")
 
@@ -378,6 +415,14 @@ class SatPanel(ttk.Frame):
         seed = self.seed.get().strip()
         ok = seed.isdigit() and (OUT / f"{session_id(seed, SECTIONS[self.section.get()])}.json").exists()
         self.resume.config(text="Aynı seed ile devam eder (oturum dosyası var)." if ok else "")
+
+    def _check_deps(self):
+        w = deps_warning(missing_deps())
+        if w:
+            try:
+                self.after(0, lambda: self.warn.config(text=w))  # may raise if the window is already gone
+            except (RuntimeError, tk.TclError):
+                pass
 
     def _spawn(self, cmd, env):
         OUT.mkdir(parents=True, exist_ok=True)

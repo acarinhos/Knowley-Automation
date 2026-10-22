@@ -29,3 +29,8 @@ except Exception:
 the write flag is set only in the child's environment.
 
 The panel also has a read-only "Firebase Raporu" button (day/week/month counts, breakdowns, latest questions; JSON export to `sat_engine/output/sat_report.json`); CLI: `python -m sat_engine --report [--json]`.
+
+## How to start the app
+Start from the repo root with `run_ui.bat` or `.venv\Scripts\python.exe ui_tkinter.py` (system Python lacks matplotlib/pymupdf/etc.).
+The panel runs its subprocesses with the repo's `.venv`/`venv` python if present (override: env var `SAT_PYTHON`), else the current interpreter.
+If the chosen interpreter lacks a SAT dependency the panel shows a red "Eksik paket: ..." warning; the Firebase Raporu path needs no matplotlib.
