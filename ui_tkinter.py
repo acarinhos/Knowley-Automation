@@ -50,6 +50,7 @@ except Exception:
 from core.llm_settings import (
     PROVIDERS as LLM_PROVIDERS, available_models as llm_available_models, key_status as llm_key_status,
     load_models as load_llm_models, load_selection as load_llm_selection,
+    apply_translation_mode, load_use_azure,
 )
 from ui_server import JobManager, firebase_question_audit, firebase_question_report, firebase_summary
 
@@ -912,7 +913,10 @@ class KnowleyTkinterApp(tk.Tk):
         for name in LLM_PROVIDERS:
             var = tk.BooleanVar(value=name in selected)
             self.llm_vars[name] = var
-            label = name.capitalize() if keys.get(name) else f"{name.capitalize()} (API anahtarı yok)"
+            if name == "claude":
+                label = "Claude (CLI)" if keys.get(name) else "Claude (CLI) (giriş yok)"
+            else:
+                label = name.capitalize() if keys.get(name) else f"{name.capitalize()} (API anahtarı yok)"
             ttk.Checkbutton(
                 select_box, text=label, variable=var, command=self._on_llm_selection_changed,
                 state="normal" if keys.get(name) else "disabled",
@@ -926,6 +930,12 @@ class KnowleyTkinterApp(tk.Tk):
                 button = ttk.Checkbutton(select_box, text="    " + model, variable=mvar, command=self._on_llm_selection_changed)
                 button.pack(anchor="w")
                 self.llm_model_buttons[name].append(button)
+        self.azure_var = tk.BooleanVar(value=load_use_azure())
+        self._azure_touched = False  # untouched: an env value (e.g. "auto") stays as the process set it
+        ttk.Checkbutton(
+            select_box, text="Çeviri için Azure kullan", variable=self.azure_var,
+            command=self._on_azure_toggled,
+        ).pack(anchor="w", pady=(6, 0))
         self.llm_select_lbl = tk.Label(select_box, text="", fg=MUTED, bg=PANEL_INNER, font=(FONT_FAMILY, 8), justify="left", wraplength=260)
         self.llm_select_lbl.pack(anchor="w", pady=(4, 0))
         self._refresh_llm_model_states()
@@ -2097,6 +2107,10 @@ class KnowleyTkinterApp(tk.Tk):
             for name in LLM_PROVIDERS if self.llm_vars[name].get()
         }
 
+    def _on_azure_toggled(self) -> None:
+        self._azure_touched = True
+        apply_translation_mode(self.azure_var.get())
+
     def _on_llm_selection_changed(self) -> None:
         """Validate (at least one provider and one model per provider), persist and apply for new jobs."""
         chosen = [name for name in LLM_PROVIDERS if self.llm_vars[name].get()]
@@ -2300,6 +2314,9 @@ class KnowleyTkinterApp(tk.Tk):
             return
 
         self.btn_start.config(state="disabled")
+
+        if self._azure_touched:
+            apply_translation_mode(self.azure_var.get())  # explicit choice; env must be set before the job thread starts
 
         def starter() -> None:
             try:

@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import json
 import logging
+import functools
 import os
+import shutil
+import subprocess
+import tempfile
 import threading
 import time
 import re
@@ -353,6 +357,79 @@ def _is_timeout_error(error: Exception) -> bool:
     )
 
 
+# --- Claude Code CLI provider (optional, never auto-selected) -------------------------------------------------
+_CLAUDE_ENV_KEEP = {"PATH", "PATHEXT", "SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "COMSPEC", "APPDATA", "LOCALAPPDATA",
+                    "PROGRAMDATA", "PROGRAMFILES", "PROGRAMFILES(X86)", "HOME", "USERPROFILE", "HOMEDRIVE",
+                    "HOMEPATH", "USERNAME", "USERDOMAIN", "TEMP", "TMP", "LANG", "LC_ALL", "XDG_CONFIG_HOME", "TERM"}
+
+
+def claude_cmd() -> Optional[str]:
+    """Claude Code CLI: CLAUDE_CLI_CMD, PATH, else the newest desktop-app install under APPDATA/Claude/claude-code."""
+    found_cmd = os.getenv("CLAUDE_CLI_CMD") or shutil.which("claude")
+    if found_cmd:
+        return found_cmd
+    root = os.path.join(os.environ.get("APPDATA", ""), "Claude", "claude-code")
+    found = [os.path.join(d, f) for d, _, fs in os.walk(root) for f in fs if f in ("claude.exe", "claude")]
+    return max(found, key=os.path.getmtime) if found else None
+
+
+def _claude_child_env() -> Dict[str, str]:
+    """Minimal child environment: no *_API_KEY / project secrets, only what the CLI needs to find its login."""
+    return {
+        k: v for k, v in os.environ.items()
+        if (k.upper() in _CLAUDE_ENV_KEEP or k.upper().startswith("CLAUDE_CODE_OAUTH")) and not k.upper().endswith("_API_KEY")
+    }
+
+
+@functools.lru_cache(maxsize=None)
+def claude_ready() -> bool:
+    """CLI present AND logged in (`claude auth status`); False on any problem. Cached per process."""
+    cmd = claude_cmd()
+    if not cmd:
+        return False
+    try:
+        result = subprocess.run([cmd, "auth", "status"], capture_output=True, text=True, timeout=30,
+                                env=_claude_child_env())
+        return bool(json.loads(result.stdout).get("loggedIn"))
+    except Exception:
+        return False
+
+
+def _kill_process_tree(proc: Any) -> None:
+    try:
+        if os.name == "nt":
+            subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], capture_output=True, timeout=15)
+        else:
+            import signal
+            os.killpg(proc.pid, signal.SIGKILL)
+    except Exception:
+        pass
+    try:
+        proc.kill()
+    except Exception:
+        pass
+
+
+def run_claude_cli(system_prompt: str, user_prompt: str, model: str, timeout: float) -> str:
+    """One headless `claude -p` call: prompt via stdin, no tools/session/slash commands, neutral cwd, tree kill on timeout."""
+    argv = [claude_cmd() or "claude", "-p", "--model", model, "--tools", "", "--no-session-persistence",
+            "--disable-slash-commands", "--output-format", "text"]
+    if system_prompt:
+        argv += ["--system-prompt", system_prompt]
+    with tempfile.TemporaryDirectory() as tmp:
+        proc = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                encoding="utf-8", env=_claude_child_env(), cwd=tmp, start_new_session=os.name != "nt")
+        try:
+            out, err = proc.communicate(user_prompt + "\n\nRespond with a single valid JSON object only.", timeout=timeout)
+        except subprocess.TimeoutExpired:
+            _kill_process_tree(proc)
+            proc.communicate()
+            raise TimeoutError(f"claude CLI timed out after {timeout:.0f}s") from None
+    if proc.returncode or not (out or "").strip():
+        raise RuntimeError(f"claude CLI exit {proc.returncode}: {(err or out or '').strip()[:150]}")
+    return out
+
+
 class MultiLLMManager:
     """Free-tier multi-provider router with rotation and quota-aware fallback.
 
@@ -374,6 +451,8 @@ class MultiLLMManager:
     # büyük model yalnızca fallback olarak denenir.
     NVIDIA_MODELS = ["openai/gpt-oss-20b", "openai/gpt-oss-120b"]
     NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
+    CLAUDE_MODELS = ["sonnet", "haiku", "opus"]
+    _claude_slots = threading.Semaphore(3)  # at most 3 concurrent CLI processes
 
     def __init__(self):
         self.providers: List[str] = []
@@ -399,6 +478,7 @@ class MultiLLMManager:
         self.groq_models = _csv_env("GROQ_MODELS", self.GROQ_MODELS)
         self.cohere_models = _csv_env("COHERE_MODELS", self.COHERE_MODELS)
         self.nvidia_models = _csv_env("NVIDIA_MODELS", self.NVIDIA_MODELS)
+        self.claude_models = _csv_env("CLAUDE_MODELS", self.CLAUDE_MODELS)
         raw_provider_allowlist = os.getenv("LLM_ALLOWED_PROVIDERS")
         allowed_providers = (
             {provider.strip().casefold() for provider in raw_provider_allowlist.split(",") if provider.strip()}
@@ -451,6 +531,10 @@ class MultiLLMManager:
         self.nvidia_base_url = os.getenv("NVIDIA_BASE_URL", self.NVIDIA_BASE_URL).rstrip("/")
         if self.nvidia_key and (allowed_providers is None or "nvidia" in allowed_providers):
             self.providers.append("nvidia")
+
+        # Claude CLI only when explicitly listed in LLM_ALLOWED_PROVIDERS (never in the default set) and logged in.
+        if "claude" in allowed_providers and claude_ready():
+            self.providers.append("claude")
 
         if not self.providers:
             if allowed_providers is not None:
@@ -722,6 +806,23 @@ class MultiLLMManager:
             raise ProviderCallError("Gemini", last_error) from last_error
         raise RuntimeError("Gemini modellerinin hiçbirine erişilemedi.")
 
+    def _call_claude(self, system_prompt: str, user_prompt: str, max_output_tokens: Optional[int] = None) -> str:
+        last_error: Optional[Exception] = None
+        timeout = _float_env("CLAUDE_TIMEOUT_SECONDS", 60.0)
+        for model_name in self.claude_models:
+            try:
+                with self._claude_slots:
+                    raw = run_claude_cli(system_prompt, user_prompt, model_name, timeout)
+                self._record_success("claude", model_name)
+                return raw
+            except Exception as exc:
+                last_error = exc
+                if _is_timeout_error(exc):
+                    break
+        if last_error:
+            raise ProviderCallError("Claude", last_error) from last_error
+        raise RuntimeError("Claude modellerinin hiçbirine erişilemedi.")
+
     def _call_nvidia(self, system_prompt: str, user_prompt: str, max_output_tokens: Optional[int] = None) -> str:
         last_error: Optional[Exception] = None
         for model_name in self.nvidia_models:
@@ -846,6 +947,8 @@ class MultiLLMManager:
                     raw = self._call_cohere(system_prompt, user_prompt, **token_kwargs)
                 elif provider == "nvidia":
                     raw = self._call_nvidia(system_prompt, user_prompt, **token_kwargs)
+                elif provider == "claude":
+                    raw = self._call_claude(system_prompt, user_prompt, **token_kwargs)
                 else:
                     raw = self._call_gemini(system_prompt, user_prompt, response_schema)
                 clean = raw.strip()
@@ -1001,6 +1104,9 @@ class MultiLLMManager:
                 "tpm": None,
                 "source": "configured_or_trial_baseline",
             }
+        if provider == "claude":
+            return {"rpm": None, "period_requests": None, "period": "day", "tpm": None,
+                    "source": "Claude account usage limits apply"}
         if provider == "nvidia":
             return {
                 "rpm": _int_env("NVIDIA_RPM", None),
@@ -1022,6 +1128,8 @@ class MultiLLMManager:
             names = [str(getattr(model, "name", "")).removeprefix("models/") for model in self.gemini_client.models.list()]
         elif provider == "groq":
             names = [str(model.id) for model in self.groq_client.models.list().data]
+        elif provider == "claude":
+            names = list(self.claude_models)
         elif provider == "nvidia":
             response = requests.get(
                 f"{self.nvidia_base_url}/models",
@@ -1051,7 +1159,9 @@ class MultiLLMManager:
                     probed[provider] = {"reachable": False, "error": str(exc)[:240]}
             self._probe_cache = {"at": now, "providers": probed}
         result: Dict[str, Any] = {}
-        for provider in ("gemini", "groq", "cohere", "nvidia"):
+        for provider in ("gemini", "groq", "cohere", "nvidia", "claude"):
+            if provider == "claude" and provider not in self.providers:
+                continue
             configured = provider in self.providers
             usage = dict(self.usage.get(provider, {}))
             limits = self._limits(provider)
