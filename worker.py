@@ -26,6 +26,7 @@ from core.llm_manager import AllProvidersCoolingDown
 from core.sheet_algorithm import SheetAlgorithmRepository, get_sheet_algorithm_repository
 from core.translation_service import COUNTRY_LANGUAGE_CODES, SUPPORTED_LANGUAGE_CODES, TranslationIncompleteError
 from core.starting_difficulty import StartingDifficultyAssigner
+from core.topic_diversity import TopicDiversityTracker, avoid_line, topic_terms
 from core.visual_questions import (
     VisualQuestionSchedule,
     WikimediaQuestionImageResolver,
@@ -382,6 +383,7 @@ def run_generation(
     basic_only = options.generation_mode == "basic"
     starting_difficulty_assigner = StartingDifficultyAssigner()
     visual_schedule = VisualQuestionSchedule()
+    topic_tracker = TopicDiversityTracker()
     resolved_image_service = image_resolver
     max_processed_attempts = (
         None
@@ -533,6 +535,9 @@ def run_generation(
             f"Kapsam Dengesi: %{round(algorithm_target.global_ratio * 100)} GL / %{round(algorithm_target.local_ratio * 100)} LO\n"
             f"ODAK NOKTALARI & REHBER:\n" + "\n".join(f"- {line}" for line in focus_info)
         )
+        if db is not None and options.write_to_firestore:
+            topic_tracker.seed_from_db(db, primary_cat, target_sub)
+        algorithm_context += avoid_line(topic_tracker, primary_cat, target_sub)
 
         _emit(
             on_event,
@@ -671,6 +676,7 @@ def run_generation(
                                         starting_assignment_pending = False
                                     visual_schedule.commit()
                                     _consume_slot(algorithm_target)
+                                    topic_tracker.record(primary_cat, target_sub, topic_terms(q_data))
                                     produced_count += 1
                                     success_this_item = True
                                     preview = q_data.translations.get("tr") or next(iter(q_data.translations.values()))
