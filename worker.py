@@ -535,9 +535,6 @@ def run_generation(
             f"Kapsam Dengesi: %{round(algorithm_target.global_ratio * 100)} GL / %{round(algorithm_target.local_ratio * 100)} LO\n"
             f"ODAK NOKTALARI & REHBER:\n" + "\n".join(f"- {line}" for line in focus_info)
         )
-        if db is not None and options.write_to_firestore:
-            topic_tracker.seed_from_db(db, primary_cat, target_sub)
-        algorithm_context += avoid_line(topic_tracker, primary_cat, target_sub)
 
         _emit(
             on_event,
@@ -585,6 +582,9 @@ def run_generation(
          question_languages, algorithm_context, reserved_difficulty,
          reserved_local_difficulty, local_target) = plan
         success_this_item = False
+        if db is not None and options.write_to_firestore:
+            topic_tracker.seed_from_db(db, primary_cat, target_sub)  # outside the planning lock
+        algorithm_context += avoid_line(topic_tracker, primary_cat, target_sub)
         try:
             for attempt in range(1, options.max_retries + 1):
                 if stop_event.is_set():

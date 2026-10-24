@@ -1,6 +1,7 @@
 """Per (category, subcategory) memory of topics/entities already used, to keep the LLM from repeating them."""
+import logging
 import threading
-from collections import Counter
+from collections import OrderedDict
 from typing import Any, Dict, Iterable, List, Tuple
 
 
@@ -23,11 +24,16 @@ def topic_terms(q: Any) -> List[str]:
     return [str(t).strip() for t in (_get(tr, "keyword"), answer) if t and str(t).strip()]
 
 
+MAX_TERM_LEN = 40
+MAX_TERMS_PER_KEY = 200  # memory cap per (cat, sub); oldest evicted first
+SEED_TIMEOUT_S = 10.0
+
+
 class TopicDiversityTracker:
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._counts: Dict[Tuple[str, str], Counter] = {}
-        self._display: Dict[Tuple[str, str, str], str] = {}
+        self._seed_lock = threading.Lock()  # separate: a slow DB seed must not block record()/recent()
+        self._terms: Dict[Tuple[str, str], "OrderedDict[str, list]"] = {}  # norm -> [count, display]; order = recency
         self._seeded: set = set()
 
     @staticmethod
@@ -38,33 +44,40 @@ class TopicDiversityTracker:
         key = self._key(cat, sub)
         with self._lock:
             for term in terms:
-                norm = " ".join(str(term).split()).casefold()
-                if norm:
-                    self._counts.setdefault(key, Counter())[norm] += 1
-                    self._display.setdefault(key + (norm,), " ".join(str(term).split()))
+                display = " ".join(str(term).split())
+                if len(display) < 3 or len(display) > MAX_TERM_LEN or display.replace(".", "").replace(",", "").isdigit():
+                    continue
+                norm = display.casefold()
+                bucket = self._terms.setdefault(key, OrderedDict())
+                entry = bucket.setdefault(norm, [0, display])
+                entry[0] += 1
+                bucket.move_to_end(norm)
+                while len(bucket) > MAX_TERMS_PER_KEY:
+                    bucket.popitem(last=False)
 
     def recent(self, cat: str, sub: str, limit: int = 40) -> List[str]:
-        key = self._key(cat, sub)
         with self._lock:
-            ranked = self._counts.get(key, Counter()).most_common(limit)  # ties keep insertion order
-            return [self._display[key + (norm,)] for norm, _ in ranked]
+            bucket = self._terms.get(self._key(cat, sub), {})
+            newest_first = list(reversed(bucket.values()))
+        newest_first.sort(key=lambda e: -e[0])  # stable: ties stay newest-first
+        return [display for _, display in newest_first[:limit]]
 
     def seed_from_db(self, db: Any, cat: str, sub: str, limit: int = 50) -> None:
-        """Lazy, once per (cat, sub). Any DB problem is swallowed: generation must never block on this."""
+        """Lazy, once per (cat, sub) after a successful query; failures are logged and retried next call. Never raises."""
         key = self._key(cat, sub)
-        with self._lock:
+        with self._seed_lock:
             if key in self._seeded:
                 return
-            self._seeded.add(key)
-        try:
-            # shortcut: unordered (no composite index needed), so "last N" is any N; upgrade with order_by created_at + index.
-            docs = db.collection("questions").where("sub_categories", "array_contains", sub).limit(limit).stream()
-            for doc in docs:
-                data = doc.to_dict() or {}
-                if cat in (data.get("categories") or [cat]):
-                    self.record(cat, sub, topic_terms(data))
-        except Exception:
-            pass
+            try:
+                # shortcut: unordered (no composite index needed), so "last N" is any N; upgrade with order_by created_at + index.
+                docs = db.collection("questions").where("sub_categories", "array_contains", sub).limit(limit).stream(timeout=SEED_TIMEOUT_S)
+                for doc in docs:
+                    data = doc.to_dict() or {}
+                    if cat in (data.get("categories") or [cat]):
+                        self.record(cat, sub, topic_terms(data))
+                self._seeded.add(key)
+            except Exception as exc:
+                logging.warning("topic diversity seed failed for %s/%s: %s", cat, sub, exc)
 
 
 def avoid_line(tracker: TopicDiversityTracker, cat: str, sub: str) -> str:
