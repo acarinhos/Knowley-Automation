@@ -37,7 +37,7 @@ from database.question_requests import (
     get_question_request_status,
     list_question_requests,
 )
-from worker import GenerationOptions, run_generation
+from worker import GenerationOptions, default_concurrency, run_generation
 
 
 ROOT_DIR = Path(__file__).resolve().parent
@@ -127,7 +127,10 @@ class JobManager:
             default_count = 21
         question_count = int(payload.get("question_count") or default_count)
 
+        concurrency = payload.get("concurrency")
+        concurrency = default_concurrency() if concurrency in (None, "") else max(1, min(6, int(concurrency)))
         options = GenerationOptions(
+            concurrency=concurrency,
             question_count=question_count,
             category=None,
             subcategory=None,
@@ -143,7 +146,7 @@ class JobManager:
                 payload.get("difficulty_counts_per_10") or {"Kolay": 4, "Orta": 4, "Zor": 2}
             ),
             combo_percent=int(payload.get("combo_percent", 40)),
-            sleep_between_requests=float(payload.get("sleep_between_requests", 1.5)),
+            sleep_between_requests=float(payload.get("sleep_between_requests", 0.3 if concurrency > 1 else 1.5)),
             # Safe by default for local admin integrations. The request must
             # opt in and the server environment must explicitly allow writes.
             write_to_firestore=(

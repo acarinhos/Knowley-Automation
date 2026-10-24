@@ -2,7 +2,9 @@ import time
 import random
 import re
 import logging
+import os
 import threading
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait as wait_futures
 from dataclasses import dataclass, field
 from typing import List, Any, Callable, Dict, Optional
 
@@ -41,6 +43,16 @@ logging.basicConfig(
 
 SLEEP_BETWEEN_REQUESTS = 1.5
 MAX_BLOCK_RETRIES = 5
+SLEEP_BETWEEN_REQUESTS_PARALLEL = 0.3
+MAX_CONCURRENCY = 6
+
+
+def default_concurrency() -> int:
+    """GENERATION_CONCURRENCY env (1..6); 1 keeps the strictly sequential behaviour."""
+    try:
+        return max(1, min(MAX_CONCURRENCY, int(os.getenv("GENERATION_CONCURRENCY", "1"))))
+    except ValueError:
+        return 1
 
 # 35+ Ülke ve Global Havuzu
 TARGET_COUNTRIES: List[str] = [
@@ -81,8 +93,12 @@ class GenerationOptions:
     max_retries: int = MAX_BLOCK_RETRIES
     write_to_firestore: bool = True
     visual_questions_enabled: bool = True
+    concurrency: int = field(default_factory=default_concurrency)
 
     def validate(self) -> "GenerationOptions":
+        self.concurrency = max(1, min(MAX_CONCURRENCY, int(self.concurrency or 1)))
+        if self.concurrency > 1 and self.sleep_between_requests == SLEEP_BETWEEN_REQUESTS:
+            self.sleep_between_requests = SLEEP_BETWEEN_REQUESTS_PARALLEL  # default only; explicit values are kept
         if self.question_count is not None:
             self.question_count = int(self.question_count)
         if self.question_count is not None and not 1 <= int(self.question_count) <= 10_000:
@@ -392,10 +408,17 @@ def run_generation(
         firestore=options.write_to_firestore,
     )
 
-    while options.question_count is None or produced_count < options.question_count:
-        if stop_event.is_set():
-            break
+    concurrency = max(1, int(options.concurrency or 1))
+    lock = threading.RLock()
+    reserved_targets: List[Any] = []
+
+
+    def _plan_item():
+        """Lock held by caller. Reserves one credit slot; returns None when the caller must wait."""
+        nonlocal processed_count, credit_queue
         if max_processed_attempts is not None and processed_count >= max_processed_attempts:
+            if reserved_targets:
+                return None
             raise RuntimeError(
                 "Üretim hedefi tamamlanamadı: "
                 f"{options.question_count} yeni soru hedefinden {produced_count} soru kaydedildi; "
@@ -403,28 +426,42 @@ def run_generation(
                 "İş tamamlandı olarak işaretlenmedi."
             )
 
-        if not credit_queue:
+        if len(credit_queue) <= len(reserved_targets):
             if options.question_count is None:
-                credit_queue = repository.build_credit_queue(
-                    pool=options.credit_pool,
-                    country=options.country if options.country_profile_enabled else None,
-                    country_local_only=options.generation_mode == "country_local",
-                    basic_only=basic_only,
-                    equal_distribution=options.generation_mode == "custom" and options.custom_mode == "equal",
-                    category=options.category,
-                    subcategory=options.subcategory,
+                credit_queue.extend(
+                    repository.build_credit_queue(
+                        pool=options.credit_pool,
+                        country=options.country if options.country_profile_enabled else None,
+                        country_local_only=options.generation_mode == "country_local",
+                        basic_only=basic_only,
+                        equal_distribution=options.generation_mode == "custom" and options.custom_mode == "equal",
+                        category=options.category,
+                        subcategory=options.subcategory,
+                    )
                 )
+            elif reserved_targets:
+                return None
             else:
                 raise RuntimeError(
                     "Sheet kredi kuyruğu hedef sayı tamamlanmadan tükendi; iş tamamlandı olarak işaretlenmedi."
                 )
 
+        if reserved_targets and options.visual_questions_enabled:
+            # Parallel items map to the next unsaved schedule positions; never run a visual one in parallel.
+            visual_schedule.peek(credit_queue[:10])
+            position = visual_schedule._position + len(reserved_targets)
+            if position >= 10 or position in visual_schedule._visual_positions:
+                return None
+
         processed_count += 1
+        item_index = processed_count
         # Slot yalnızca yeni soru Firestore'a başarıyla yazıldığında tüketilir.
         # Duplicate veya üretim hatası aynı kredi slotunu bir sonraki denemeye bırakır.
-        if options.visual_questions_enabled and visual_schedule.starts_block:
+        if options.visual_questions_enabled and visual_schedule.starts_block and not reserved_targets:
             prioritize_visual_targets(credit_queue)
-        algorithm_target = credit_queue[0]
+        reserved_ids = {id(t) for t in reserved_targets}
+        algorithm_target = next(t for t in credit_queue if id(t) not in reserved_ids)
+        reserved_targets.append(algorithm_target)
         primary_cat = algorithm_target.category
         target_sub = algorithm_target.subcategory
 
@@ -498,7 +535,7 @@ def run_generation(
         _emit(
             on_event,
             "planning",
-            index=processed_count,
+            index=item_index,
             category=primary_cat,
             subcategory=target_sub,
             combo=bool(secondary_cat),
@@ -509,7 +546,6 @@ def run_generation(
             visual_question=visual_question,
         )
 
-        success_this_item = False
         reserved_difficulty = (
             diff_balancer.get_next_target()
             if options.difficulty is None
@@ -521,210 +557,292 @@ def run_generation(
             else None
         )
         local_target = reserved_local_difficulty or reserved_difficulty
-        for attempt in range(1, options.max_retries + 1):
-            if stop_event.is_set():
-                break
-            starting_assignment_pending = False
-            try:
-                q_data = generate_question_with_fallback(
-                    primary_category=primary_cat,
-                    target_subcategory=target_sub,
-                    secondary_category=secondary_cat,
-                    target_country=planned_country,
-                    target_country_credit=generation_plan.target_country_credit,
-                    scope=planned_scope,
-                    base_difficulty=(local_target.level if local_target else options.difficulty),
-                    target_score=local_target.score if local_target else None,
-                    target_global_difficulty=(
-                        reserved_difficulty.level
-                        if reserved_difficulty is not None and planned_scope == "global"
-                        else None
-                    ),
-                    target_global_score=(
-                        reserved_difficulty.score
-                        if reserved_difficulty is not None and planned_scope == "global"
-                        else None
-                    ),
-                    balance_categories=False,
-                    difficulty_balancer=diff_balancer,
-                    generation_planner=gen_planner,
-                    languages=question_languages,
-                    duration_seconds=options.duration_seconds,
-                    algorithm_context=algorithm_context,
-                    algorithm_version=repository.version,
-                    visual_question=visual_question,
-                    llm_manager=manager,
-                )
+        return (
+            item_index, algorithm_target, primary_cat, target_sub, equal_distribution,
+            secondary_cat, visual_question, generation_plan, planned_scope, planned_country,
+            question_languages, algorithm_context, reserved_difficulty,
+            reserved_local_difficulty, local_target,
+        )
 
-                if visual_question:
-                    if resolved_image_service is None:
-                        resolved_image_service = WikimediaQuestionImageResolver(
-                            bucket=get_storage_bucket() if options.write_to_firestore else None
-                        )
-                    resolved_image_service.resolve(q_data)
-                    if not getattr(q_data, "question_image_url", None):
-                        raise ValueError("Görsel soru için question_image_url oluşturulamadı.")
+    def _consume_slot(target: Any) -> None:
+        for i, queued in enumerate(credit_queue):
+            if queued is target:
+                del credit_queue[i]
+                return
 
-                q_data.categories_meta = [
-                    CategoryMeta(name=cat, color=get_category_color(cat))
-                    for cat in q_data.categories
-                ]
-                q_data.sub_categories_meta = [
-                    SubCategoryMeta(name=sub, image_url=get_subcategory_image(primary_cat, sub))
-                    for sub in q_data.sub_categories
-                ]
-                q_data.algorithm_source = {
-                    "spreadsheet_id": repository.source.get("spreadsheet_id"),
-                    "sheet": algorithm_target.source_sheet,
-                    "credit_pool": options.credit_pool,
-                    "generation_mode": options.generation_mode,
-                    "custom_mode": options.custom_mode,
-                    "difficulty_counts_per_10": (
-                        dict(options.difficulty_counts_per_10)
-                        if options.generation_mode == "custom" and options.custom_mode == "difficulty"
-                        else None
-                    ),
-                    "equal_target_distribution": equal_distribution,
-                    "country_profile_enabled": options.country_profile_enabled,
-                    "basic_only": basic_only,
-                    "category_weight": algorithm_target.category_weight,
-                    "subcategory_weight": algorithm_target.subcategory_weight,
-                    "global_ratio": algorithm_target.global_ratio,
-                    "local_ratio": algorithm_target.local_ratio,
-                }
 
-                # Bu ek alan normal zorluk üretildikten sonra atanır; zorluk,
-                # süre, kategori veya diğer dengeleyicilere geri beslenmez.
-                if options.difficulty is None:
-                    starting_difficulty_assigner.assign(q_data)
-                    starting_assignment_pending = True
-
-                saved = save_worker_question(db, q_data) if options.write_to_firestore else True
-                if saved:
-                    reserved_difficulty = None
-                    reserved_local_difficulty = None
-                    if starting_assignment_pending:
-                        starting_difficulty_assigner.commit()
-                        starting_assignment_pending = False
-                    visual_schedule.commit()
-                    credit_queue.pop(0)
-                    produced_count += 1
-                    success_this_item = True
-                    preview = q_data.translations.get("tr") or next(iter(q_data.translations.values()))
-                    _emit(
-                        on_event,
-                        "saved" if options.write_to_firestore else "generated",
-                        index=processed_count,
-                        produced=produced_count,
-                        category=primary_cat,
-                        subcategory=target_sub,
-                        provider=getattr(q_data, "generation_provider", "GEMINI"),
-                        question=preview.question,
-                        firestore=options.write_to_firestore,
-                        quota=manager.status(live=False),
+    def _run_item(plan):
+        nonlocal produced_count, duplicate_count, failed_count, resolved_image_service
+        (item_index, algorithm_target, primary_cat, target_sub, equal_distribution,
+         secondary_cat, visual_question, generation_plan, planned_scope, planned_country,
+         question_languages, algorithm_context, reserved_difficulty,
+         reserved_local_difficulty, local_target) = plan
+        success_this_item = False
+        try:
+            for attempt in range(1, options.max_retries + 1):
+                if stop_event.is_set():
+                    break
+                starting_assignment_pending = False
+                try:
+                    q_data = generate_question_with_fallback(
+                        primary_category=primary_cat,
+                        target_subcategory=target_sub,
+                        secondary_category=secondary_cat,
+                        target_country=planned_country,
+                        target_country_credit=generation_plan.target_country_credit,
+                        scope=planned_scope,
+                        base_difficulty=(local_target.level if local_target else options.difficulty),
+                        target_score=local_target.score if local_target else None,
+                        target_global_difficulty=(
+                            reserved_difficulty.level
+                            if reserved_difficulty is not None and planned_scope == "global"
+                            else None
+                        ),
+                        target_global_score=(
+                            reserved_difficulty.score
+                            if reserved_difficulty is not None and planned_scope == "global"
+                            else None
+                        ),
+                        balance_categories=False,
+                        difficulty_balancer=diff_balancer,
+                        generation_planner=gen_planner,
+                        languages=question_languages,
+                        duration_seconds=options.duration_seconds,
+                        algorithm_context=algorithm_context,
+                        algorithm_version=repository.version,
                         visual_question=visual_question,
-                        question_image_url=getattr(q_data, "question_image_url", None),
-                        starting_difficulty=getattr(q_data, "starting_difficulty", None),
+                        llm_manager=manager,
                     )
-                else:
-                    if reserved_difficulty is not None:
-                        diff_balancer.return_target(reserved_difficulty)
-                        reserved_difficulty = None
-                    if reserved_local_difficulty is not None:
-                        local_difficulty_balancer.return_target(reserved_local_difficulty)
-                        reserved_local_difficulty = None
+
+                    if visual_question:
+                        with lock:
+                            if resolved_image_service is None:
+                                resolved_image_service = WikimediaQuestionImageResolver(
+                                    bucket=get_storage_bucket() if options.write_to_firestore else None
+                                )
+                        resolved_image_service.resolve(q_data)
+                        if not getattr(q_data, "question_image_url", None):
+                            raise ValueError("Görsel soru için question_image_url oluşturulamadı.")
+
+                    q_data.categories_meta = [
+                        CategoryMeta(name=cat, color=get_category_color(cat))
+                        for cat in q_data.categories
+                    ]
+                    q_data.sub_categories_meta = [
+                        SubCategoryMeta(name=sub, image_url=get_subcategory_image(primary_cat, sub))
+                        for sub in q_data.sub_categories
+                    ]
+                    q_data.algorithm_source = {
+                        "spreadsheet_id": repository.source.get("spreadsheet_id"),
+                        "sheet": algorithm_target.source_sheet,
+                        "credit_pool": options.credit_pool,
+                        "generation_mode": options.generation_mode,
+                        "custom_mode": options.custom_mode,
+                        "difficulty_counts_per_10": (
+                            dict(options.difficulty_counts_per_10)
+                            if options.generation_mode == "custom" and options.custom_mode == "difficulty"
+                            else None
+                        ),
+                        "equal_target_distribution": equal_distribution,
+                        "country_profile_enabled": options.country_profile_enabled,
+                        "basic_only": basic_only,
+                        "category_weight": algorithm_target.category_weight,
+                        "subcategory_weight": algorithm_target.subcategory_weight,
+                        "global_ratio": algorithm_target.global_ratio,
+                        "local_ratio": algorithm_target.local_ratio,
+                    }
+
+                    with lock:
+                        try:
+                                # Bu ek alan normal zorluk üretildikten sonra atanır; zorluk,
+                                # süre, kategori veya diğer dengeleyicilere geri beslenmez.
+                                if options.difficulty is None:
+                                    starting_difficulty_assigner.assign(q_data)
+                                    starting_assignment_pending = True
+
+                                saved = save_worker_question(db, q_data) if options.write_to_firestore else True
+                                if saved:
+                                    reserved_difficulty = None
+                                    reserved_local_difficulty = None
+                                    if starting_assignment_pending:
+                                        starting_difficulty_assigner.commit()
+                                        starting_assignment_pending = False
+                                    visual_schedule.commit()
+                                    _consume_slot(algorithm_target)
+                                    produced_count += 1
+                                    success_this_item = True
+                                    preview = q_data.translations.get("tr") or next(iter(q_data.translations.values()))
+                                    _emit(
+                                        on_event,
+                                        "saved" if options.write_to_firestore else "generated",
+                                        index=item_index,
+                                        produced=produced_count,
+                                        category=primary_cat,
+                                        subcategory=target_sub,
+                                        provider=getattr(q_data, "generation_provider", "GEMINI"),
+                                        question=preview.question,
+                                        firestore=options.write_to_firestore,
+                                        quota=manager.status(live=False),
+                                        visual_question=visual_question,
+                                        question_image_url=getattr(q_data, "question_image_url", None),
+                                        starting_difficulty=getattr(q_data, "starting_difficulty", None),
+                                    )
+                                else:
+                                    if reserved_difficulty is not None:
+                                        diff_balancer.return_target(reserved_difficulty)
+                                        reserved_difficulty = None
+                                    if reserved_local_difficulty is not None:
+                                        local_difficulty_balancer.return_target(reserved_local_difficulty)
+                                        reserved_local_difficulty = None
+                                    if starting_assignment_pending:
+                                        starting_difficulty_assigner.rollback(q_data)
+                                        starting_assignment_pending = False
+                                    duplicate_count += 1
+                                    _emit(on_event, "duplicate", index=item_index, category=primary_cat)
+                        except BaseException:
+                            if starting_assignment_pending:
+                                starting_difficulty_assigner.rollback(q_data)
+                                starting_assignment_pending = False
+                            raise
+                    break
+                except Exception as err:
                     if starting_assignment_pending:
                         starting_difficulty_assigner.rollback(q_data)
-                        starting_assignment_pending = False
-                    duplicate_count += 1
-                    _emit(on_event, "duplicate", index=processed_count, category=primary_cat)
-                break
-            except Exception as err:
-                if starting_assignment_pending:
-                    starting_difficulty_assigner.rollback(q_data)
-                err_str = str(err)
-                if isinstance(err, TranslationIncompleteError):
-                    failed_count += 1
-                    stop_event.set()
-                    _emit(
-                        on_event,
-                        "translation_incomplete",
-                        index=processed_count,
-                        missing_languages=list(err.languages),
-                        message=err_str[:500],
-                    )
-                    logging.error(
-                        "Soru çevirileri tamamlanamadı (%d dil); aynı soruyu yeniden üretmek yerine iş durduruluyor: %s",
-                        len(err.languages),
-                        ", ".join(err.languages),
-                    )
-                    break
-                if isinstance(err, AllProvidersCoolingDown):
-                    retryable = bool(err.retryable)
-                    can_retry_soon = retryable and err.retry_after <= 90
-                    wait_sec = min(90, max(1, err.retry_after + 1))
-                    _emit(
-                        on_event,
-                        "provider_unavailable",
-                        index=processed_count,
-                        retry_after=wait_sec if can_retry_soon else err.retry_after,
-                        message=err_str[:500],
-                    )
-                    if can_retry_soon and attempt < options.max_retries:
-                        logging.warning(
-                            "LLM sağlayıcıları geçici olarak kullanılamıyor; %ss sonra yeniden denenecek.",
-                            wait_sec,
+                    err_str = str(err)
+                    if isinstance(err, TranslationIncompleteError):
+                        with lock:
+                            failed_count += 1
+                        stop_event.set()
+                        _emit(
+                            on_event,
+                            "translation_incomplete",
+                            index=item_index,
+                            missing_languages=list(err.languages),
+                            message=err_str[:500],
                         )
+                        logging.error(
+                            "Soru çevirileri tamamlanamadı (%d dil); aynı soruyu yeniden üretmek yerine iş durduruluyor: %s",
+                            len(err.languages),
+                            ", ".join(err.languages),
+                        )
+                        break
+                    if isinstance(err, AllProvidersCoolingDown):
+                        retryable = bool(err.retryable)
+                        can_retry_soon = retryable and err.retry_after <= 90
+                        wait_sec = min(90, max(1, err.retry_after + 1))
+                        _emit(
+                            on_event,
+                            "provider_unavailable",
+                            index=item_index,
+                            retry_after=wait_sec if can_retry_soon else err.retry_after,
+                            message=err_str[:500],
+                        )
+                        if can_retry_soon and attempt < options.max_retries:
+                            logging.warning(
+                                "LLM sağlayıcıları geçici olarak kullanılamıyor; %ss sonra yeniden denenecek.",
+                                wait_sec,
+                            )
+                            stop_event.wait(wait_sec)
+                            continue
+                        if err.quota_limited and not retryable:
+                            raise RuntimeError(
+                                "Ücretsiz LLM sağlayıcı kotaları tükenmiş; kısa süre sonra tekrar denemek "
+                                "sonuç vermeyeceği için üretim işi durduruldu. Sağlayıcı kotası yenilendiğinde "
+                                f"yeniden başlatın. Ayrıntı: {err}"
+                            ) from err
+                        if retryable and err.retry_after > 90:
+                            wait_kind = "kota beklemesi" if err.quota_limited else "sağlayıcı bekleme süresi"
+                            raise RuntimeError(
+                                f"LLM {wait_kind} uzun ({err.retry_after}s); uzun bekleme yerine üretim işi "
+                                f"durduruldu. Daha sonra yeniden başlatın. Ayrıntı: {err}"
+                            ) from err
+                        if retryable and attempt >= options.max_retries:
+                            raise RuntimeError(
+                                f"LLM sağlayıcıları {options.max_retries} kısa yeniden denemede yanıt vermedi; "
+                                "tekrarları her soru için sürdürmemek üzere üretim işi durduruldu."
+                            ) from err
+                        raise RuntimeError(
+                            "LLM sağlayıcılarında geçici olmayan erişim/yapılandırma hatası var; "
+                            f"aynı hatayı sonraki sorularda tekrarlamamak için üretim durduruldu. Ayrıntı: {err}"
+                        ) from err
+                    is_quota = "429" in err_str or "RESOURCE_EXHAUSTED" in err_str
+                    wait_sec = extract_retry_delay(err_str) if is_quota else attempt * 5
+                    _emit(
+                        on_event,
+                        "retry",
+                        index=item_index,
+                        attempt=attempt,
+                        max_retries=options.max_retries,
+                        wait_seconds=wait_sec,
+                        quota_error=is_quota,
+                        message=err_str[:500],
+                    )
+                    if attempt < options.max_retries:
                         stop_event.wait(wait_sec)
-                        continue
-                    if err.quota_limited and not retryable:
-                        raise RuntimeError(
-                            "Ücretsiz LLM sağlayıcı kotaları tükenmiş; kısa süre sonra tekrar denemek "
-                            "sonuç vermeyeceği için üretim işi durduruldu. Sağlayıcı kotası yenilendiğinde "
-                            f"yeniden başlatın. Ayrıntı: {err}"
-                        ) from err
-                    if retryable and err.retry_after > 90:
-                        wait_kind = "kota beklemesi" if err.quota_limited else "sağlayıcı bekleme süresi"
-                        raise RuntimeError(
-                            f"LLM {wait_kind} uzun ({err.retry_after}s); uzun bekleme yerine üretim işi "
-                            f"durduruldu. Daha sonra yeniden başlatın. Ayrıntı: {err}"
-                        ) from err
-                    if retryable and attempt >= options.max_retries:
-                        raise RuntimeError(
-                            f"LLM sağlayıcıları {options.max_retries} kısa yeniden denemede yanıt vermedi; "
-                            "tekrarları her soru için sürdürmemek üzere üretim işi durduruldu."
-                        ) from err
-                    raise RuntimeError(
-                        "LLM sağlayıcılarında geçici olmayan erişim/yapılandırma hatası var; "
-                        f"aynı hatayı sonraki sorularda tekrarlamamak için üretim durduruldu. Ayrıntı: {err}"
-                    ) from err
-                is_quota = "429" in err_str or "RESOURCE_EXHAUSTED" in err_str
-                wait_sec = extract_retry_delay(err_str) if is_quota else attempt * 5
-                _emit(
-                    on_event,
-                    "retry",
-                    index=processed_count,
-                    attempt=attempt,
-                    max_retries=options.max_retries,
-                    wait_seconds=wait_sec,
-                    quota_error=is_quota,
-                    message=err_str[:500],
-                )
-                if attempt < options.max_retries:
-                    stop_event.wait(wait_sec)
+                    else:
+                        with lock:
+                            failed_count += 1
+                        logging.error("Hata oluştu (%s/%s): %s", attempt, options.max_retries, err)
+
+            if reserved_difficulty is not None:
+                diff_balancer.return_target(reserved_difficulty)
+            if reserved_local_difficulty is not None:
+                local_difficulty_balancer.return_target(reserved_local_difficulty)
+
+            if success_this_item:
+                logging.info("📊 Toplam Başarılı Soru: %s", produced_count)
+            if not stop_event.is_set() and options.sleep_between_requests > 0:
+                stop_event.wait(options.sleep_between_requests)
+        finally:
+            with lock:
+                reserved_targets[:] = [t for t in reserved_targets if t is not algorithm_target]
+
+    fatal: List[BaseException] = []
+
+    def _worker(plan: Any) -> None:
+        try:
+            _run_item(plan)
+        except BaseException as exc:  # surfaced by the dispatcher after the pool drains
+            fatal.append(exc)
+            stop_event.set()
+
+    if concurrency <= 1:
+        while options.question_count is None or produced_count < options.question_count:
+            if stop_event.is_set():
+                break
+            with lock:
+                plan = _plan_item()
+            _run_item(plan)
+    else:
+        pool = ThreadPoolExecutor(max_workers=concurrency, thread_name_prefix="gen")
+        futures: set = set()
+        try:
+            while not stop_event.is_set():
+                futures = {f for f in futures if not f.done()}
+                plan = None
+                with lock:
+                    target_met = (
+                        options.question_count is not None
+                        and produced_count + len(reserved_targets) >= options.question_count
+                    )
+                    if target_met and not reserved_targets:
+                        break
+                    if not target_met and len(futures) < concurrency:
+                        plan = _plan_item()
+                if plan is not None:
+                    futures.add(pool.submit(_worker, plan))
+                elif futures:
+                    wait_futures(futures, timeout=0.5, return_when=FIRST_COMPLETED)
                 else:
-                    failed_count += 1
-                    logging.error("Hata oluştu (%s/%s): %s", attempt, options.max_retries, err)
+                    stop_event.wait(0.05)
+        except BaseException:
+            stop_event.set()
+            raise
+        finally:
+            pool.shutdown(wait=True)
+        if fatal:
+            raise fatal[0]
 
-        if reserved_difficulty is not None:
-            diff_balancer.return_target(reserved_difficulty)
-        if reserved_local_difficulty is not None:
-            local_difficulty_balancer.return_target(reserved_local_difficulty)
-
-        if success_this_item:
-            logging.info("📊 Toplam Başarılı Soru: %s", produced_count)
-        if not stop_event.is_set() and options.sleep_between_requests > 0:
-            stop_event.wait(options.sleep_between_requests)
 
     summary = {
         "processed": processed_count,
