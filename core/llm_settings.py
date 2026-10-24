@@ -162,7 +162,9 @@ def _env_flag(default: str = "1") -> bool:
 
 
 def load_use_azure(path: Path = SETTINGS_FILE) -> bool:
-    """Persisted choice, else the TRANSLATION_USE_AZURE env (default on)."""
+    """An explicitly set (non-empty) TRANSLATION_USE_AZURE env wins for this process, else the persisted choice, else on."""
+    if os.environ.get("TRANSLATION_USE_AZURE", "").strip():
+        return _env_flag()
     try:
         value = json.loads(path.read_text(encoding="utf-8")).get("translation_use_azure")
     except (OSError, ValueError, AttributeError):

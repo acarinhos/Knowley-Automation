@@ -2,12 +2,14 @@
 import itertools
 import threading
 import time
+import random
 import unittest
 from collections import Counter
 from unittest.mock import MagicMock, patch
 
 from core.sheet_algorithm import SheetAlgorithmRepository
 from tests.test_worker_generation import FakeManager, fake_question
+from core.visual_questions import VisualQuestionSchedule
 from worker import GenerationOptions, run_generation
 
 N = 10
@@ -23,6 +25,7 @@ class Harness:
         self.calls, self.saved, self.events = [], [], []
         self.active = self.max_active = 0
         self.saving = self.max_saving = 0
+        self.saved_visual = []
         self.lock = threading.Lock()
         self.counter = itertools.count()
         self.texts, self.fail_first_for, self.delay = texts, fail_first_for, delay
@@ -61,11 +64,12 @@ class Harness:
             if text in self.saved:
                 return False
             self.saved.append(text)
+            self.saved_visual.append(bool(q.is_visual_question))
             return True
 
-    def run(self, concurrency, count=N, stop_event=None, on_event=None):
+    def run(self, concurrency, count=N, stop_event=None, on_event=None, visual=False, image_resolver=None):
         opts = GenerationOptions(question_count=count, generation_mode="basic", combo_percent=0,
-                                 sleep_between_requests=0, visual_questions_enabled=False,
+                                 sleep_between_requests=0, visual_questions_enabled=visual,
                                  concurrency=concurrency)
         def emit(e):
             self.events.append(e)
@@ -73,9 +77,11 @@ class Harness:
                 on_event(e)
         with patch("worker.generate_question_with_fallback", side_effect=self.generate), \
                 patch("worker.save_worker_question", side_effect=self.save), \
+                patch("worker.VisualQuestionSchedule", lambda: VisualQuestionSchedule(random.Random(7))), \
                 patch.object(self.repo, "build_credit_queue", return_value=list(self.queue)):
             return run_generation(opts, repository=self.repo, llm_manager=FakeManager(), db=MagicMock(),
-                                  stop_event=stop_event or FastEvent(), on_event=emit)
+                                  stop_event=stop_event or FastEvent(), on_event=emit,
+                                  image_resolver=image_resolver)
 
     def names(self):
         return [e["event"] for e in self.events]
@@ -151,6 +157,43 @@ class ConcurrencyTests(unittest.TestCase):
         o = GenerationOptions(concurrency=3, sleep_between_requests=2.0).validate()
         self.assertEqual(o.sleep_between_requests, 2.0)
         self.assertEqual(GenerationOptions().validate().sleep_between_requests, 1.5)
+
+    def test_visual_schedule_identical_to_sequential(self):
+        class Resolver:
+            def __init__(self):
+                self.active = self.max_active = self.calls = 0
+                self.lock = threading.Lock()
+
+            def resolve(self, q):
+                with self.lock:
+                    self.active += 1
+                    self.calls += 1
+                    self.max_active = max(self.max_active, self.active)
+                time.sleep(0.01)
+                q.question_image_url = "https://example.test/x.jpg"
+                with self.lock:
+                    self.active -= 1
+
+        queue20 = Harness().repo.build_credit_queue(pool="154", basic_only=True, total_count=20)
+
+        def run(conc):
+            h, r = Harness(delay=0.005), Resolver()
+            h.queue = queue20  # same fixed plan for every run
+            random.seed(1)
+            summary = h.run(conc, count=20, visual=True, image_resolver=r)
+            self.assertEqual(summary["produced"], 20)
+            return h, r
+
+        base, base_r = run(1)
+        positions = [i for i, v in enumerate(base.saved_visual) if v]
+        self.assertGreater(len(positions), 0)
+        self.assertEqual(base_r.max_active, 1)
+        for conc in (1, 4):
+            h, r = run(conc)
+            self.assertEqual([i for i, v in enumerate(h.saved_visual) if v], positions, conc)
+            self.assertEqual(r.calls, len(positions) if conc == 1 else r.calls)
+            self.assertEqual(sum(1 for c in h.calls if c["visual_question"]), sum(1 for c in base.calls if c["visual_question"]))
+            self.assertEqual(r.max_active, 1, conc)
 
 
 if __name__ == "__main__":

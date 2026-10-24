@@ -20,6 +20,8 @@ from unittest.mock import MagicMock, patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
+# NOTE: OLD == CURRENT (1.00x) is a simulation artefact: simulated Azure never fails, so LLM batching never runs (the batching
+# gain applies to real Azure failures/429s/timeouts). Visuals are off in all simulated scenarios.
 SCENARIOS = [  # name, env, concurrency
     ("OLD-equivalent (conc 1, batch 4, workers 1, Azure on)",
      {"TRANSLATION_LLM_BATCH_SIZE": "4", "TRANSLATION_LLM_WORKERS": "1", "TRANSLATION_USE_AZURE": "1"}, 1),

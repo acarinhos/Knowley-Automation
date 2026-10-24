@@ -98,7 +98,7 @@ class GenerationOptions:
     def validate(self) -> "GenerationOptions":
         self.concurrency = max(1, min(MAX_CONCURRENCY, int(self.concurrency or 1)))
         if self.concurrency > 1 and self.sleep_between_requests == SLEEP_BETWEEN_REQUESTS:
-            self.sleep_between_requests = SLEEP_BETWEEN_REQUESTS_PARALLEL  # default only; explicit values are kept
+            self.sleep_between_requests = SLEEP_BETWEEN_REQUESTS_PARALLEL  # default only: an explicit 1.5 equals the default and is lowered to 0.3 when concurrency>1; other explicit values are kept
         if self.question_count is not None:
             self.question_count = int(self.question_count)
         if self.question_count is not None and not 1 <= int(self.question_count) <= 10_000:
@@ -411,6 +411,8 @@ def run_generation(
     concurrency = max(1, int(options.concurrency or 1))
     lock = threading.RLock()
     reserved_targets: List[Any] = []
+    visual_inflight = [False]
+    resolve_lock = threading.Lock()
 
 
     def _plan_item():
@@ -446,19 +448,22 @@ def run_generation(
                     "Sheet kredi kuyruğu hedef sayı tamamlanmadan tükendi; iş tamamlandı olarak işaretlenmedi."
                 )
 
-        if reserved_targets and options.visual_questions_enabled:
-            # Parallel items map to the next unsaved schedule positions; never run a visual one in parallel.
-            visual_schedule.peek(credit_queue[:10])
+        visual_question = False
+        if options.visual_questions_enabled:
+            if options.visual_questions_enabled and visual_schedule.starts_block and not reserved_targets:
+                prioritize_visual_targets(credit_queue)
+            visual_schedule.peek(credit_queue[:10])  # plans the 10-block once
             position = visual_schedule._position + len(reserved_targets)
-            if position >= 10 or position in visual_schedule._visual_positions:
+            visual_question = position in (visual_schedule._visual_positions or ())
+            # Exact sequential slot order: a visual item runs alone, and nothing starts while one is in flight.
+            if position >= 10 or visual_inflight[0] or (visual_question and reserved_targets):
                 return None
+            visual_inflight[0] = visual_question
 
         processed_count += 1
         item_index = processed_count
         # Slot yalnızca yeni soru Firestore'a başarıyla yazıldığında tüketilir.
         # Duplicate veya üretim hatası aynı kredi slotunu bir sonraki denemeye bırakır.
-        if options.visual_questions_enabled and visual_schedule.starts_block and not reserved_targets:
-            prioritize_visual_targets(credit_queue)
         reserved_ids = {id(t) for t in reserved_targets}
         algorithm_target = next(t for t in credit_queue if id(t) not in reserved_ids)
         reserved_targets.append(algorithm_target)
@@ -473,9 +478,6 @@ def run_generation(
             and random.randint(1, 100) <= options.combo_percent
         )
         secondary_cat = _choose_secondary(primary_cat, repository) if is_combo else None
-        visual_question = bool(
-            options.visual_questions_enabled and visual_schedule.peek(credit_queue[:10])
-        )
         profile_country = (
             options.country
             if options.country_profile_enabled
@@ -615,12 +617,12 @@ def run_generation(
                     )
 
                     if visual_question:
-                        with lock:
+                        with resolve_lock:  # one resolver, one resolve() at a time
                             if resolved_image_service is None:
                                 resolved_image_service = WikimediaQuestionImageResolver(
                                     bucket=get_storage_bucket() if options.write_to_firestore else None
                                 )
-                        resolved_image_service.resolve(q_data)
+                            resolved_image_service.resolve(q_data)
                         if not getattr(q_data, "question_image_url", None):
                             raise ValueError("Görsel soru için question_image_url oluşturulamadı.")
 
@@ -796,6 +798,8 @@ def run_generation(
         finally:
             with lock:
                 reserved_targets[:] = [t for t in reserved_targets if t is not algorithm_target]
+                if visual_question:
+                    visual_inflight[0] = False
 
     fatal: List[BaseException] = []
 

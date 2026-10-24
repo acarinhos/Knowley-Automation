@@ -53,7 +53,8 @@ LLM src 6 s, translation 8 s/batch, Azure 1.5 s + 30k chars/min, 3% 429 / 2% tim
 | AZURE-OFF (batch 8, workers 3) | 940 | 23.5 | 1.23x |
 | AZURE-OFF + concurrency 4 (workers 4) | 224 | 5.6 | 5.17x |
 
-Caveats: simulated latencies, not live. OLD vs CURRENT tie because Azure succeeds here, so LLM batching only matters
-on the Azure-failure path. Real gains are capped by free-tier LLM rate limits (429s / provider cooldowns will eat
+Caveats: simulated latencies, not live; visuals are off in all simulated scenarios. The OLD == CURRENT 1.00x row is a simulation
+artefact: simulated Azure never fails, so LLM batching never runs; the earlier batching speedup applies to real-world Azure
+failures/429s/timeouts, not to this table. Real gains are capped by free-tier LLM rate limits (429s / provider cooldowns will eat
 into concurrency 4; watch `retry` and `provider_unavailable` events). `--live N --dry-run` measures the real thing
 with writes off (refuses if `KNOWLEY_GENERATION_WRITES_ENABLED` is set).

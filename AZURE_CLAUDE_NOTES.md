@@ -4,6 +4,9 @@
 - `TRANSLATION_USE_AZURE` = `1` (default) | `0`/`false` | `auto` (Azure only if `AZURE_TRANSLATOR_KEY` is set). Read at call time.
 - Off: `translate_localized_content` never touches Azure (no budget wait, no cooldown, no HTTP); every language goes through the LLM path
   (same concurrent batches, same validation).
+- Precedence: an explicitly set (non-empty) `TRANSLATION_USE_AZURE` wins for that process (e.g. `run_ui_fast.bat` `=0`) and is the checkbox's
+  initial state; unset -> persisted value, else on. `auto` stays `auto` until the user toggles the checkbox; a toggle is the explicit choice
+  (applied + persisted) and is not overwritten at job start.
 - UI: checkbox "Çeviri için Azure kullan" in the LLM provider box. Persisted in `ui_llm_providers.json` (`translation_use_azure`),
   applied via `core.llm_settings.apply_translation_mode(bool)` (toggle + right before `JobManager.start`).
 - Knobs: `TRANSLATION_LLM_BATCH_SIZE` (default 8), `TRANSLATION_LLM_WORKERS` (default 3, capped at 6).

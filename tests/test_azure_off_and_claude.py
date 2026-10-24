@@ -82,6 +82,21 @@ class AzureSwitchTests(unittest.TestCase):
             apply_translation_mode(True, path)
             self.assertTrue(load_use_azure(path))
 
+    def test_explicit_env_beats_persisted(self):
+        # New precedence: explicit non-empty env > persisted file > default on.
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ):
+            path = Path(tmp) / "s.json"
+            path.write_text('{"translation_use_azure": true}', encoding="utf-8")
+            os.environ["TRANSLATION_USE_AZURE"] = "0"
+            self.assertFalse(load_use_azure(path))
+            os.environ["TRANSLATION_USE_AZURE"] = "auto"
+            self.assertTrue(load_use_azure(path))
+            self.assertEqual(os.environ["TRANSLATION_USE_AZURE"], "auto")  # reading never flattens
+            os.environ["TRANSLATION_USE_AZURE"] = ""
+            self.assertTrue(load_use_azure(path))
+            path.write_text('{"translation_use_azure": false}', encoding="utf-8")
+            self.assertFalse(load_use_azure(path))
+
 
 class ClaudeProviderTests(unittest.TestCase):
     def setUp(self):
