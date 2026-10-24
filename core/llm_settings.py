@@ -17,12 +17,12 @@ from typing import Dict, Iterable, List, Optional
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 SETTINGS_FILE = ROOT_DIR / "ui_llm_providers.json"  # *.json is git-ignored
-PROVIDERS = ("gemini", "groq", "cohere", "nvidia")
+PROVIDERS = ("gemini", "groq", "cohere", "nvidia", "claude")  # claude = optional CLI, never in the default
 DEFAULT_SELECTION = ("gemini", "groq")
-KEY_ENV = {"gemini": "GEMINI_API_KEY", "groq": "GROQ_API_KEY", "cohere": "COHERE_API_KEY", "nvidia": "NVIDIA_API_KEY"}
+KEY_ENV = {"gemini": "GEMINI_API_KEY", "groq": "GROQ_API_KEY", "cohere": "COHERE_API_KEY", "nvidia": "NVIDIA_API_KEY"}  # claude has no key: see key_status
 
 
-MODEL_ENV = {"gemini": "GEMINI_MODELS", "groq": "GROQ_MODELS", "cohere": "COHERE_MODELS", "nvidia": "NVIDIA_MODELS"}
+MODEL_ENV = {"gemini": "GEMINI_MODELS", "groq": "GROQ_MODELS", "cohere": "COHERE_MODELS", "nvidia": "NVIDIA_MODELS", "claude": "CLAUDE_MODELS"}
 
 
 def _original_models() -> Dict[str, List[str]]:
@@ -30,7 +30,8 @@ def _original_models() -> Dict[str, List[str]]:
     from core.llm_manager import MultiLLMManager
 
     defaults = {"gemini": MultiLLMManager.GEMINI_MODELS, "groq": MultiLLMManager.GROQ_MODELS,
-                "cohere": MultiLLMManager.COHERE_MODELS, "nvidia": MultiLLMManager.NVIDIA_MODELS}
+                "cohere": MultiLLMManager.COHERE_MODELS, "nvidia": MultiLLMManager.NVIDIA_MODELS,
+                "claude": MultiLLMManager.CLAUDE_MODELS}
     result = {}
     for name, fallback in defaults.items():
         raw = os.environ.get(MODEL_ENV[name], "")
@@ -103,11 +104,15 @@ def save_selection(selection: Iterable[str], path: Path = SETTINGS_FILE,
                    models: Optional[Dict[str, Iterable[str]]] = None) -> List[str]:
     chosen = validate_selection(selection)
     chosen_models = validate_models(models, chosen)
+    try:
+        extra = {k: v for k, v in json.loads(path.read_text(encoding="utf-8")).items() if k == "translation_use_azure"}
+    except (OSError, ValueError, AttributeError):
+        extra = {}
     # atomic: write a temp file in the same folder, then replace (a crash never leaves a half-written file)
     handle = tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, suffix=".tmp", delete=False)
     try:
         with handle:
-            handle.write(json.dumps({"providers": chosen, "models": chosen_models}, indent=2) + "\n")
+            handle.write(json.dumps({"providers": chosen, "models": chosen_models, **extra}, indent=2) + "\n")
         os.replace(handle.name, path)
     except BaseException:
         Path(handle.name).unlink(missing_ok=True)
@@ -122,7 +127,12 @@ def allowed_env_value(selection: Iterable[str]) -> str:
 def key_status(environ: Optional[Dict[str, str]] = None) -> Dict[str, bool]:
     """Provider -> API key defined (value never exposed)."""
     env = os.environ if environ is None else environ
-    return {name: bool(str(env.get(var, "")).strip()) for name, var in KEY_ENV.items()}
+    status = {name: bool(str(env.get(var, "")).strip()) for name, var in KEY_ENV.items()}
+    if environ is None:  # claude "key" = CLI installed and logged in (subprocess check, so only for the live environment)
+        from core.llm_manager import claude_ready
+
+        status["claude"] = claude_ready()
+    return status
 
 
 def model_env(selection: Iterable[str], models: Optional[Dict[str, Iterable[str]]] = None) -> Dict[str, str]:
@@ -144,3 +154,38 @@ def apply_selection(selection: Iterable[str], models: Optional[Dict[str, Iterabl
         os.environ.update(values)
         llm_manager._global_llm_manager = None
     return chosen
+
+
+# --- translation mode (Azure on/off), persisted in the same JSON and applied through TRANSLATION_USE_AZURE ---
+def _env_flag(default: str = "1") -> bool:
+    return os.environ.get("TRANSLATION_USE_AZURE", default).strip().casefold() not in {"0", "false", "no", "off"}
+
+
+def load_use_azure(path: Path = SETTINGS_FILE) -> bool:
+    """Persisted choice, else the TRANSLATION_USE_AZURE env (default on)."""
+    try:
+        value = json.loads(path.read_text(encoding="utf-8")).get("translation_use_azure")
+    except (OSError, ValueError, AttributeError):
+        value = None
+    return value if isinstance(value, bool) else _env_flag()
+
+
+def apply_translation_mode(use_azure: bool, path: Path = SETTINGS_FILE) -> bool:
+    """Set TRANSLATION_USE_AZURE for this process (read at call time by the translator) and persist the choice."""
+    use_azure = bool(use_azure)
+    os.environ["TRANSLATION_USE_AZURE"] = "1" if use_azure else "0"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            data = {}
+    except (OSError, ValueError):
+        data = {}
+    data["translation_use_azure"] = use_azure
+    try:
+        handle = tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, suffix=".tmp", delete=False)
+        with handle:
+            handle.write(json.dumps(data, indent=2) + "\n")
+        os.replace(handle.name, path)
+    except OSError:
+        pass  # persistence is best effort; the env value already applies to this process
+    return use_azure

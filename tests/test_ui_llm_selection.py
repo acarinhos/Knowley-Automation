@@ -30,7 +30,7 @@ class LlmSelectionUiTests(unittest.TestCase):
         app = _app()
         try:
             self.assertEqual({k: v.get() for k, v in app.llm_vars.items()},
-                             {"gemini": True, "groq": True, "cohere": False, "nvidia": False})
+                             {"gemini": True, "groq": True, "cohere": False, "nvidia": False, "claude": False})
             for var in app.llm_vars.values():
                 var.set(False)
             with patch("ui_tkinter.load_llm_selection", lambda: ["gemini", "groq"]):

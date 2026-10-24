@@ -149,8 +149,16 @@ def _translation_max_tokens(languages: int, items: int = 1) -> int:
 
 
 def _llm_workers() -> int:
-    """Concurrent LLM translation batches (env TRANSLATION_LLM_WORKERS, default 3)."""
-    return _env_int("TRANSLATION_LLM_WORKERS", 3)
+    """Concurrent LLM translation batches (env TRANSLATION_LLM_WORKERS, default 3, capped at 6)."""
+    return min(6, _env_int("TRANSLATION_LLM_WORKERS", 3))
+
+
+def translation_use_azure() -> bool:
+    """Env TRANSLATION_USE_AZURE read at call time: 1/true (default), 0/false, auto (= only when a key exists)."""
+    value = os.getenv("TRANSLATION_USE_AZURE", "1").strip().casefold()
+    if value == "auto":
+        return bool(os.getenv("AZURE_TRANSLATOR_KEY", "").strip())
+    return value not in {"0", "false", "no", "off"}
 
 
 def _wait_for_azure_character_budget(characters: int) -> None:
@@ -967,6 +975,7 @@ def translate_localized_content(
     Azure call/budget wait); only the languages Azure failed go to the LLM.
     """
     source_language = str(source_language or "en")
+    prefer_azure = prefer_azure and translation_use_azure()  # off: no budget wait, cooldown or Azure HTTP
     targets = list(dict.fromkeys(str(lang) for lang in target_languages if str(lang)))
     if not targets:
         raise ValueError("At least one target language is required")
