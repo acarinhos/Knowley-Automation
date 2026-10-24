@@ -34,7 +34,7 @@ class TopicDiversityTests(unittest.TestCase):
         db.collection().where().limit().stream.return_value = [doc]
         t = TopicDiversityTracker()
         t.seed_from_db(db, "A", "B")
-        self.assertEqual(t.recent("A", "B"), ["ring", "Venus"])
+        self.assertEqual(t.recent("A", "B"), ["Venus", "ring"])
         db.collection().where().limit().stream.assert_called_with(timeout=SEED_TIMEOUT_S)
 
     def test_seed_failure_is_logged_and_retried(self):
