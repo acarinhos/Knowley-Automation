@@ -37,6 +37,15 @@ class TopicDiversityTests(unittest.TestCase):
         self.assertEqual(t.recent("A", "B"), ["Venus", "ring"])
         db.collection().where().limit().stream.assert_called_with(timeout=SEED_TIMEOUT_S)
 
+    def test_topic_terms_priority_and_fallbacks(self):
+        tr = {"en": NS(keyword="rings", options={"A": "Visible rings", "B": "x"})}
+        base = dict(correct_answer="A", translations=tr)
+        self.assertEqual(topic_terms(NS(topic_entity=" Saturn ", question_image_search_query="Jupiter", **base)), ["Saturn"])
+        self.assertEqual(topic_terms(NS(topic_entity="", question_image_search_query="Saturn rings Wikimedia Commons image", **base)), ["Saturn rings"])
+        self.assertEqual(topic_terms(NS(topic_entity=None, question_image_search_query=None, **base)), ["rings", "Visible rings"])
+        self.assertEqual(topic_terms({"topic_entity": "Photosynthesis", "translations": {}}), ["Photosynthesis"])
+        self.assertEqual(topic_terms(NS(**base)), ["rings", "Visible rings"])  # fields missing entirely
+
     def test_seed_failure_is_logged_and_retried(self):
         t = TopicDiversityTracker()
         bad = MagicMock()

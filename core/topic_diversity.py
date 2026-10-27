@@ -11,6 +11,14 @@ def _get(obj: Any, name: str) -> Any:
 
 def topic_terms(q: Any) -> List[str]:
     """keyword + correct-answer option text from the en (else tr, else first) translation; works on models and dicts."""
+    entity = str(_get(q, "topic_entity") or "").strip()
+    if entity:
+        return [entity]
+    # visual: short form of the English image query (drops generic filler words)
+    filler = {"wikimedia", "commons", "image", "photo", "picture", "diagram"}
+    words = [w for w in str(_get(q, "question_image_search_query") or "").split() if w.casefold() not in filler]
+    if words:
+        return [" ".join(words[:3])]
     translations = _get(q, "translations") or {}
     tr = next(
         (translations[k] for k in ("en", "tr") if translations.get(k)),
@@ -87,5 +95,5 @@ def avoid_line(tracker: TopicDiversityTracker, cat: str, sub: str) -> str:
     return (
         f"\nBu alt kategoride daha önce işlenen konular/varlıklar: {', '.join(topics)}. "
         "Bunları TEKRAR ETME; alt kategorinin geniş kapsamı içinden farklı, daha az bilinen ama genel kültüre uygun "
-        "bir konu/varlık seç. Aynı varlığı sorunun cevabı veya ana öznesi yapma."
+        "bir konu/varlık seç. Aynı varlık hakkında, soru açısı veya cevabı farklı olsa bile yeni soru üretme."
     )
