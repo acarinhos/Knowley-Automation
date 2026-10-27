@@ -16,6 +16,15 @@ NEW_QUESTION_TYPES = (TRUE_FALSE, FILL_BLANK)
 QUESTION_TYPES_MODE = "question_types"
 BLANK_MARKER = "_____"
 
+QUESTIONS_COLLECTION = "questions"
+COLLECTION_BY_TYPE = {MULTIPLE_CHOICE: QUESTIONS_COLLECTION, TRUE_FALSE: "tfquestions", FILL_BLANK: "fsquestions"}
+ALL_QUESTION_COLLECTIONS = tuple(COLLECTION_BY_TYPE.values())
+
+
+def collection_for(question_type: Any) -> str:
+    """Top-level Firestore collection for a question type (unknown/missing -> multiple_choice's 'questions')."""
+    return COLLECTION_BY_TYPE.get(str(question_type or MULTIPLE_CHOICE), QUESTIONS_COLLECTION)
+
 
 def normalize_question_types(value: Any) -> List[str]:
     """Accept list / comma string / 'mixed'; return a de-duplicated list of the NEW types (default: both)."""

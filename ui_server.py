@@ -268,7 +268,7 @@ def firebase_summary(live: bool = False) -> Dict[str, Any]:
         "database": "(default)",
         "edition": "Firestore Native",
         "location": "europe-west3",
-        "collection": "questions",
+        "collection": "questions",  # multiple_choice; typed collections are in collection_counts
         "reachable": None,
         "question_count": None,
     }
@@ -276,9 +276,21 @@ def firebase_summary(live: bool = False) -> Dict[str, Any]:
         return result
     try:
         db = init_firebase()
-        aggregation = db.collection("questions").count().get()
-        result["question_count"] = int(aggregation[0][0].value)
-        result["reachable"] = True
+        from core.question_types import ALL_QUESTION_COLLECTIONS
+
+        counts: Dict[str, Any] = {}
+        errors = []
+        for name in ALL_QUESTION_COLLECTIONS:
+            try:
+                counts[name] = int(db.collection(name).count().get()[0][0].value)
+            except Exception as exc:
+                counts[name] = None
+                errors.append(f"{name}: {str(exc)[:100]}")
+        result["collection_counts"] = counts
+        result["question_count"] = sum(v for v in counts.values() if v is not None)
+        result["reachable"] = any(v is not None for v in counts.values())
+        if errors:
+            result["error"] = "; ".join(errors)[:300]
     except Exception as exc:
         result["reachable"] = False
         result["error"] = str(exc)[:300]

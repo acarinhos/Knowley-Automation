@@ -1,7 +1,7 @@
 """Simulated community vote distribution (until real votes exist).
 
 Contract (see show_community_distribution): `community_distribution` is four integer percentages [A, B, C, D]
-summing to 100, `community_distribution_meta` = {"source": "simulated", "sample_size": N, "generated_at": ISO}.
+summing to 100 (true_false: two, [True, False]), `community_distribution_meta` = {"source": "simulated", "sample_size": N, "generated_at": ISO}.
 Deterministic per question id, so reruns give the same numbers; real votes can later replace both fields.
 """
 
@@ -46,32 +46,32 @@ def _split(total: int, weights: List[float], cap: int) -> List[int]:
 def simulate_distribution(doc_id: str, data: Mapping[str, Any]) -> Optional[Tuple[List[int], int]]:
     """([A,B,C,D] percentages, sample_size) or None when the question has no valid correct answer."""
     answer = data.get("correct_answer")
-    if data.get("question_type") == "true_false":  # the contract is four percentages; tf has none
-        return None
-    if answer not in tuple(LETTERS):
+    count = 2 if data.get("question_type") == "true_false" else 4  # one percentage per option
+    if answer not in tuple(LETTERS[:count]):
         return None
     correct = LETTERS.index(answer)
     rng = random.Random(int(hashlib.sha256(str(doc_id).encode("utf-8")).hexdigest()[:16], 16))
     level = _difficulty(data)
     wrong_wins = rng.random() < WRONG_LEADER[level]
     strongest = data.get("strongest_distractor_index")
-    wrongs = [i for i in range(4) if i != correct]
+    wrongs = [i for i in range(count) if i != correct]
+    floor = 51 if count == 2 else 0  # with two options the leader must hold a majority
     if wrong_wins:
         leader = strongest if strongest in wrongs and rng.random() < 0.7 else rng.choice(wrongs)
-        lead_pct = rng.randint(35, 55)
+        lead_pct = rng.randint(max(35, floor), max(55, floor + 10))
     else:
         leader = correct
         low = {"Kolay": 55, "Orta": 45, "Zor": 38}[level]
         high = {"Kolay": 75, "Orta": 70, "Zor": 60}[level]
-        lead_pct = rng.randint(low, high)
-    others = [i for i in range(4) if i != leader]
+        lead_pct = rng.randint(max(low, floor), high)
+    others = [i for i in range(count) if i != leader]
     weights = [rng.uniform(0.4, 1.6) for _ in others]
     if not wrong_wins and strongest in others:  # the strongest distractor attracts the most of the remainder
         weights[others.index(strongest)] += 1.0
     if wrong_wins:  # the correct answer still gets a sizeable share
         weights[others.index(correct)] += 0.8
     shares = _split(100 - lead_pct, weights, lead_pct - 1)
-    result = [0, 0, 0, 0]
+    result = [0] * count
     result[leader] = lead_pct
     for index, share in zip(others, shares):
         result[index] = share

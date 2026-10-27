@@ -28,8 +28,10 @@ from core.translation_service import COUNTRY_LANGUAGE_CODES, SUPPORTED_LANGUAGE_
 from core.starting_difficulty import StartingDifficultyAssigner
 from core.question_types import (
     MULTIPLE_CHOICE,
+    QUESTIONS_COLLECTION,
     QUESTION_TYPES_MODE,
     QuestionTypePlanner,
+    collection_for,
     normalize_question_types,
 )
 from core.topic_diversity import TopicDiversityTracker, avoid_line, topic_terms
@@ -262,9 +264,11 @@ def save_worker_question(db: Any, question_obj: GeneratedQuestion) -> bool:
             str(time.time()),
         )
         q_hash = generate_question_hash(hash_seed)
-        doc_ref = db.collection("questions").document(q_hash)
-        
-        if doc_ref.get().exists:
+        target_collection = collection_for(q_dict.get("question_type"))
+        doc_ref = db.collection(target_collection).document(q_hash)
+        # Typed collections also check the legacy 'questions' collection for the same hash.
+        legacy_exists = target_collection != QUESTIONS_COLLECTION and db.collection(QUESTIONS_COLLECTION).document(q_hash).get().exists
+        if legacy_exists or doc_ref.get().exists:
             logging.warning(f"Aynı soru veritabanında mevcut, atlandı: {hash_seed[:40]}...")
             return False
 
@@ -597,7 +601,7 @@ def run_generation(
          reserved_local_difficulty, local_target, question_type, true_false_answer) = plan
         success_this_item = False
         if db is not None and options.write_to_firestore:
-            topic_tracker.seed_from_db(db, primary_cat, target_sub)  # outside the planning lock
+            topic_tracker.seed_from_db(db, primary_cat, target_sub, question_type=question_type)  # outside the planning lock
         algorithm_context += avoid_line(topic_tracker, primary_cat, target_sub)
         try:
             for attempt in range(1, options.max_retries + 1):

@@ -231,6 +231,8 @@ def validate_question_type_structure(q: "GeneratedQuestion", true_false_answer: 
     for lang, content in q.translations.items():
         four = [content.options.C, content.options.D]
         if qtype == TRUE_FALSE:
+            if str(content.options.A or "").strip().casefold() == str(content.options.B or "").strip().casefold():
+                raise ValueError(f"true_false A ve B şıkları aynı olamaz [{lang}].")
             if any(v is not None for v in four) or any(
                 v is not None for v in (content.clarified_options.C, content.clarified_options.D)
             ):
