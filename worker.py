@@ -26,6 +26,12 @@ from core.llm_manager import AllProvidersCoolingDown
 from core.sheet_algorithm import SheetAlgorithmRepository, get_sheet_algorithm_repository
 from core.translation_service import COUNTRY_LANGUAGE_CODES, SUPPORTED_LANGUAGE_CODES, TranslationIncompleteError
 from core.starting_difficulty import StartingDifficultyAssigner
+from core.question_types import (
+    MULTIPLE_CHOICE,
+    QUESTION_TYPES_MODE,
+    QuestionTypePlanner,
+    normalize_question_types,
+)
 from core.topic_diversity import TopicDiversityTracker, avoid_line, topic_terms
 from core.visual_questions import (
     VisualQuestionSchedule,
@@ -94,6 +100,7 @@ class GenerationOptions:
     max_retries: int = MAX_BLOCK_RETRIES
     write_to_firestore: bool = True
     visual_questions_enabled: bool = True
+    question_types: Optional[List[str]] = None  # only used by the "question_types" mode; everything else is multiple_choice
     concurrency: int = field(default_factory=default_concurrency)
 
     def validate(self) -> "GenerationOptions":
@@ -109,9 +116,14 @@ class GenerationOptions:
         if self.scope not in {None, "global", "local"}:
             raise ValueError("Kapsam global, local veya otomatik olmalıdır.")
         mode = str(self.generation_mode or self.credit_pool).strip().lower()
-        if mode not in {"154", "64", "basic", "custom", "country_local"}:
-            raise ValueError("Üretim modu 154, 64, basic, custom veya country_local olmalıdır.")
+        if mode not in {"154", "64", "basic", "custom", "country_local", QUESTION_TYPES_MODE}:
+            raise ValueError("Üretim modu 154, 64, basic, custom, country_local veya question_types olmalıdır.")
         self.generation_mode = mode
+        self.question_types = (
+            normalize_question_types(self.question_types) if mode == QUESTION_TYPES_MODE else [MULTIPLE_CHOICE]
+        )
+        if mode == QUESTION_TYPES_MODE:
+            self.visual_questions_enabled = False  # image-recognition stems do not fit tf/fill-blank
         self.credit_pool = "64" if mode == "64" else "154"
         if mode == "custom":
             if self.question_count is None:
@@ -380,7 +392,8 @@ def run_generation(
     processed_count = 0
     duplicate_count = 0
     failed_count = 0
-    basic_only = options.generation_mode == "basic"
+    basic_only = options.generation_mode in ("basic", QUESTION_TYPES_MODE)
+    type_planner = QuestionTypePlanner(options.question_types)
     starting_difficulty_assigner = StartingDifficultyAssigner()
     visual_schedule = VisualQuestionSchedule()
     topic_tracker = TopicDiversityTracker()
@@ -561,11 +574,12 @@ def run_generation(
             else None
         )
         local_target = reserved_local_difficulty or reserved_difficulty
+        question_type, true_false_answer = type_planner.next()
         return (
             item_index, algorithm_target, primary_cat, target_sub, equal_distribution,
             secondary_cat, visual_question, generation_plan, planned_scope, planned_country,
             question_languages, algorithm_context, reserved_difficulty,
-            reserved_local_difficulty, local_target,
+            reserved_local_difficulty, local_target, question_type, true_false_answer,
         )
 
     def _consume_slot(target: Any) -> None:
@@ -580,7 +594,7 @@ def run_generation(
         (item_index, algorithm_target, primary_cat, target_sub, equal_distribution,
          secondary_cat, visual_question, generation_plan, planned_scope, planned_country,
          question_languages, algorithm_context, reserved_difficulty,
-         reserved_local_difficulty, local_target) = plan
+         reserved_local_difficulty, local_target, question_type, true_false_answer) = plan
         success_this_item = False
         if db is not None and options.write_to_firestore:
             topic_tracker.seed_from_db(db, primary_cat, target_sub)  # outside the planning lock
@@ -619,6 +633,8 @@ def run_generation(
                         algorithm_version=repository.version,
                         visual_question=visual_question,
                         llm_manager=manager,
+                        question_type=question_type,
+                        true_false_answer=true_false_answer,
                     )
 
                     if visual_question:
@@ -653,6 +669,7 @@ def run_generation(
                         "equal_target_distribution": equal_distribution,
                         "country_profile_enabled": options.country_profile_enabled,
                         "basic_only": basic_only,
+                        "question_type": question_type,
                         "category_weight": algorithm_target.category_weight,
                         "subcategory_weight": algorithm_target.subcategory_weight,
                         "global_ratio": algorithm_target.global_ratio,

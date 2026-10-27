@@ -31,6 +31,8 @@ def topic_terms(q: Any) -> List[str]:
         return []
     options = _get(tr, "options") or {}
     letter = _get(q, "correct_answer") or _get(q, "correct_option")
+    if _get(q, "question_type") == "true_false":
+        letter = None  # the "answer" is just True/False
     answer = options.get(letter) if isinstance(options, dict) else _get(options, str(letter or ""))
     return [str(t).strip() for t in (_get(tr, "keyword"), answer) if t and str(t).strip()]
 

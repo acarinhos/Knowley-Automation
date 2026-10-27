@@ -21,7 +21,7 @@ from groq import Groq
 
 QUESTION_SCHEMA_VERSION = "1.1.0"
 
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_serializer, model_validator
 try:
     from firebase_admin import firestore
     SERVER_TIMESTAMP = firestore.SERVER_TIMESTAMP
@@ -36,6 +36,13 @@ from core.translation_service import (
     translate_localized_content,
 )
 
+from core.question_types import (
+    BLANK_MARKER,
+    FILL_BLANK,
+    MULTIPLE_CHOICE,
+    QUESTION_TYPES,
+    TRUE_FALSE,
+)
 from config.categories_config import (
     CATEGORIES_META,
     get_category_color,
@@ -50,8 +57,14 @@ load_dotenv(dotenv_path=env_path)
 class Options(BaseModel):
     A: str = Field(description="A şıkkı metni")
     B: str = Field(description="B şıkkı metni")
-    C: str = Field(description="C şıkkı metni")
-    D: str = Field(description="D şıkkı metni")
+    C: Optional[str] = Field(default=None, description="C şıkkı metni (true_false tipinde yok)")
+    D: Optional[str] = Field(default=None, description="D şıkkı metni (true_false tipinde yok)")
+
+    @model_serializer(mode="wrap")
+    def _omit_unused(self, handler: Any) -> Dict[str, Any]:
+        # true_false stores only A/B; never write null C/D keys
+        data = handler(self)
+        return {k: v for k, v in data.items() if not (k in ("C", "D") and v is None)}
 
 
 class BinaryFallback(BaseModel):
@@ -121,6 +134,9 @@ class DifficultyProfile(BaseModel):
 
 class GeneratedQuestion(BaseModel):
     model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True, extra="allow")
+    question_type: Literal["multiple_choice", "true_false", "fill_blank"] = Field(
+        default="multiple_choice", description="Soru tipi; yokluğu multiple_choice demektir"
+    )
     categories: List[str] = Field(description="Ana kategori listesi")
     categories_meta: List[CategoryMeta] = Field(default_factory=list, description="Kategori meta bilgileri (isim ve renk)")
     sub_categories: List[str] = Field(default_factory=list, description="Alt dallar")
@@ -178,6 +194,11 @@ class GeneratedQuestion(BaseModel):
     generation_provider: Optional[str] = Field(default="GEMINI", description="Üretimi gerçekleştiren LLM sağlayıcısı")
     translation_provider: Optional[str] = Field(default=None, description="Çeviri sağlayıcısı")
 
+    @model_validator(mode="after")
+    def validate_question_type_structure(self) -> "GeneratedQuestion":
+        validate_question_type_structure(self)
+        return self
+
     @field_validator("topic_entity", mode="before")
     @classmethod
     def coerce_topic_entity(cls, value: Any) -> Optional[str]:
@@ -197,6 +218,43 @@ class GeneratedQuestion(BaseModel):
         if value is not None and sorted(value) != [0, 1, 2, 3]:
             raise ValueError("option_difficulty_order must be a permutation of option indices 0, 1, 2, and 3")
         return value
+
+
+def normalize_blank_marker(text: Any) -> Any:
+    """3+ underscores (also spaced like '_ _ _') -> the canonical BLANK_MARKER."""
+    return re.sub(r"_(?:\s*_){2,}", BLANK_MARKER, text) if isinstance(text, str) else text
+
+
+def validate_question_type_structure(q: "GeneratedQuestion", true_false_answer: Optional[bool] = None) -> None:
+    """Tip-duyarlı yapı doğrulaması. multiple_choice (ve fill_blank) için A-D şıkları zorunludur."""
+    qtype = q.question_type
+    for lang, content in q.translations.items():
+        four = [content.options.C, content.options.D]
+        if qtype == TRUE_FALSE:
+            if any(v is not None for v in four) or any(
+                v is not None for v in (content.clarified_options.C, content.clarified_options.D)
+            ):
+                raise ValueError(f"true_false sorusunda yalnızca A ve B şıkkı olmalı [{lang}].")
+        else:
+            if any(v is None for v in four) or any(
+                v is None for v in (content.clarified_options.C, content.clarified_options.D)
+            ):
+                raise ValueError(f"{qtype} sorusunda A-D şıkları zorunludur [{lang}].")
+        if qtype == FILL_BLANK:
+            for field, text in (("soru kökünde", content.question), ("simplified_question içinde", content.simplified_question)):
+                if field.startswith("simplified") and not str(text or "").strip():
+                    continue
+                if re.findall(r"_{3,}", text or "") != [BLANK_MARKER]:
+                    raise ValueError(f"fill_blank {field} tam olarak bir '{BLANK_MARKER}' boşluğu olmalı [{lang}].")
+    if qtype == TRUE_FALSE:
+        if q.correct_answer not in ("A", "B"):
+            raise ValueError("true_false doğru cevabı A (Doğru) veya B (Yanlış) olmalı.")
+        for lang, content in q.translations.items():
+            fallback = content.binary_fallback
+            if fallback is None or fallback.is_true != (q.correct_answer == "A"):
+                raise ValueError(f"true_false binary_fallback.is_true doğru cevapla tutarsız [{lang}].")
+        if true_false_answer is not None and (q.correct_answer == "A") != bool(true_false_answer):
+            raise ValueError("true_false önermesi planlanan doğru/yanlış dengesine uymuyor.")
 
 
 def normalize_generated_payload(data: Dict[str, Any], fallback_filter_tag: str) -> Dict[str, Any]:
@@ -467,10 +525,40 @@ def validate_skill_support_fields(q: GeneratedQuestion, source_language: str) ->
         missing.append("binary_fallback")
     weakest, strongest = q.weakest_distractor_index, q.strongest_distractor_index
     correct = "ABCD".index(q.correct_answer)
-    if weakest is None or strongest is None or len({weakest, strongest, correct}) != 3:
+    if getattr(q, "question_type", MULTIPLE_CHOICE) != TRUE_FALSE and (
+        weakest is None or strongest is None or len({weakest, strongest, correct}) != 3
+    ):
         missing.append("weakest/strongest_distractor_index")
     if missing:
         raise ValueError(f"Yetenek destek alanları eksik veya geçersiz: {', '.join(missing)}")
+
+
+def question_type_instruction(question_type: str, true_false_answer: Optional[bool] = None) -> str:
+    """Tipe özgü ek kural bloğu; multiple_choice için boş (mevcut prompt değişmez)."""
+    if question_type == TRUE_FALSE:
+        target = ""
+        if true_false_answer is not None:
+            target = (
+                f"- Bu önerme KESİNLİKLE {'DOĞRU' if true_false_answer else 'YANLIŞ'} olmalıdır: "
+                f"`correct_answer` = \"{'A' if true_false_answer else 'B'}\", `binary_fallback.is_true` = {str(bool(true_false_answer)).lower()}.\n"
+            )
+        return f"""
+[ZORUNLU SORU TİPİ: DOĞRU/YANLIŞ]:
+- `question_type` "true_false" olmalıdır. Soru kökü bir soru değil, tek bir ÖNERME/İFADE cümlesidir (ör. "Güneş sisteminin en büyük gezegeni Jüpiter'dir."). Tüm kalite, uzunluk ve temel bilgi kuralları aynen geçerlidir.
+- `options` YALNIZCA iki anahtar içerir: "A" ve "B". C ve D YAZMA. A her zaman "Doğru", B her zaman "Yanlış" anlamına gelen, o dilde yerelleştirilmiş sözcüktür (kaynak dil İngilizce ise "True"/"False"). `clarified_options` da yalnızca A ve B içerir ve aynı sözcükleri kullanır.
+- `correct_answer` yalnızca "A" (önerme doğru) veya "B" (önerme yanlış) olabilir. `binary_fallback.statement` soru köküyle aynı önermedir; `binary_fallback.is_true` önermenin gerçek doğruluğunu gösterir ve `correct_answer` ile TUTARLI olmalıdır (A <=> true).
+{target}- Önermeler dengeli olmalıdır (yaklaşık yarısı doğru, yarısı yanlış). Yanlış önerme, doğru bir gerçeğin makul ama hatalı bir varyantı olmalıdır (tek bir ayrıntı yanlış); belirsiz, tartışmalı veya "her zaman/asla" gibi ipucu veren kalıplar kullanma.
+- `weakest_distractor_index`, `strongest_distractor_index`, `logical_order` ve `option_difficulty_order` null olmalıdır.
+- `hint`, `keyword`, `explanation`, `topic_entity`, `distractor_trap_note` (insanları yanlış seçime iten yaygın yanılgı) ve çeviriler normal kalite kurallarıyla doldurulur.
+"""
+    if question_type == FILL_BLANK:
+        return f"""
+[ZORUNLU SORU TİPİ: BOŞLUK DOLDURMA]:
+- `question_type` "fill_blank" olmalıdır. Soru kökü, TAM OLARAK BİR TANE `{BLANK_MARKER}` (beş alt çizgi) boşluğu içeren tek bir cümle olmalıdır; boşluk cevabı verecek kelime/ifadenin yerindedir. Tüm dillerde boşluk işareti `{BLANK_MARKER}` aynen korunmalıdır.
+- Tam 4 şık (A-D) vardır; her şık boşluğa yerleştirilebilecek bir kelime/kısa ifadedir ve YALNIZCA biri cümleyi doğru tamamlar. Çeldiriciler gramer ve anlam olarak boşluğa uyar ama olgusal olarak yanlıştır.
+- Cümle boşluk doldurulmadan da anlaşılır olmalı, cevabı soru kökünde ele vermemelidir. Diğer tüm kalite, çeldirici, ipucu, açıklama, anahtar kelime ve çeviri kuralları çoktan seçmeli soruyla aynıdır.
+"""
+    return ""
 
 
 def build_prompt(
@@ -489,7 +577,11 @@ def build_prompt(
     visual_question: bool = False,
     target_global_difficulty: Optional[str] = None,
     target_global_score: Optional[int] = None,
+    question_type: str = MULTIPLE_CHOICE,
+    true_false_answer: Optional[bool] = None,
 ) -> str:
+    if question_type not in QUESTION_TYPES:
+        raise ValueError(f"Bilinmeyen soru tipi: {question_type}")
     is_combo = secondary_category is not None
     country_rule = target_country if target_country else "Global"
     credit_rule = target_country_credit if target_country_credit is not None else 10
@@ -524,8 +616,13 @@ def build_prompt(
     if not selected_languages:
         selected_languages = list(SUPPORTED_LANGUAGE_CODES)
     language_json = json.dumps(selected_languages, ensure_ascii=False)
+    if question_type == TRUE_FALSE:
+        option_schema = '{"A": "...", "B": "..."}'
+    else:
+        option_schema = '{"A": "...", "B": "...", "C": "...", "D": "..."}'
+    clarified_schema = option_schema
     translation_schema = ",\n".join(
-        f'    "{lang}": {{ "question": "...", "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}}, "explanation": "...", "filter_tag": "...", "hint": "...", "distractor_trap_note": "...", "keyword": "...", "binary_fallback": {{"statement": "...", "is_true": true}}, "simplified_question": "...", "clarified_options": {{"A": "...", "B": "...", "C": "...", "D": "..."}} }}'
+        f'    "{lang}": {{ "question": "...", "options": {option_schema}, "explanation": "...", "filter_tag": "...", "hint": "...", "distractor_trap_note": "...", "keyword": "...", "binary_fallback": {{"statement": "...", "is_true": true}}, "simplified_question": "...", "clarified_options": {clarified_schema} }}'
         for lang in selected_languages
     )
     language_instruction = ", ".join(
@@ -577,6 +674,32 @@ def build_prompt(
             '  "question_image_search_query": null,\n'
             '  "question_image_alt_text": null,'
         )
+
+    type_instruction = question_type_instruction(question_type, true_false_answer)
+    if question_type == TRUE_FALSE:
+        answer_letter = "B" if true_false_answer is False else "A"
+        correct_schema = "\n".join([
+            '  "question_type": "true_false",',
+            f'  "correct_answer": "{answer_letter}",',
+            '  "weakest_distractor_index": null,',
+            '  "strongest_distractor_index": null,',
+        ])
+        order_schema = '  "logical_order": null,\n  "option_difficulty_order": null,'
+        binary_schema = f'  "binary_fallback": {{"statement": "Soru köküyle aynı önerme.", "is_true": {str(answer_letter == "A").lower()}}},'
+    else:
+        correct_schema = "\n".join([
+            f'  "question_type": "{question_type}",',
+            '  "correct_answer": "A",',
+            '  "weakest_distractor_index": 1,',
+            '  "strongest_distractor_index": 2,',
+        ])
+        order_schema = '  "logical_order": null,\n  "option_difficulty_order": [0, 1, 2, 3],'
+        binary_schema = '  "binary_fallback": {"statement": "Kısa ve doğrulanabilir önerme.", "is_true": true},'
+    question_noun = {
+        MULTIPLE_CHOICE: "çoktan seçmeli soru",
+        TRUE_FALSE: "doğru/yanlış sorusu (önerme)",
+        FILL_BLANK: "boşluk doldurma sorusu",
+    }[question_type]
 
     if scope_clean == "global":
         scope_instruction = (
@@ -653,7 +776,7 @@ def build_prompt(
 
     return f"""
 Sen profesyonel ve çok dilli bir soru hazırlama uzmanısın.
-Aşağıdaki kriterlere göre yüksek kaliteli, özgün tek bir çoktan seçmeli soru üret ve şu dillerde hazırla: {language_instruction}.
+Aşağıdaki kriterlere göre yüksek kaliteli, özgün tek bir {question_noun} üret ve şu dillerde hazırla: {language_instruction}.
 
 Kriterler:
 - Birincil Kategori: {primary_category}
@@ -662,7 +785,7 @@ Kriterler:
 {scope_instruction}{filters_hint}{algorithm_instruction}
 {difficulty_instruction}
 {visual_instruction}
-
+{type_instruction}
 [ZORUNLU FORMAT VE UZUNLUK KURALI - MOBILE TRIVIA STANDARTI]:
 - Soru kökü EN FAZLA 20-25 kelime (150 karakter) olmalıdır. Paragraf yazmak KESİNLİKLE YASAKTIR.
 - Doğrudan Anlatım: "Uzun yıllar boyunca...", "...tarafından verilen nişanla ödüllendirilen...", "...yılında yayımlanan karara göre..." gibi gereksiz dolgu cümleleri kurulamaz.
@@ -767,16 +890,13 @@ Zorunlu JSON Şeması:
     "local": {{ "label": "{target_diff}", "score": {target_score} }},
     "global": {schema_profile_global}
   }},
-  "correct_answer": "A",
-  "weakest_distractor_index": 1,
-  "strongest_distractor_index": 2,
+{correct_schema}
   "hint": "Cevabı açıklamayan kısa ipucu",
   "distractor_trap_note": "En güçlü yanlış seçeneğin neden yanlış olduğu",
   "keyword": "Soru kökündeki anahtar ifade",
   "topic_entity": "Sorunun ana konusu olan tek varlık/kavram, İngilizce, 1-4 kelime (ör. Saturn, Photosynthesis, Treaty of Versailles); cevap farklı olsa bile konu neyse o",
-  "logical_order": null,
-  "option_difficulty_order": [0, 1, 2, 3],
-  "binary_fallback": {{"statement": "Kısa ve doğrulanabilir önerme.", "is_true": true}},
+{order_schema}
+{binary_schema}
   "base_points": 100,
   "difficulty": {difficulty_schema_value},
   "community_distribution": null,
@@ -858,6 +978,30 @@ def populate_question_meta(q: GeneratedQuestion, primary_cat: str) -> GeneratedQ
         }
     return q
 
+def _pad_binary_options(content: Dict[str, Any]) -> None:
+    """true_false: C/D := A/B copies so the 4-letter translation pipeline stays untouched."""
+    for field in ("options", "clarified_options"):
+        mapping = content.get(field)
+        if isinstance(mapping, dict):
+            mapping["C"], mapping["D"] = mapping.get("A"), mapping.get("B")
+
+
+def _strip_binary_options(content: Dict[str, Any]) -> None:
+    for field in ("options", "clarified_options"):
+        mapping = content.get(field)
+        if isinstance(mapping, dict):
+            mapping.pop("C", None)
+            mapping.pop("D", None)
+
+
+def _normalize_blank_fields(translations: Any) -> None:
+    for content in (translations or {}).values():
+        if isinstance(content, dict):
+            for field in ("question", "simplified_question"):
+                if field in content:
+                    content[field] = normalize_blank_marker(content[field])
+
+
 def _translation_stage_attempts() -> int:
     """Translation-only retries per validated source (env TRANSLATION_STAGE_ATTEMPTS, default 2)."""
     try:
@@ -892,6 +1036,8 @@ def generate_question_with_fallback(
     target_score: Optional[int] = None,
     target_global_difficulty: Optional[str] = None,
     target_global_score: Optional[int] = None,
+    question_type: str = MULTIPLE_CHOICE,
+    true_false_answer: Optional[bool] = None,
     **kwargs: Any,
 ) -> GeneratedQuestion:
     """
@@ -990,6 +1136,8 @@ def generate_question_with_fallback(
         visual_question=visual_question,
         target_global_difficulty=target_global_difficulty,
         target_global_score=target_global_score,
+        question_type=question_type,
+        true_false_answer=true_false_answer,
     )
     
     active_llm_manager = llm_manager or MultiLLMManager()
@@ -1008,13 +1156,23 @@ def generate_question_with_fallback(
                 data,
                 str(target_subcategory or primary_category),
             )
+            data["question_type"] = question_type  # the plan, not the model, decides the type
+            if question_type == TRUE_FALSE:
+                for key in ("weakest_distractor_index", "strongest_distractor_index", "logical_order", "option_difficulty_order"):
+                    data[key] = None
+            if question_type == FILL_BLANK:
+                _normalize_blank_fields(data.get("translations"))
             candidate_q = GeneratedQuestion.model_validate(data)
+            if question_type != MULTIPLE_CHOICE:
+                validate_question_type_structure(candidate_q, true_false_answer)
             if visual_question and not str(candidate_q.question_image_search_query or "").strip():
                 raise ValueError("Görsel soru için question_image_search_query üretilmedi.")
             # Anti-Bürokrasi ve Trivia uyumluluk doğrulaması (Python Guard)
             validate_trivia_compliance(candidate_q)
             validate_skill_support_fields(candidate_q, source_language)
             source_content = candidate_q.translations[source_language].model_dump()
+            if question_type == TRUE_FALSE:
+                _pad_binary_options(source_content)  # translation pipeline is A-D; padding is stripped again below
             # The source passed validation: retry only translation (bounded) so a
             # translation hiccup does not re-spend source-generation LLM calls.
             translation_attempts = _translation_stage_attempts()
@@ -1039,10 +1197,16 @@ def generate_question_with_fallback(
                         f"kaynak soru korunuyor: {translation_error}"
                     )
                     time.sleep(random.uniform(0.5, 1.0))
+            if question_type == TRUE_FALSE:
+                for content in translated_content.values():
+                    _strip_binary_options(content)
+            if question_type == FILL_BLANK:
+                _normalize_blank_fields(translated_content)
             candidate_q.translations = {
                 language: LocalizedContent.model_validate(content)
                 for language, content in translated_content.items()
             }
+            validate_question_type_structure(candidate_q, true_false_answer)  # unconditional: blank survival, missing C/D
             candidate_q.supported_languages = list(translated_content)
             candidate_q.translation_provider = translation_provider
             q = candidate_q
@@ -1109,6 +1273,7 @@ def generate_question_with_fallback(
     q.shuffle_key = random.random()
     q.correct_count = 0
     q.wrong_count = 0
+    q.question_type = question_type
     q.is_visual_question = bool(visual_question)
     if not visual_question:
         q.question_image_url = None
@@ -1147,7 +1312,7 @@ def generate_question_with_fallback(
     )
 
     q = populate_question_meta(q, primary_category)
-    if balance_options:
+    if balance_options and question_type != TRUE_FALSE:  # true_false keeps A=Doğru, B=Yanlış
         from core.option_balancer import get_option_balancer
         b = balancer or get_option_balancer()
         q = b.balance_question(q)

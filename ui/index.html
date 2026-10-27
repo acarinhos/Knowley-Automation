@@ -42,8 +42,18 @@
               <label class="mode-card"><input type="radio" name="generation-mode" value="154" checked><span><b>154 kredi</b><small>Tam dağılım</small></span></label>
               <label class="mode-card"><input type="radio" name="generation-mode" value="64"><span><b>64 kredi</b><small>Kısa seri</small></span></label>
               <label class="mode-card"><input type="radio" name="generation-mode" value="basic"><span><b>Temel</b><small>Yalnız temel hedefler</small></span></label>
+              <label class="mode-card"><input type="radio" name="generation-mode" value="question_types"><span><b>Soru tipi</b><small>Doğru/Yanlış · Boşluk (temel 21)</small></span></label>
             </div>
           </fieldset>
+
+          <label id="question-types-field" class="field hidden">
+            <span>Soru tipi</span>
+            <select id="question-types">
+              <option value="mixed">Karışık (Doğru/Yanlış + Boşluk doldurma)</option>
+              <option value="true_false">Doğru / Yanlış</option>
+              <option value="fill_blank">Boşluk doldurma</option>
+            </select>
+          </label>
 
           <label class="field">
             <span>Soru adedi</span>

@@ -24,6 +24,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.audit_local_languages import canon, missing_languages, resolve_country, usable
+from scripts.audit_question_defects import letters_for
 
 BACKUP_DIR = ROOT / "local_backups"
 PROGRESS_FILE = BACKUP_DIR / "local_languages_progress.json"
@@ -38,7 +39,7 @@ def _text(value: Any) -> bool:
 def pick_source(data: Mapping[str, Any]) -> Optional[str]:
     translations = data.get("translations") or {}
     for loc in ("en", *translations):
-        if usable(translations.get(loc)):
+        if usable(translations.get(loc), letters_for(data)):
             return loc
     return None
 
@@ -70,7 +71,7 @@ Valid JSON only. Records you cannot do reliably may be omitted.
 """
 
 
-def validate_language(source: Mapping[str, Any], content: Mapping[str, Any]) -> Dict[str, Any]:
+def validate_language(source: Mapping[str, Any], content: Mapping[str, Any], letters: str = "ABCD") -> Dict[str, Any]:
     """Return the cleaned translation or raise ValueError."""
     out: Dict[str, Any] = {}
     for field in TEXT_FIELDS:
@@ -84,11 +85,11 @@ def validate_language(source: Mapping[str, Any], content: Mapping[str, Any]) -> 
     for field in ("options", "clarified_options"):
         if isinstance(source.get(field), Mapping):
             value = content.get(field)
-            if not isinstance(value, Mapping) or set(value) != set("ABCD") or not all(_text(value[k]) for k in "ABCD"):
-                raise ValueError(f"{field} must have non-empty A-D")
-            if len({str(value[k]).strip().casefold() for k in "ABCD"}) != 4:
+            if not isinstance(value, Mapping) or set(value) != set(letters) or not all(_text(value[k]) for k in letters):
+                raise ValueError(f"{field} must have non-empty {letters[0]}-{letters[-1]}")
+            if len({str(value[k]).strip().casefold() for k in letters}) != len(letters):
                 raise ValueError(f"{field} options are not distinct")
-            out[field] = {k: str(value[k]).strip() for k in "ABCD"}
+            out[field] = {k: str(value[k]).strip() for k in letters}
     fallback = source.get("binary_fallback")
     if isinstance(fallback, Mapping):
         value = content.get("binary_fallback")
@@ -109,7 +110,7 @@ def plan_update(data: Mapping[str, Any], missing: List[str], result: Mapping[str
     for lang, content in result.items():
         if lang not in missing:
             raise ValueError(f"{lang}: not a missing language of this question")
-        cleaned = validate_language(source, content if isinstance(content, Mapping) else {})
+        cleaned = validate_language(source, content if isinstance(content, Mapping) else {}, letters_for(data))
         existing = (data.get("translations") or {}).get(lang) or {}
         for field, value in cleaned.items():
             leaves = {(field, k): v for k, v in value.items()} if isinstance(value, Mapping) else {(field,): value}

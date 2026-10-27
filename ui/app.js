@@ -83,6 +83,7 @@ function payloadFromForm() {
   return {
     question_count: Number($('question-count').value),
     generation_mode: mode,
+    question_types: mode === 'question_types' ? $('question-types').value : '',
     difficulty: $('difficulty').value,
     country_profile_enabled: countryProfileEnabled,
     country: countryProfileEnabled ? $('country').value : '',
@@ -94,9 +95,10 @@ function payloadFromForm() {
 function updateMode() {
   const mode = document.querySelector('input[name="generation-mode"]:checked').value;
   const count = mode === '154' ? 154 : (mode === '64' ? 64 : 21);
+  $('question-types-field').classList.toggle('hidden', mode !== 'question_types');
   $('question-count').value = count;
   $('pool-total').textContent = count;
-  $('mode-caption').textContent = mode === 'basic' ? 'temel hedef havuzu' : 'kredi havuzu';
+  $('mode-caption').textContent = (mode === 'basic' || mode === 'question_types') ? 'temel hedef havuzu' : 'kredi havuzu';
 }
 
 function updateCountryProfile() {
