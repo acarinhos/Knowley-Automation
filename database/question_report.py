@@ -329,5 +329,10 @@ def build_question_report(documents: Iterable[Any]) -> Dict[str, Any]:
 
 def fetch_question_report(db: Any) -> Dict[str, Any]:
     """Only fetches classification fields, leaving translation payloads in Firestore."""
-    query = db.collection("questions").select(QUESTION_REPORT_FIELDS)
-    return build_question_report(query.stream())
+    from core.question_types import ALL_QUESTION_COLLECTIONS
+
+    return build_question_report(
+        snapshot
+        for collection in ALL_QUESTION_COLLECTIONS
+        for snapshot in db.collection(collection).select(QUESTION_REPORT_FIELDS).stream()
+    )

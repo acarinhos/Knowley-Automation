@@ -75,20 +75,26 @@ class TopicDiversityTracker:
         newest_first.sort(key=lambda e: -e[0])  # stable: ties stay newest-first
         return [display for _, display in newest_first[:limit]]
 
-    def seed_from_db(self, db: Any, cat: str, sub: str, limit: int = 50) -> None:
+    def seed_from_db(self, db: Any, cat: str, sub: str, limit: int = 50, question_type: Any = None) -> None:
         """Lazy, once per (cat, sub) after a successful query; failures are logged and retried next call. Never raises."""
+        from core.question_types import QUESTIONS_COLLECTION, collection_for
+
         key = self._key(cat, sub)
+        typed = collection_for(question_type)
+        collections = list(dict.fromkeys([QUESTIONS_COLLECTION, typed]))  # typed questions also avoid the legacy pool
+        seed_key = (key, tuple(collections))
         with self._seed_lock:
-            if key in self._seeded:
+            if seed_key in self._seeded:
                 return
             try:
                 # shortcut: unordered (no composite index needed), so "last N" is any N; upgrade with order_by created_at + index.
-                docs = db.collection("questions").where("sub_categories", "array_contains", sub).limit(limit).stream(timeout=SEED_TIMEOUT_S)
-                for doc in docs:
-                    data = doc.to_dict() or {}
-                    if cat in (data.get("categories") or [cat]):
-                        self.record(cat, sub, topic_terms(data))
-                self._seeded.add(key)
+                for collection in collections:
+                    docs = db.collection(collection).where("sub_categories", "array_contains", sub).limit(limit).stream(timeout=SEED_TIMEOUT_S)
+                    for doc in docs:
+                        data = doc.to_dict() or {}
+                        if cat in (data.get("categories") or [cat]):
+                            self.record(cat, sub, topic_terms(data))
+                self._seeded.add(seed_key)
             except Exception as exc:
                 logging.warning("topic diversity seed failed for %s/%s: %s", cat, sub, exc)
 

@@ -1,6 +1,7 @@
 import os
 import random
 import hashlib
+from typing import Optional
 from datetime import datetime, timezone
 from pathlib import Path
 from dotenv import load_dotenv
@@ -35,24 +36,27 @@ def get_storage_bucket(bucket_name: str = None):
     target_bucket = bucket_name or os.getenv("FIREBASE_STORAGE_BUCKET", "knowley-1-categories")
     return storage.bucket(target_bucket)
 
+from core.question_types import collection_for
+
+
 def generate_question_hash(question_text: str) -> str:
     """Soru metninden benzersiz bir hash üretir (Tekrar kontrolü için)."""
     clean_text = question_text.strip().lower()
     return hashlib.sha256(clean_text.encode('utf-8')).hexdigest()
 
-def save_question_to_firestore(db, question_obj, collection_name: str = "questions") -> bool:
+def save_question_to_firestore(db, question_obj, collection_name: Optional[str] = None) -> bool:
     """
     Pydantic GeneratedQuestion nesnesini belirtilen Firestore koleksiyonuna kaydeder.
     Eğer soru daha önce eklenmişse kaydetmez.
     """
     try:
-        collection_name = str(collection_name or "questions").strip()
-        if not collection_name or "/" in collection_name:
-            raise ValueError("Geçersiz Firestore koleksiyon adı.")
         if isinstance(question_obj, dict):
             q_dict = dict(question_obj)
         else:
             q_dict = question_obj.model_dump(by_alias=True)
+        collection_name = str(collection_name or collection_for(q_dict.get("question_type"))).strip()
+        if not collection_name or "/" in collection_name:
+            raise ValueError("Geçersiz Firestore koleksiyon adı.")
         if q_dict.get("is_visual_question") and not str(q_dict.get("question_image_url") or "").strip():
             raise ValueError("Görsel soru question_image_url olmadan Firestore'a kaydedilemez.")
         if q_dict.get("is_visual_question") and isinstance(q_dict.get("payload"), dict):

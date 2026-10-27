@@ -92,8 +92,12 @@ def build_question_audit(
 
 
 def fetch_question_audit(db: Any, minimum_version: str = "1.1.0") -> Dict[str, Any]:
-    query = db.collection("questions").select(
-        ["dbVersion", "version", "created_at", "categories", "category", "sub_categories", "subcategory"]
+    from core.question_types import ALL_QUESTION_COLLECTIONS
+
+    fields = ["dbVersion", "version", "created_at", "categories", "category", "sub_categories", "subcategory"]
+    documents = (
+        snapshot.to_dict() or {}
+        for collection in ALL_QUESTION_COLLECTIONS
+        for snapshot in db.collection(collection).select(fields).stream()
     )
-    documents = (snapshot.to_dict() or {} for snapshot in query.stream())
     return build_question_audit(documents, minimum_version=minimum_version)
