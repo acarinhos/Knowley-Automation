@@ -54,6 +54,7 @@ def save_question_to_firestore(db, question_obj, collection_name: Optional[str] 
             q_dict = dict(question_obj)
         else:
             q_dict = question_obj.model_dump(by_alias=True)
+        check_legacy = not collection_name  # explicit collection_name: no legacy cross-check
         collection_name = str(collection_name or collection_for(q_dict.get("question_type"))).strip()
         if not collection_name or "/" in collection_name:
             raise ValueError("Geçersiz Firestore koleksiyon adı.")
@@ -102,9 +103,9 @@ def save_question_to_firestore(db, question_obj, collection_name: Optional[str] 
         
         # Hash'i ID olarak kullanarak doküman çakışmasını/tekrarını önlüyoruz
         doc_ref = db.collection(collection_name).document(q_hash)
-        doc = doc_ref.get()
-        
-        if doc.exists:
+        # Typed collections also check the legacy 'questions' collection for the same hash (as worker.save_worker_question).
+        legacy_exists = check_legacy and collection_name != "questions" and db.collection("questions").document(q_hash).get().exists
+        if legacy_exists or doc_ref.get().exists:
             print(f"⚠️ Bu soru zaten kayıtlı, atlandı: {hash_seed[:40]}...")
             return False
         

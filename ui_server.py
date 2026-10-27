@@ -278,10 +278,19 @@ def firebase_summary(live: bool = False) -> Dict[str, Any]:
         db = init_firebase()
         from core.question_types import ALL_QUESTION_COLLECTIONS
 
-        counts = {name: int(db.collection(name).count().get()[0][0].value) for name in ALL_QUESTION_COLLECTIONS}
+        counts: Dict[str, Any] = {}
+        errors = []
+        for name in ALL_QUESTION_COLLECTIONS:
+            try:
+                counts[name] = int(db.collection(name).count().get()[0][0].value)
+            except Exception as exc:
+                counts[name] = None
+                errors.append(f"{name}: {str(exc)[:100]}")
         result["collection_counts"] = counts
-        result["question_count"] = sum(counts.values())
-        result["reachable"] = True
+        result["question_count"] = sum(v for v in counts.values() if v is not None)
+        result["reachable"] = any(v is not None for v in counts.values())
+        if errors:
+            result["error"] = "; ".join(errors)[:300]
     except Exception as exc:
         result["reachable"] = False
         result["error"] = str(exc)[:300]

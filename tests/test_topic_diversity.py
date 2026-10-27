@@ -82,6 +82,40 @@ class TopicDiversityTests(unittest.TestCase):
         t.seed_from_db(bad, "C", "D")  # already seeded: DB untouched
         self.assertEqual(bad.collection.call_count, 1)
 
+    def test_seed_is_per_collection(self):
+        reads = []
+
+        def make_db(fail=()):
+            db = MagicMock()
+
+            def coll(name):
+                reads.append(name)
+                c = MagicMock()
+                if name in fail:
+                    c.where().limit().stream.side_effect = RuntimeError("down")
+                else:
+                    d = MagicMock()
+                    d.to_dict.return_value = {"translations": {"en": {"keyword": f"kw-{name}", "options": {}}}}
+                    c.where().limit().stream.return_value = [d]
+                return c
+            db.collection.side_effect = coll
+            return db
+
+        t = TopicDiversityTracker()
+        t.seed_from_db(make_db(), "A", "B")  # multiple_choice -> questions only
+        t.seed_from_db(make_db(), "A", "B", question_type="true_false")
+        self.assertEqual(reads.count("questions"), 1)
+        self.assertEqual(len(reads), 2)
+        self.assertEqual(t._terms[("a", "b")]["kw-questions"][0], 1)  # counter not inflated
+        # typed collection failing: questions is not re-read, typed is retried
+        reads.clear()
+        t2 = TopicDiversityTracker()
+        with self.assertLogs(level="WARNING"):
+            t2.seed_from_db(make_db(fail=("tfquestions",)), "A", "B", question_type="true_false")
+        t2.seed_from_db(make_db(fail=("tfquestions",)), "A", "B", question_type="true_false")
+        self.assertEqual(reads.count("questions"), 1)
+        self.assertEqual(reads.count("tfquestions"), 2)
+
     def test_ties_prefer_newest_beyond_limit(self):
         t = TopicDiversityTracker()
         for i in range(60):

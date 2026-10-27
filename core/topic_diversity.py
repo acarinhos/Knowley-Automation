@@ -82,21 +82,21 @@ class TopicDiversityTracker:
         key = self._key(cat, sub)
         typed = collection_for(question_type)
         collections = list(dict.fromkeys([QUESTIONS_COLLECTION, typed]))  # typed questions also avoid the legacy pool
-        seed_key = (key, tuple(collections))
         with self._seed_lock:
-            if seed_key in self._seeded:
-                return
-            try:
-                # shortcut: unordered (no composite index needed), so "last N" is any N; upgrade with order_by created_at + index.
-                for collection in collections:
+            for collection in collections:
+                seed_key = (key, collection)  # per collection: a success is never re-read/re-counted; a failure is retried
+                if seed_key in self._seeded:
+                    continue
+                try:
+                    # shortcut: unordered (no composite index needed), so "last N" is any N; upgrade with order_by created_at + index.
                     docs = db.collection(collection).where("sub_categories", "array_contains", sub).limit(limit).stream(timeout=SEED_TIMEOUT_S)
                     for doc in docs:
                         data = doc.to_dict() or {}
                         if cat in (data.get("categories") or [cat]):
                             self.record(cat, sub, topic_terms(data))
-                self._seeded.add(seed_key)
-            except Exception as exc:
-                logging.warning("topic diversity seed failed for %s/%s: %s", cat, sub, exc)
+                    self._seeded.add(seed_key)
+                except Exception as exc:
+                    logging.warning("topic diversity seed failed for %s/%s (%s): %s", cat, sub, collection, exc)
 
 
 def avoid_line(tracker: TopicDiversityTracker, cat: str, sub: str) -> str:
