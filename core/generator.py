@@ -156,6 +156,7 @@ class GeneratedQuestion(BaseModel):
     hint: Optional[str] = Field(default=None, description="Seçili kaynak dilde yetenek ipucu")
     distractor_trap_note: Optional[str] = Field(default=None, description="Seçili kaynak dilde güçlü çeldirici açıklaması")
     keyword: Optional[str] = Field(default=None, description="Seçili kaynak dilde vurgulanacak anahtar kelime")
+    topic_entity: Optional[str] = Field(default=None, description="Sorunun ana konusu olan tek varlık/kavram (İngilizce, 1-4 kelime); konu çeşitliliği takibi için")
     logical_order: Optional[List[int]] = Field(default=None, description="A-D seçenek indekslerinin anlamlı kronolojik/mantıksal sırası; anlamlı değilse null")
     option_difficulty_order: Optional[List[int]] = Field(default=None, description="A-D indekslerinin hedef kitle için en kolay tanınandan en zor tanınana sıralaması; sıralama güvenilir değilse null")
     binary_fallback: Optional[BinaryFallback] = Field(default=None, description="Seçili kaynak dilde Doğru/Yanlış biçimi")
@@ -176,6 +177,12 @@ class GeneratedQuestion(BaseModel):
     translations: Dict[str, LocalizedContent] = Field(description="Desteklenen dillerde soru içerikleri")
     generation_provider: Optional[str] = Field(default="GEMINI", description="Üretimi gerçekleştiren LLM sağlayıcısı")
     translation_provider: Optional[str] = Field(default=None, description="Çeviri sağlayıcısı")
+
+    @field_validator("topic_entity", mode="before")
+    @classmethod
+    def coerce_topic_entity(cls, value: Any) -> Optional[str]:
+        # optional meta field: a malformed value must not reject the whole question
+        return value.strip() if isinstance(value, str) else None
 
     @field_validator("logical_order")
     @classmethod
@@ -766,6 +773,7 @@ Zorunlu JSON Şeması:
   "hint": "Cevabı açıklamayan kısa ipucu",
   "distractor_trap_note": "En güçlü yanlış seçeneğin neden yanlış olduğu",
   "keyword": "Soru kökündeki anahtar ifade",
+  "topic_entity": "Sorunun ana konusu olan tek varlık/kavram, İngilizce, 1-4 kelime (ör. Saturn, Photosynthesis, Treaty of Versailles); cevap farklı olsa bile konu neyse o",
   "logical_order": null,
   "option_difficulty_order": [0, 1, 2, 3],
   "binary_fallback": {{"statement": "Kısa ve doğrulanabilir önerme.", "is_true": true}},
