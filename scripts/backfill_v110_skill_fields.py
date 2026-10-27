@@ -44,8 +44,12 @@ def _text(value: Any) -> bool:
     return bool(str(value or "").strip())
 
 
-def _options_complete(value: Any) -> bool:
-    return isinstance(value, Mapping) and all(_text(value.get(k)) for k in "ABCD")
+def _tf(data: Mapping[str, Any]) -> bool:
+    return data.get("question_type") == "true_false"
+
+
+def _options_complete(value: Any, letters: str = "ABCD") -> bool:
+    return isinstance(value, Mapping) and all(_text(value.get(k)) for k in letters)
 
 
 def _binary_complete(value: Any) -> bool:
@@ -56,37 +60,40 @@ def valid_order(value: Any) -> bool:
     return isinstance(value, list) and all(isinstance(v, int) for v in value) and sorted(value) == [0, 1, 2, 3]
 
 
-def _field_ok(field: str, value: Any) -> bool:
+def _field_ok(field: str, value: Any, letters: str = "ABCD") -> bool:
     if field == "binary_fallback":
         return _binary_complete(value)
     if field == "clarified_options":
-        return _options_complete(value)
+        return _options_complete(value, letters)
     return _text(value)
 
 
-def missing_locale_fields(content: Mapping[str, Any]) -> List[str]:
-    return [f for f in (*LOCALE_TEXT_FIELDS, "binary_fallback", "clarified_options") if not _field_ok(f, content.get(f))]
+def missing_locale_fields(content: Mapping[str, Any], letters: str = "ABCD") -> List[str]:
+    return [f for f in (*LOCALE_TEXT_FIELDS, "binary_fallback", "clarified_options") if not _field_ok(f, content.get(f), letters)]
 
 
-def usable_en(content: Any) -> bool:
-    return isinstance(content, Mapping) and _text(content.get("question")) and _options_complete(content.get("options"))
+def usable_en(content: Any, letters: str = "ABCD") -> bool:
+    return isinstance(content, Mapping) and _text(content.get("question")) and _options_complete(content.get("options"), letters)
 
 
 def missing_fields(data: Mapping[str, Any]) -> Dict[str, Any]:
     """{"root": [...], "locales": {locale: [fields]}} for locales that have a usable question."""
-    root = [f for f in ROOT_FIELDS[:2] if data.get(f) is None]
-    if not valid_order(data.get("option_difficulty_order")):
+    tf = _tf(data)  # true_false has A/B only and no distractor indices / difficulty order
+    letters = "AB" if tf else "ABCD"
+    root = [] if tf else [f for f in ROOT_FIELDS[:2] if data.get(f) is None]
+    if not tf and not valid_order(data.get("option_difficulty_order")):
         root.append("option_difficulty_order")
     locales = {}
     content = (data.get("translations") or {}).get(TARGET_LOCALE)
-    if usable_en(content):
-        gaps = missing_locale_fields(content)
+    if usable_en(content, letters):
+        gaps = missing_locale_fields(content, letters)
         if gaps:
             locales[TARGET_LOCALE] = gaps
     return {"root": root, "locales": locales}
 
 
-def check_support(correct_answer: Any, root: Mapping[str, Any], source: Mapping[str, Any], language: str) -> None:
+def check_support(correct_answer: Any, root: Mapping[str, Any], source: Mapping[str, Any], language: str,
+                  question_type: str = "multiple_choice") -> None:
     """Validate with the generator's own rule: all text fields present, indices distinct and != answer."""
     from core.generator import validate_skill_support_fields
 
@@ -98,7 +105,7 @@ def check_support(correct_answer: Any, root: Mapping[str, Any], source: Mapping[
     question = SimpleNamespace(
         translations={language: content}, correct_answer=correct_answer,
         weakest_distractor_index=root.get("weakest_distractor_index"),
-        strongest_distractor_index=root.get("strongest_distractor_index"),
+        strongest_distractor_index=root.get("strongest_distractor_index"), question_type=question_type,
     )
     validate_skill_support_fields(question, language)
 
@@ -135,10 +142,11 @@ def outcome(gaps: Mapping[str, Any], updates: Mapping[tuple, Any]) -> str:
 
 def generation_prompt(data: Mapping[str, Any], language: str, content: Mapping[str, Any]) -> str:
     opts = content["options"]
+    shown = f"A) {opts['A']} B) {opts['B']}" if _tf(data) else f"A) {opts['A']} B) {opts['B']} C) {opts['C']} D) {opts['D']}"
     fixed = {k: data.get(k) for k in ROOT_FIELDS[:2] if data.get(k) is not None}
     return (
         f"Write in language code '{language}'. Trivia question: {content['question']}\n"
-        f"Options: A) {opts['A']} B) {opts['B']} C) {opts['C']} D) {opts['D']}\n"
+        f"Options: {shown}\n"
         f"Correct answer: {data.get('correct_answer')}. Explanation: {content.get('explanation', '')}\n"
         f"Already fixed values (keep exactly): {json.dumps(fixed)}\n"
         "Return JSON with: hint (short, does not reveal the answer), keyword (key phrase from the question), "
@@ -176,7 +184,8 @@ def apply_result(data: Mapping[str, Any], out: Mapping[str, Any]) -> Dict[tuple,
     """
     gaps = missing_fields(data)
     source = dict((data.get("translations") or {}).get(TARGET_LOCALE) or {})
-    if not usable_en(source):
+    tf = _tf(data)
+    if not usable_en(source, "AB" if tf else "ABCD"):
         raise ValueError("no usable en translation (question/options)")
     root = {f: data.get(f) for f in ROOT_FIELDS}
     if not valid_order(root["option_difficulty_order"]):
@@ -185,7 +194,9 @@ def apply_result(data: Mapping[str, Any], out: Mapping[str, Any]) -> Dict[tuple,
         source[field] = out.get(field)
     for field in gaps["root"]:
         root[field] = out.get(field)
-    check_support(data.get("correct_answer"), root, source, TARGET_LOCALE)
+    if tf and isinstance(source.get("clarified_options"), Mapping):  # the schema asks A-D; true_false keeps A/B only
+        source["clarified_options"] = {k: source["clarified_options"].get(k) for k in "AB"}
+    check_support(data.get("correct_answer"), root, source, TARGET_LOCALE, data.get("question_type") or "multiple_choice")
     if not valid_order(root["option_difficulty_order"]):
         root["option_difficulty_order"] = None  # contract: null when no reliable order
     return build_updates(gaps, root, {TARGET_LOCALE: source})
@@ -194,7 +205,7 @@ def apply_result(data: Mapping[str, Any], out: Mapping[str, Any]) -> Dict[tuple,
 def process_doc(data: Mapping[str, Any], llm_manager: Any) -> Dict[tuple, Any]:
     """One LLM call: generate the missing fields for translations.en and the root fields."""
     source = (data.get("translations") or {}).get(TARGET_LOCALE)
-    if not usable_en(source):
+    if not usable_en(source, "AB" if _tf(data) else "ABCD"):
         raise ValueError("no usable en translation (question/options)")
     out = llm_manager.generate_trivia("You are a precise trivia editor. Return valid JSON only.",
                                       generation_prompt(data, TARGET_LOCALE, dict(source)), response_schema=GEN_SCHEMA)
@@ -205,7 +216,7 @@ def export_record(doc_id: str, data: Mapping[str, Any]) -> Dict[str, Any]:
     en = data["translations"][TARGET_LOCALE]
     gaps = missing_fields(data)
     return {
-        "doc_id": doc_id, "question": en["question"], "options": {k: en["options"][k] for k in "ABCD"},
+        "doc_id": doc_id, "question": en["question"], "options": {k: en["options"][k] for k in ("AB" if _tf(data) else "ABCD")},
         "correct_answer": data.get("correct_answer"), "explanation": en.get("explanation", ""),
         "missing": gaps["root"] + gaps["locales"].get(TARGET_LOCALE, []),
         "fixed": {k: data.get(k) for k in ROOT_FIELDS[:2] if data.get(k) is not None},
@@ -370,7 +381,7 @@ def main() -> int:
         return run_import(db, Path(args.import_results), args.apply, done, LastUpdateOption, get_field_path)
     snapshots = _version_documents(db)
     todo = [(sid, snap, missing_fields(snap.to_dict() or {})) for sid, snap in sorted(snapshots.items()) if sid not in done]
-    no_en = [sid for sid, snap, _ in todo if not usable_en(((snap.to_dict() or {}).get("translations") or {}).get(TARGET_LOCALE))]
+    no_en = [sid for sid, snap, _ in todo if not usable_en(((snap.to_dict() or {}).get("translations") or {}).get(TARGET_LOCALE), "AB" if _tf(snap.to_dict() or {}) else "ABCD")]
     if no_en:
         logger.warning("%d docs have no usable en translation and are skipped (e.g. %s)", len(no_en), ", ".join(no_en[:3]))
     excluded = set(json.loads(Path(args.exclude_file).read_text(encoding="utf-8"))) if args.exclude_file else set()

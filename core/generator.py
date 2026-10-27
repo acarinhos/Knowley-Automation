@@ -220,8 +220,13 @@ class GeneratedQuestion(BaseModel):
         return value
 
 
+def normalize_blank_marker(text: Any) -> Any:
+    """3+ underscores (also spaced like '_ _ _') -> the canonical BLANK_MARKER."""
+    return re.sub(r"_(?:\s*_){2,}", BLANK_MARKER, text) if isinstance(text, str) else text
+
+
 def validate_question_type_structure(q: "GeneratedQuestion", true_false_answer: Optional[bool] = None) -> None:
-    """Tip-duyarlı yapı doğrulaması. multiple_choice için A-D şıkları eskisi gibi zorunludur."""
+    """Tip-duyarlı yapı doğrulaması. multiple_choice (ve fill_blank) için A-D şıkları zorunludur."""
     qtype = q.question_type
     for lang, content in q.translations.items():
         four = [content.options.C, content.options.D]
@@ -235,10 +240,12 @@ def validate_question_type_structure(q: "GeneratedQuestion", true_false_answer: 
                 v is None for v in (content.clarified_options.C, content.clarified_options.D)
             ):
                 raise ValueError(f"{qtype} sorusunda A-D şıkları zorunludur [{lang}].")
-        if qtype == FILL_BLANK and not re.search(r"_{3,}", content.question or ""):
-            raise ValueError(f"fill_blank soru kökünde '{BLANK_MARKER}' boşluğu yok [{lang}].")
-        if qtype == FILL_BLANK and len(re.findall(r"_{3,}", content.question or "")) != 1:
-            raise ValueError(f"fill_blank soru kökünde tam olarak bir boşluk olmalı [{lang}].")
+        if qtype == FILL_BLANK:
+            for field, text in (("soru kökünde", content.question), ("simplified_question içinde", content.simplified_question)):
+                if field.startswith("simplified") and not str(text or "").strip():
+                    continue
+                if re.findall(r"_{3,}", text or "") != [BLANK_MARKER]:
+                    raise ValueError(f"fill_blank {field} tam olarak bir '{BLANK_MARKER}' boşluğu olmalı [{lang}].")
     if qtype == TRUE_FALSE:
         if q.correct_answer not in ("A", "B"):
             raise ValueError("true_false doğru cevabı A (Doğru) veya B (Yanlış) olmalı.")
@@ -987,6 +994,14 @@ def _strip_binary_options(content: Dict[str, Any]) -> None:
             mapping.pop("D", None)
 
 
+def _normalize_blank_fields(translations: Any) -> None:
+    for content in (translations or {}).values():
+        if isinstance(content, dict):
+            for field in ("question", "simplified_question"):
+                if field in content:
+                    content[field] = normalize_blank_marker(content[field])
+
+
 def _translation_stage_attempts() -> int:
     """Translation-only retries per validated source (env TRANSLATION_STAGE_ATTEMPTS, default 2)."""
     try:
@@ -1145,6 +1160,8 @@ def generate_question_with_fallback(
             if question_type == TRUE_FALSE:
                 for key in ("weakest_distractor_index", "strongest_distractor_index", "logical_order", "option_difficulty_order"):
                     data[key] = None
+            if question_type == FILL_BLANK:
+                _normalize_blank_fields(data.get("translations"))
             candidate_q = GeneratedQuestion.model_validate(data)
             if question_type != MULTIPLE_CHOICE:
                 validate_question_type_structure(candidate_q, true_false_answer)
@@ -1183,12 +1200,13 @@ def generate_question_with_fallback(
             if question_type == TRUE_FALSE:
                 for content in translated_content.values():
                     _strip_binary_options(content)
+            if question_type == FILL_BLANK:
+                _normalize_blank_fields(translated_content)
             candidate_q.translations = {
                 language: LocalizedContent.model_validate(content)
                 for language, content in translated_content.items()
             }
-            if question_type != MULTIPLE_CHOICE:
-                validate_question_type_structure(candidate_q, true_false_answer)  # e.g. blank survived translation
+            validate_question_type_structure(candidate_q, true_false_answer)  # unconditional: blank survival, missing C/D
             candidate_q.supported_languages = list(translated_content)
             candidate_q.translation_provider = translation_provider
             q = candidate_q

@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "local_backups" / "local_language_gaps.json"
 
 from core.translation_service import canonical_language_code
+from scripts.audit_question_defects import letters_for
 
 
 # Legacy English country names stored on old questions -> Sheets country name.
@@ -43,15 +44,15 @@ def canon(code: Any) -> str:
     return canonical_language_code(code)
 
 
-def usable(content: Any) -> bool:
+def usable(content: Any, letters: str = "ABCD") -> bool:
     options = content.get("options") if isinstance(content, Mapping) else None
     return (isinstance(content, Mapping) and bool(str(content.get("question") or "").strip())
-            and isinstance(options, Mapping) and all(str(options.get(k) or "").strip() for k in "ABCD"))
+            and isinstance(options, Mapping) and all(str(options.get(k) or "").strip() for k in letters))
 
 
 def missing_languages(data: Mapping[str, Any], required: List[str]) -> List[str]:
     """Required (Sheets-form) language codes with no usable translation under an equivalent key."""
-    present = {canon(loc) for loc, content in (data.get("translations") or {}).items() if usable(content)}
+    present = {canon(loc) for loc, content in (data.get("translations") or {}).items() if usable(content, letters_for(data))}
     return [lang for lang in required if canon(lang) not in present]
 
 

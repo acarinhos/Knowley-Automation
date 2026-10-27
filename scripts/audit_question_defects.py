@@ -23,6 +23,11 @@ TERMINAL = tuple('.!?…"\'”’)»。！？')
 DANGLING = {"and", "or", "the", "of", "in", "to", "a", "an", "with", "by", "for", "is", "was", "as", "that", "which", "because"}
 
 
+def letters_for(data: Mapping[str, Any]) -> str:
+    """true_false documents store only A/B; everything else (incl. missing question_type) is A-D."""
+    return "AB" if data.get("question_type") == "true_false" else LETTERS
+
+
 def norm(text: Any) -> str:
     text = unicodedata.normalize("NFKD", str(text or "").casefold())
     text = "".join(c for c in text if not unicodedata.combining(c))
@@ -41,15 +46,16 @@ def detect(data: Mapping[str, Any]) -> List[Dict[str, str]]:
         found.append({"type": kind, "detail": detail[:160]})
 
     locales = _locales(data)
+    letters = letters_for(data)
     for loc, content in locales.items():
         options = content.get("options")
         if not isinstance(options, Mapping):
             add("bad_option_keys", f"{loc}: options missing")
             continue
-        if set(options) != set(LETTERS):
+        if set(options) != set(letters):
             add("bad_option_keys", f"{loc}: keys {sorted(options)}")
         seen: Dict[str, str] = {}
-        for letter in LETTERS:
+        for letter in letters:
             text = str(options.get(letter) or "")
             if not norm(text) or (len(norm(text)) == 1 and norm(text).isascii() and not norm(text).isdigit()):
                 add("empty_or_tiny_option", f"{loc}.{letter}={text!r}")
@@ -62,14 +68,14 @@ def detect(data: Mapping[str, Any]) -> List[Dict[str, str]]:
             add("empty_or_tiny_question", f"{loc}: {question!r}")
 
     answer, option = data.get("correct_answer"), data.get("correct_option")
-    if answer not in tuple(LETTERS) or (option is not None and option not in tuple(LETTERS)):
+    if answer not in tuple(letters) or (option is not None and option not in tuple(letters)):
         add("bad_correct_answer", f"correct_answer={answer!r} correct_option={option!r}")
     elif option is not None and option != answer:
         add("bad_correct_answer", f"correct_answer={answer!r} != correct_option={option!r}")
 
-    index = LETTERS.index(answer) if answer in tuple(LETTERS) else None
+    index = LETTERS.index(answer) if answer in tuple(letters) else None
     weakest, strongest = data.get("weakest_distractor_index"), data.get("strongest_distractor_index")
-    for name, value in (("weakest", weakest), ("strongest", strongest)):
+    for name, value in (() if letters != LETTERS else (("weakest", weakest), ("strongest", strongest))):
         if value is None:
             continue
         if not isinstance(value, int) or isinstance(value, bool) or not 0 <= value <= 3 or value == index:
@@ -80,14 +86,14 @@ def detect(data: Mapping[str, Any]) -> List[Dict[str, str]]:
     base = locales.get("en")
     if base and isinstance(base.get("options"), Mapping):
         base_pos: Dict[str, List[str]] = defaultdict(list)
-        for letter in LETTERS:
+        for letter in letters:
             base_pos[norm(base["options"].get(letter))].append(letter)
         for loc, content in locales.items():
             if loc == "en" or not isinstance(content.get("options"), Mapping):
                 continue
             moved = [
                 (letter, base_pos[norm(content["options"].get(letter))])
-                for letter in LETTERS
+                for letter in letters
                 if len(norm(content["options"].get(letter))) > 1
                 and norm(content["options"].get(letter)) in base_pos
                 and letter not in base_pos[norm(content["options"].get(letter))]

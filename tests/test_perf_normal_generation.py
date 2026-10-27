@@ -112,6 +112,7 @@ class SourceReuseTests(unittest.TestCase):
              patch.object(generator.LocalizedContent, "model_validate", side_effect=lambda c: c), \
              patch.object(generator, "validate_trivia_compliance"), \
              patch.object(generator, "validate_skill_support_fields"), \
+             patch.object(generator, "validate_question_type_structure"), \
              patch.object(generator, "build_prompt", return_value="p"), \
              patch.object(generator, "populate_question_meta", side_effect=Stop), \
              patch("core.sheet_algorithm.get_sheet_algorithm_repository", return_value=repo):
