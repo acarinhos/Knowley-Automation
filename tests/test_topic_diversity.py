@@ -46,6 +46,27 @@ class TopicDiversityTests(unittest.TestCase):
         self.assertEqual(topic_terms({"topic_entity": "Photosynthesis", "translations": {}}), ["Photosynthesis"])
         self.assertEqual(topic_terms(NS(**base)), ["rings", "Visible rings"])  # fields missing entirely
 
+    def test_image_query_stopwords_and_long_entity(self):
+        base = dict(correct_answer="A", translations={"en": NS(keyword="kw", options={"A": "Ans"})})
+        for query, expected in [
+            ("Photo of Saturn rings", "Saturn rings"),
+            ("a Wikimedia Commons image of Eiffel Tower", "Eiffel Tower"),
+            ("Labeled diagram of human heart anatomy", "human heart anatomy"),
+        ]:
+            self.assertEqual(topic_terms(NS(topic_entity=None, question_image_search_query=query, **base)), [expected])
+        # only stopwords -> falls back to keyword/answer
+        self.assertEqual(topic_terms(NS(topic_entity=None, question_image_search_query="photo of a map", **base)), ["kw", "Ans"])
+        long_entity = "The Treaty of Versailles signed after the First World War"
+        self.assertEqual(topic_terms(NS(topic_entity=long_entity, question_image_search_query=None, **base)), ["The Treaty of Versailles"])
+        # still too long after 4 words -> fallback
+        self.assertEqual(topic_terms(NS(topic_entity="Supercalifragilisticexpialidocious " * 2, question_image_search_query=None, **base)), ["kw", "Ans"])
+
+    def test_generated_question_topic_entity_is_coerced(self):
+        from core.generator import GeneratedQuestion
+        self.assertEqual(GeneratedQuestion.coerce_topic_entity("  Saturn "), "Saturn")
+        for bad in (["Saturn"], {"a": 1}, 5, None):
+            self.assertIsNone(GeneratedQuestion.coerce_topic_entity(bad))
+
     def test_seed_failure_is_logged_and_retried(self):
         t = TopicDiversityTracker()
         bad = MagicMock()

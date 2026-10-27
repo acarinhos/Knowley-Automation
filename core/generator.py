@@ -178,6 +178,12 @@ class GeneratedQuestion(BaseModel):
     generation_provider: Optional[str] = Field(default="GEMINI", description="Üretimi gerçekleştiren LLM sağlayıcısı")
     translation_provider: Optional[str] = Field(default=None, description="Çeviri sağlayıcısı")
 
+    @field_validator("topic_entity", mode="before")
+    @classmethod
+    def coerce_topic_entity(cls, value: Any) -> Optional[str]:
+        # optional meta field: a malformed value must not reject the whole question
+        return value.strip() if isinstance(value, str) else None
+
     @field_validator("logical_order")
     @classmethod
     def validate_logical_order(cls, value: Optional[List[int]]) -> Optional[List[int]]:

@@ -12,10 +12,13 @@ def _get(obj: Any, name: str) -> Any:
 def topic_terms(q: Any) -> List[str]:
     """keyword + correct-answer option text from the en (else tr, else first) translation; works on models and dicts."""
     entity = str(_get(q, "topic_entity") or "").strip()
-    if entity:
+    if len(entity) > MAX_TERM_LEN:
+        entity = " ".join(entity.split()[:4])  # record() would silently drop an over-long term
+    if entity and len(entity) <= MAX_TERM_LEN:
         return [entity]
-    # visual: short form of the English image query (drops generic filler words)
-    filler = {"wikimedia", "commons", "image", "photo", "picture", "diagram"}
+    # visual: short form of the English image query (drops generic filler words anywhere)
+    filler = {"of", "a", "an", "the", "labeled", "map", "photo", "photograph", "image", "picture", "diagram",
+              "wikimedia", "commons", "illustration"}
     words = [w for w in str(_get(q, "question_image_search_query") or "").split() if w.casefold() not in filler]
     if words:
         return [" ".join(words[:3])]
