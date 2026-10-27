@@ -46,6 +46,8 @@ def _split(total: int, weights: List[float], cap: int) -> List[int]:
 def simulate_distribution(doc_id: str, data: Mapping[str, Any]) -> Optional[Tuple[List[int], int]]:
     """([A,B,C,D] percentages, sample_size) or None when the question has no valid correct answer."""
     answer = data.get("correct_answer")
+    if data.get("question_type") == "true_false":  # the contract is four percentages; tf has none
+        return None
     if answer not in tuple(LETTERS):
         return None
     correct = LETTERS.index(answer)

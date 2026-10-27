@@ -656,6 +656,7 @@ class KnowleyTkinterApp(tk.Tk):
             ("154", "154 kredi\nTam dağılım"),
             ("64", "64 kredi\nKısa seri"),
             ("basic", "Temel\nYalnız temel hedefler"),
+            ("question_types", "Soru tipi\nDoğru/Yanlış · Boşluk"),
             ("custom", "Özel\nDengeli üretim"),
             ("country_local", "Ülke/Bölge\nYerel hedefler"),
         ]
@@ -668,6 +669,20 @@ class KnowleyTkinterApp(tk.Tk):
                 command=self._on_mode_change,
             )
             rb.pack(side="left", expand=True, fill="x", padx=4)
+
+        # Soru tipi (yalnızca "question_types" modunda görünür)
+        self.question_types_frame = tk.Frame(card, bg=PANEL_BG)
+        tk.Label(self.question_types_frame, text="Soru tipi", fg=TEXT_DIM, bg=PANEL_BG, font=(FONT_FAMILY, 9, "bold")).pack(anchor="w", pady=(0, 3))
+        self.question_type_map = {
+            "Karışık (Doğru/Yanlış + Boşluk)": "mixed",
+            "Doğru / Yanlış": "true_false",
+            "Boşluk doldurma": "fill_blank",
+        }
+        self.combo_question_types = ttk.Combobox(
+            self.question_types_frame, state="readonly", values=list(self.question_type_map.keys())
+        )
+        self.combo_question_types.current(0)
+        self.combo_question_types.pack(fill="x")
 
         # Soru Adedi
         count_frame = tk.Frame(card, bg=PANEL_BG)
@@ -1234,7 +1249,7 @@ class KnowleyTkinterApp(tk.Tk):
             self.pool_badge_val.config(text="64")
             self.pool_badge_sub.config(text="kredi havuzu")
             self.spin_count.configure(from_=1, to=10000, increment=1)
-        elif mode == "basic":
+        elif mode in ("basic", "question_types"):
             self.var_count.set(21)
             self.pool_badge_val.config(text="21")
             self.pool_badge_sub.config(text="temel hedef havuzu")
@@ -1246,6 +1261,10 @@ class KnowleyTkinterApp(tk.Tk):
                 self.var_count.set(160 if self.var_custom_mode.get() == "equal" else 100)
             self.custom_config_card.pack(fill="x", pady=(0, 10), after=self.count_frame)
             self._on_custom_mode_change()
+        if mode == "question_types":
+            self.question_types_frame.pack(fill="x", pady=(0, 10), before=self.count_frame)
+        else:
+            self.question_types_frame.pack_forget()
         if mode != "custom":
             self.custom_config_card.pack_forget()
             if mode != "country_local":
@@ -2285,6 +2304,11 @@ class KnowleyTkinterApp(tk.Tk):
         return {
             "question_count": count,
             "generation_mode": mode,
+            "question_types": (
+                self.question_type_map.get(self.combo_question_types.get(), "mixed")
+                if mode == "question_types"
+                else ""
+            ),
             "custom_mode": custom_mode,
             "difficulty_counts_per_10": difficulty_counts,
             "difficulty": difficulty,

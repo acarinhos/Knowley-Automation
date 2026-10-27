@@ -141,6 +141,7 @@ class JobManager:
             languages=list(payload.get("languages") or SUPPORTED_LANGUAGE_CODES),
             duration_seconds=None,
             generation_mode=gen_mode,
+            question_types=payload.get("question_types") or None,
             custom_mode=custom_mode or None,
             difficulty_counts_per_10=dict(
                 payload.get("difficulty_counts_per_10") or {"Kolay": 4, "Orta": 4, "Zor": 2}
