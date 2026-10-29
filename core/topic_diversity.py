@@ -100,7 +100,7 @@ class TopicDiversityTracker:
 
 
 def avoid_line(tracker: TopicDiversityTracker, cat: str, sub: str) -> str:
-    topics = tracker.recent(cat, sub)
+    topics = tracker.recent(cat, sub, limit=20)  # prompt-size cap (Groq TPM)
     if not topics:
         return ""
     return (

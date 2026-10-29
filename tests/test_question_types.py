@@ -251,5 +251,54 @@ class BasicOnlyTargetTests(unittest.TestCase):
             self.assertEqual({c["true_false_answer"] for c in calls}, {None})
 
 
+class ProviderCallErrorDetailTest(unittest.TestCase):
+    def _manager(self, env=None):
+        from core.llm_manager import MultiLLMManager
+
+        with patch.dict("os.environ", {"COHERE_API_KEY": "cohere-test-key-123", **(env or {})}, clear=False), \
+                patch("core.llm_manager.cohere", create=True):
+            return MultiLLMManager()
+
+    def test_all_providers_error_carries_original_cause(self):
+        from core.llm_manager import AllProvidersCoolingDown, ProviderCallError
+
+        m = self._manager()
+        m.providers = ["cohere"]
+        m._call_cohere = Mock(side_effect=ProviderCallError("Cohere", ValueError("model_not_found xyz")))
+        with self.assertRaises(AllProvidersCoolingDown) as ctx:
+            m.generate_trivia("s", "u")
+        self.assertIn("model_not_found xyz", str(ctx.exception))
+
+    def test_safe_error_summary_redacts_secrets(self):
+        m = self._manager()
+        env = {"ANTHROPIC_API_KEY": "envclaude-FAKE-0001", "AZURE_TRANSLATOR_KEY": "envazure-FAKE-0002"}
+        cases = [
+            "Authorization: Bearer abcFAKE123token",
+            "Authorization: Bearer\nabcFAKE123token",
+            "Authorization: Basic dXNlcjpGQUtF",
+            'bad request {"api_key": "sk-FAKEFAKEFAKE1234"}',
+            "headers {'x-goog-api-key': 'FAKEgoogle99'}",
+            "GET https://x.test/v1?alt=json&key=FAKEurlkey99 failed",
+            "api-key=FAKEdash12345",
+            "Incorrect API key provided: gsk_FAKEFAKEFAKE1234.",
+            "bad key AIzaFAKEFAKEFAKE1234 rejected",
+            "sk-ant-FAKE-FAKE-FAKE1234 rejected",
+            "env leaked envclaude-FAKE-0001 and envazure-FAKE-0002",
+        ]
+        for text in cases:
+            with patch.dict("os.environ", env, clear=False):
+                out = m._safe_error_summary(ValueError(text))
+            self.assertNotIn("FAKE", out, text)
+            self.assertIn("[redacted]", out, text)
+
+    def test_safe_error_summary_keeps_harmless_text_and_limit(self):
+        m = self._manager()
+        self.assertEqual(m._safe_error_summary(ValueError("model_not_found xyz")), "model_not_found xyz")
+        self.assertEqual(len(m._safe_error_summary(ValueError("x" * 1000))), 300)
+        # secret sitting across the 300-char cut is still masked
+        out = m._safe_error_summary(ValueError("a" * 290 + " key=FAKEcutsecret123456"))
+        self.assertNotIn("FAKE", out)
+
+
 if __name__ == "__main__":
     unittest.main()

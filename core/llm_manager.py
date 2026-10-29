@@ -594,13 +594,21 @@ class MultiLLMManager:
             os.getenv("GROQ_API_KEY"),
             os.getenv("COHERE_API_KEY"),
             os.getenv("NVIDIA_API_KEY"),
+            os.getenv("ANTHROPIC_API_KEY"),
+            os.getenv("AZURE_TRANSLATOR_KEY"),
         ):
-            if secret:
-                text = text.replace(secret, "[redacted]")
-        text = re.sub(r"(?i)([?&](?:api[_-]?key|key|token)=)[^&\s]+", r"\1[redacted]", text)
-        text = re.sub(r"(?i)(\b(?:api[_-]?key|authorization|token)\b\s*[:=]\s*)[^\s,;]+", r"\1[redacted]", text)
-        text = re.sub(r"(?i)\bBearer\s+[^\s,;]+", "Bearer [redacted]", text)
-        return text[:300]
+            if secret and len(secret.strip()) >= 8:
+                text = text.replace(secret.strip(), "[redacted]")
+        # Order matters: scheme+token first, then whole Authorization value, then key=value, then key shapes.
+        text = re.sub(r"(?i)\b(Bearer|Basic)\s+\S+", r"\1 [redacted]", text)
+        text = re.sub(r"(?i)(\bauthorization[\"']?\s*[:=]\s*[\"']?)[^\r\n,;\"'}]+", r"\1[redacted]", text)
+        text = re.sub(
+            r"(?i)(\b(?:x-goog-api-key|api[_-]?key|key|token|secret|password)[\"']?\s*[:=]\s*[\"']?)[^\s,;\"'&}]+",
+            r"\1[redacted]",
+            text,
+        )
+        text = re.sub(r"\b(?:sk[-_]|gsk_|nvapi-)[-_A-Za-z0-9]{10,}|\bAIza[-_A-Za-z0-9]{10,}", "[redacted]", text)
+        return text[:300]  # truncate only after redaction so a cut key cannot leak
 
     def _call_groq(self, system_prompt: str, user_prompt: str, max_output_tokens: Optional[int] = None) -> str:
         last_error: Optional[Exception] = None
@@ -995,7 +1003,11 @@ class MultiLLMManager:
                 if status is None:
                     status = getattr(getattr(exc, "response", None), "status_code", None)
                 status_label = f"HTTP {status}" if status else type(exc).__name__
-                if isinstance(exc, (AllProvidersCoolingDown, PermissionError)):
+                if isinstance(exc, ProviderCallError):
+                    # Wrapper text hides the cause; surface the sanitized original error.
+                    detail = self._safe_error_summary(exc.original_error)
+                    status_label = f"{status_label}: {detail}" if detail else status_label
+                elif isinstance(exc, (AllProvidersCoolingDown, PermissionError)):
                     detail = self._safe_error_summary(exc)
                     if detail:
                         status_label = f"{status_label}: {detail}"
