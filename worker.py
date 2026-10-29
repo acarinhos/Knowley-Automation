@@ -78,6 +78,11 @@ COUNTRY_PROFILES = [
 ]
 
 
+def provider_reasons(err: AllProvidersCoolingDown) -> str:
+    """Per-provider redacted last error (<=300 chars each) so the UI shows why providers failed."""
+    return " | ".join(f"{name}: {text[:300]}" for name, text in err.provider_errors.items())[:600]
+
+
 @dataclass
 class GenerationOptions:
     """CLI, sonsuz worker ve web UI tarafından paylaşılan üretim ayarları."""
@@ -757,6 +762,7 @@ def run_generation(
                         break
                     if isinstance(err, AllProvidersCoolingDown):
                         retryable = bool(err.retryable)
+                        reasons = provider_reasons(err)
                         can_retry_soon = retryable and err.retry_after <= 90
                         wait_sec = min(90, max(1, err.retry_after + 1))
                         _emit(
@@ -764,7 +770,7 @@ def run_generation(
                             "provider_unavailable",
                             index=item_index,
                             retry_after=wait_sec if can_retry_soon else err.retry_after,
-                            message=err_str[:500],
+                            message=reasons or err_str[:500],
                         )
                         if can_retry_soon and attempt < options.max_retries:
                             logging.warning(
@@ -788,7 +794,8 @@ def run_generation(
                         if retryable and attempt >= options.max_retries:
                             raise RuntimeError(
                                 f"LLM sağlayıcıları {options.max_retries} kısa yeniden denemede yanıt vermedi; "
-                                "tekrarları her soru için sürdürmemek üzere üretim işi durduruldu."
+                                "tekrarları her soru için sürdürmemek üzere üretim işi durduruldu. "
+                                f"Son hatalar: {reasons}"
                             ) from err
                         raise RuntimeError(
                             "LLM sağlayıcılarında geçici olmayan erişim/yapılandırma hatası var; "

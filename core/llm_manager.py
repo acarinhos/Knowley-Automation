@@ -80,7 +80,9 @@ class AllProvidersCoolingDown(RuntimeError):
         *,
         quota_limited: bool = False,
         retryable: bool = True,
+        provider_errors: Optional[Dict[str, str]] = None,
     ):
+        self.provider_errors = dict(provider_errors or {})  # provider -> redacted summary (<=300 chars)
         self.retry_after = max(1, int(retry_after))
         self.quota_limited = quota_limited
         # A quota error is not automatically worth retrying now: daily/monthly
@@ -444,12 +446,11 @@ class MultiLLMManager:
         "openai/gpt-oss-120b",
         "openai/gpt-oss-20b",
         "qwen/qwen3.8-27b",
-        "qwen/qwen3.6-27b",
-    ]
+    ]  # qwen3.6-27b removed: Groq answers 404 model_not_found
     COHERE_MODELS = ["command-a-03-2025", "command-r-08-2024", "command-r7b-12-2024"]
     # 20B modeli NVIDIA katalog/probe çağrısında yaygın ve hızlı erişilebilir;
     # büyük model yalnızca fallback olarak denenir.
-    NVIDIA_MODELS = ["openai/gpt-oss-20b", "openai/gpt-oss-120b"]
+    NVIDIA_MODELS = ["openai/gpt-oss-20b"]  # gpt-oss-120b removed: NVIDIA answers 410 Gone
     NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
     CLAUDE_MODELS = ["sonnet", "haiku", "opus"]
     _claude_slots = threading.Semaphore(3)  # at most 3 concurrent CLI processes
@@ -497,7 +498,7 @@ class MultiLLMManager:
                 # backfills to request a longer deadline via environment.
                 self.gemini_client = genai.Client(
                     api_key=self.gemini_key,
-                    http_options={"timeout": _int_env("GEMINI_TIMEOUT_MS", 20000)},
+                    http_options={"timeout": _int_env("GEMINI_TIMEOUT_MS", 60000)},
                 )
                 self.providers.append("gemini")
             except Exception as exc:
@@ -520,7 +521,7 @@ class MultiLLMManager:
             try:
                 self.cohere_client = cohere.ClientV2(
                     api_key=self.cohere_key,
-                    timeout=_float_env("COHERE_TIMEOUT_SECONDS", 15.0),
+                    timeout=_float_env("COHERE_TIMEOUT_SECONDS", 45.0),
                     max_retries=0,
                 )
                 self.providers.append("cohere")
@@ -649,17 +650,14 @@ class MultiLLMManager:
                 status = getattr(exc, "status_code", None)
                 if status is None:
                     status = getattr(getattr(exc, "response", None), "status_code", None)
-                if (
-                    _is_timeout_error(exc)
-                    or status in (401, 403, 413, 429)
-                    or "413" in error_text
-                    or "429" in error_text
-                    or "401" in error_text
-                    or "403" in error_text
-                    or "resource_exhausted" in error_text
-                ):
-                    # İstek tüm modeller için aynı boyutta; aynı payload'ı tekrar
-                    # göndermek yalnızca gecikme yaratır.
+                # HTTP status is authoritative; text matching only when there is none
+                # (413 bodies contain numbers like "Requested 8403/9429").
+                if status is None:
+                    text_break = bool(re.search(r"\b(429|401|403)\b", error_text)) or "resource_exhausted" in error_text
+                else:
+                    text_break = False
+                if _is_timeout_error(exc) or status in (401, 403, 429) or text_break:
+                    # 413 (TPM/ITPM) is per model (gpt-oss 8000, qwen 7000): try the next model.
                     break
                 continue
         if last_error:
@@ -933,6 +931,7 @@ class MultiLLMManager:
         max_output_tokens: Optional[int] = None,
     ) -> Dict[str, Any]:
         errors: List[str] = []
+        provider_errors: Dict[str, str] = {}
         # Only forwarded when set (translation calls), so generation is unchanged.
         token_kwargs = {"max_output_tokens": max_output_tokens} if max_output_tokens else {}
         # Health-ordered provider selection (replaces blind rotation).
@@ -943,9 +942,11 @@ class MultiLLMManager:
                 cooldown_until = float(self._provider_cooldown_until.get(provider, 0.0))
             if disabled_reason:
                 errors.append(f"{provider}: disabled ({disabled_reason})")
+                provider_errors[provider] = f"disabled ({disabled_reason})"[:300]
                 continue
             if cooldown_until > time.time():
                 errors.append(f"{provider}: cooldown ({int(cooldown_until - time.time())}s)")
+                provider_errors.setdefault(provider, self.usage.get(provider, {}).get("last_error") or "cooldown")
                 continue
             call_started = time.monotonic()
             try:
@@ -1047,6 +1048,7 @@ class MultiLLMManager:
                     self._provider_cooldown_retryable[provider] = retryable
                     self._provider_cooldown_quota[provider] = quota_limited
                 errors.append(f"{provider}: {status_label}")
+                provider_errors[provider] = status_label[:300]
                 disabled = provider in self._provider_disabled_reason
                 log_method = logger.warning if disabled else logger.info
                 log_method(
@@ -1089,6 +1091,7 @@ class MultiLLMManager:
                 self._provider_cooldown_retryable.get(provider, False)
                 for provider in recovering_providers
             ),
+            provider_errors=provider_errors,
         )
 
     def _limits(self, provider: str) -> Dict[str, Any]:

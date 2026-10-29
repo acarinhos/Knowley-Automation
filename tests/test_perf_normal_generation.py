@@ -240,8 +240,8 @@ class ProviderHealthTests(unittest.TestCase):
             os.environ.pop("GEMINI_TIMEOUT_MS", None)
             MultiLLMManager()
             self.assertEqual(groq.call_args.kwargs["timeout"], 15.0)
-            self.assertEqual(co.call_args.kwargs["timeout"], 15.0)
-            self.assertEqual(ge.call_args.kwargs["http_options"]["timeout"], 20000)
+            self.assertEqual(co.call_args.kwargs["timeout"], 45.0)
+            self.assertEqual(ge.call_args.kwargs["http_options"]["timeout"], 60000)
             with patch.dict(os.environ, {"GROQ_TIMEOUT_SECONDS": "7", "COHERE_TIMEOUT_SECONDS": "9", "GEMINI_TIMEOUT_MS": "5000"}):
                 MultiLLMManager()
             self.assertEqual(groq.call_args.kwargs["timeout"], 7.0)
