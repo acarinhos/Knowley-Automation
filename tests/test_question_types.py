@@ -253,3 +253,16 @@ class BasicOnlyTargetTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ProviderCallErrorDetailTest(unittest.TestCase):
+    def test_all_providers_error_carries_original_cause(self):
+        from core.llm_manager import AllProvidersCoolingDown, MultiLLMManager, ProviderCallError
+
+        with patch.dict("os.environ", {"COHERE_API_KEY": "k"}, clear=False),                 patch("core.llm_manager.cohere", create=True):
+            m = MultiLLMManager()
+        m.providers = ["cohere"]
+        m._call_cohere = Mock(side_effect=ProviderCallError("Cohere", ValueError("model_not_found xyz")))
+        with self.assertRaises(AllProvidersCoolingDown) as ctx:
+            m.generate_trivia("s", "u")
+        self.assertIn("model_not_found xyz", str(ctx.exception))

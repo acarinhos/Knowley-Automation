@@ -995,7 +995,11 @@ class MultiLLMManager:
                 if status is None:
                     status = getattr(getattr(exc, "response", None), "status_code", None)
                 status_label = f"HTTP {status}" if status else type(exc).__name__
-                if isinstance(exc, (AllProvidersCoolingDown, PermissionError)):
+                if isinstance(exc, ProviderCallError):
+                    # Wrapper text hides the cause; surface the sanitized original error.
+                    detail = self._safe_error_summary(exc.original_error)
+                    status_label = f"{status_label}: {detail}" if detail else status_label
+                elif isinstance(exc, (AllProvidersCoolingDown, PermissionError)):
                     detail = self._safe_error_summary(exc)
                     if detail:
                         status_label = f"{status_label}: {detail}"
