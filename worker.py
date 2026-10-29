@@ -658,6 +658,8 @@ def run_generation(
                         true_false_answer=true_false_answer,
                     )
 
+                    with lock:
+                        outage_since[0] = None  # providers answered: outage over (success or duplicate)
                     if visual_question:
                         with resolve_lock:  # one resolver, one resolve() at a time
                             if resolved_image_service is None:
@@ -716,7 +718,6 @@ def run_generation(
                                     _consume_slot(algorithm_target)
                                     topic_tracker.record(primary_cat, target_sub, topic_terms(q_data))
                                     produced_count += 1
-                                    outage_since[0] = None
                                     success_this_item = True
                                     preview = q_data.translations.get("tr") or next(iter(q_data.translations.values()))
                                     _emit(

@@ -60,6 +60,32 @@ class ResilientWaitTests(unittest.TestCase):
         for text in ("HTTP 503 high demand", "504 Deadline", "ReadTimeout timed out"):
             self.assertLessEqual(MultiLLMManager._cooldown_for_error(RuntimeError(text)), 60, text)
 
+    def test_unrelated_numbers_and_permanent_errors_not_transient(self):
+        for text in ("port 5030 refused", "timeout=5000 config", "404 model unavailable"):
+            self.assertNotEqual(MultiLLMManager._cooldown_for_error(RuntimeError(text)), 20, text)
+        self.assertEqual(MultiLLMManager._cooldown_for_error(RuntimeError("503 service unavailable")), 20)
+
+    def test_daily_quota_fails_immediately_without_waiting(self):
+        err = AllProvidersCoolingDown(86000, "x", quota_limited=True, retryable=False)
+        stop = NonBlockingStopEvent()
+        with patch("worker.generate_question_with_fallback", side_effect=err):
+            with self.assertRaises(RuntimeError):
+                _run(stop)
+        self.assertEqual(stop.waits, [])
+
+    def test_outage_clock_resets_after_duplicate(self):
+        # outage, duplicate answer, outage, success: with a 100s cap and a clock jumping 1000s per read,
+        # the second outage only survives if the first outage's start was cleared by the duplicate.
+        errs = [AllProvidersCoolingDown(5, "x"), _q(), AllProvidersCoolingDown(5, "x"), _q()]
+        ticks = iter(range(0, 10**6, 1000))
+        opts = _opts(retries=5)
+        opts.write_to_firestore = True
+        opts.question_count = 1
+        with patch.dict(os.environ, {"LLM_OUTAGE_MAX_WAIT_SECONDS": "1500"}),                 patch("worker.time.monotonic", side_effect=lambda: next(ticks)),                 patch("worker.generate_question_with_fallback", side_effect=errs),                 patch("worker.save_worker_question", side_effect=[False, True]),                 patch("worker.TopicDiversityTracker.seed_from_db"):
+            summary = run_generation(opts, repository=SheetAlgorithmRepository(), llm_manager=FakeManager(),
+                                     stop_event=NonBlockingStopEvent(), db=object())
+        self.assertEqual(summary["produced"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()
