@@ -78,6 +78,14 @@ COUNTRY_PROFILES = [
 ]
 
 
+def outage_max_wait_seconds() -> int:
+    """LLM_OUTAGE_MAX_WAIT_SECONDS: total consecutive all-provider outage tolerated before failing (default 30 min)."""
+    try:
+        return max(0, int(os.getenv("LLM_OUTAGE_MAX_WAIT_SECONDS", "1800")))
+    except ValueError:
+        return 1800
+
+
 def provider_reasons(err: AllProvidersCoolingDown) -> str:
     """Per-provider redacted last error (<=300 chars each) so the UI shows why providers failed."""
     return " | ".join(f"{name}: {text[:300]}" for name, text in err.provider_errors.items())[:600]
@@ -598,6 +606,8 @@ def run_generation(
                 return
 
 
+    outage_since: List[Optional[float]] = [None]  # monotonic start of the current consecutive all-provider outage
+
     def _run_item(plan):
         nonlocal produced_count, duplicate_count, failed_count, resolved_image_service
         (item_index, algorithm_target, primary_cat, target_sub, equal_distribution,
@@ -609,7 +619,9 @@ def run_generation(
             topic_tracker.seed_from_db(db, primary_cat, target_sub, question_type=question_type)  # outside the planning lock
         algorithm_context += avoid_line(topic_tracker, primary_cat, target_sub)
         try:
-            for attempt in range(1, options.max_retries + 1):
+            attempt = 0
+            while attempt < options.max_retries:
+                attempt += 1
                 if stop_event.is_set():
                     break
                 starting_assignment_pending = False
@@ -646,6 +658,8 @@ def run_generation(
                         true_false_answer=true_false_answer,
                     )
 
+                    with lock:
+                        outage_since[0] = None  # providers answered: outage over (success or duplicate)
                     if visual_question:
                         with resolve_lock:  # one resolver, one resolve() at a time
                             if resolved_image_service is None:
@@ -763,21 +777,27 @@ def run_generation(
                     if isinstance(err, AllProvidersCoolingDown):
                         retryable = bool(err.retryable)
                         reasons = provider_reasons(err)
-                        can_retry_soon = retryable and err.retry_after <= 90
                         wait_sec = min(90, max(1, err.retry_after + 1))
+                        with lock:
+                            if outage_since[0] is None:
+                                outage_since[0] = time.monotonic()
+                            outage_for = time.monotonic() - outage_since[0]
+                        max_outage = outage_max_wait_seconds()
                         _emit(
                             on_event,
                             "provider_unavailable",
                             index=item_index,
-                            retry_after=wait_sec if can_retry_soon else err.retry_after,
+                            retry_after=wait_sec if retryable else err.retry_after,
                             message=reasons or err_str[:500],
                         )
-                        if can_retry_soon and attempt < options.max_retries:
+                        if retryable and outage_for + wait_sec <= max_outage:
                             logging.warning(
-                                "LLM sağlayıcıları geçici olarak kullanılamıyor; %ss sonra yeniden denenecek.",
+                                "LLM sağlayıcıları geçici olarak kullanılamıyor (%ds); %ss sonra otomatik devam edilecek.",
+                                int(outage_for),
                                 wait_sec,
                             )
-                            stop_event.wait(wait_sec)
+                            attempt -= 1  # provider downtime is not an item failure: do not burn its retries
+                            stop_event.wait(wait_sec + (random.uniform(0, 3) if concurrency > 1 else 0))  # jitter staggers parallel workers; wait returns early on stop
                             continue
                         if err.quota_limited and not retryable:
                             raise RuntimeError(
@@ -785,17 +805,10 @@ def run_generation(
                                 "sonuç vermeyeceği için üretim işi durduruldu. Sağlayıcı kotası yenilendiğinde "
                                 f"yeniden başlatın. Ayrıntı: {err}"
                             ) from err
-                        if retryable and err.retry_after > 90:
-                            wait_kind = "kota beklemesi" if err.quota_limited else "sağlayıcı bekleme süresi"
+                        if retryable:
                             raise RuntimeError(
-                                f"LLM {wait_kind} uzun ({err.retry_after}s); uzun bekleme yerine üretim işi "
-                                f"durduruldu. Daha sonra yeniden başlatın. Ayrıntı: {err}"
-                            ) from err
-                        if retryable and attempt >= options.max_retries:
-                            raise RuntimeError(
-                                f"LLM sağlayıcıları {options.max_retries} kısa yeniden denemede yanıt vermedi; "
-                                "tekrarları her soru için sürdürmemek üzere üretim işi durduruldu. "
-                                f"Son hatalar: {reasons}"
+                                f"LLM sağlayıcıları {int(outage_for)}s boyunca kesintisiz yanıt vermedi "
+                                f"(üst sınır {max_outage}s); üretim işi durduruldu. Son hatalar: {reasons}"
                             ) from err
                         raise RuntimeError(
                             "LLM sağlayıcılarında geçici olmayan erişim/yapılandırma hatası var; "
