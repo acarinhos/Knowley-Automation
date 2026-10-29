@@ -884,8 +884,10 @@ class MultiLLMManager:
             return 30
         if "429" in text or "resource_exhausted" in text:
             return 120
+        if re.search(r"(?:500|502|503|504)", text) or "high demand" in text or "unavailable" in text:
+            return 20  # transient overload: probe again soon instead of escalating
         if "timeout" in text or "timed out" in text:
-            return 300
+            return 60
         return 45
 
     HEALTH_WINDOW_SECONDS = 300.0
