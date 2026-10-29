@@ -38,6 +38,38 @@ class ProviderReasonTests(unittest.TestCase):
         m.groq_client.chat.completions.create.side_effect = [err, ok]
         self.assertEqual(m._call_groq("s", "u"), "{}")
 
+    def _groq_calls(self, first_error):
+        m = self.make()
+        m.groq_models = ["a", "b"]
+        ok = MagicMock()
+        ok.choices = [MagicMock(message=MagicMock(content="{}"))]
+        m.groq_client = MagicMock()
+        m.groq_client.chat.completions.with_raw_response.create.side_effect = AttributeError
+        create = m.groq_client.chat.completions.create
+        create.side_effect = [first_error, ok]
+        try:
+            m._call_groq("s", "u")
+        except Exception:  # noqa: BLE001 - only call count matters
+            pass
+        return create.call_count
+
+    def test_groq_413_body_numbers_do_not_break_loop(self):
+        err = RuntimeError("Limit 8000, Requested 8403")
+        err.status_code = 413
+        self.assertEqual(self._groq_calls(err), 2)
+
+    def test_groq_auth_and_rate_status_break_loop(self):
+        for code in (401, 403, 429):
+            err = RuntimeError("x")
+            err.status_code = code
+            self.assertEqual(self._groq_calls(err), 1, code)
+        self.assertEqual(self._groq_calls(TimeoutError("timed out")), 1)
+
+    def test_provider_reasons_total_is_capped(self):
+        err = AllProvidersCoolingDown.__new__(AllProvidersCoolingDown)
+        err.provider_errors = {p: "x" * 300 for p in ("a", "b", "c", "d")}
+        self.assertLessEqual(len(provider_reasons(err)), 600)
+
 
 if __name__ == "__main__":
     unittest.main()

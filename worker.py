@@ -80,7 +80,7 @@ COUNTRY_PROFILES = [
 
 def provider_reasons(err: AllProvidersCoolingDown) -> str:
     """Per-provider redacted last error (<=300 chars each) so the UI shows why providers failed."""
-    return " | ".join(f"{name}: {text[:300]}" for name, text in err.provider_errors.items())
+    return " | ".join(f"{name}: {text[:300]}" for name, text in err.provider_errors.items())[:600]
 
 
 @dataclass

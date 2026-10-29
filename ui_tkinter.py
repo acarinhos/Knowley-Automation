@@ -2476,8 +2476,8 @@ class KnowleyTkinterApp(tk.Tk):
             elif kind == "provider_unavailable":
                 msg = (
                     "Tüm LLM sağlayıcıları geçici olarak kullanılamıyor. "
-                    f"{ev.get('retry_after', '?')}s sonra otomatik yeniden denenecek. {ev.get('message', '')}"
-                )
+                    f"{ev.get('retry_after', '?')}s sonra otomatik yeniden denenecek. {str(ev.get('message', ''))[:600]}"
+                ).strip()
             elif kind == "duplicate":
                 msg = f"{ev.get('category')} için tekrar soru atlandı."
             elif kind == "completed":

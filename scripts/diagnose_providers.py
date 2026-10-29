@@ -1,7 +1,7 @@
 """Live LLM provider diagnosis: one tiny ping per provider/model, then ONE production-size prompt per provider.
 
-Usage: python scripts/diagnose_providers.py [--ping-only]
-Uses the keys in .env (worktree root or any parent folder). Never prints key values: every error goes through
+Usage: python scripts/diagnose_providers.py --yes [--ping-only]
+Sends LIVE requests; --yes is required. Uses the keys in .env (worktree root or any parent folder). Never prints key values: every error goes through
 MultiLLMManager._safe_error_summary. Costs ~15 requests in total.
 """
 
@@ -85,13 +85,20 @@ def run(kind: str, provider: str, model: str, system: str, user: str, max_tokens
 
 def main() -> None:
     ping_only = "--ping-only" in sys.argv
+    print("WARNING: this script sends LIVE requests to the configured LLM providers (may use quota/cost).")
     print("key defined:", {p: bool(os.getenv(env)) for p, env in KEYS.items()}, "claude_ready:", lm.claude_ready())
+    # Same defaults as core/llm_manager.py client construction.
     print("timeouts: GEMINI_TIMEOUT_MS=%s GROQ=%ss COHERE=%ss NVIDIA=%ss" % (
-        lm._int_env("GEMINI_TIMEOUT_MS", 20000), lm._float_env("GROQ_TIMEOUT_SECONDS", 15.0),
-        lm._float_env("COHERE_TIMEOUT_SECONDS", 15.0), lm._float_env("NVIDIA_TIMEOUT_SECONDS", 30.0)))
+        lm._int_env("GEMINI_TIMEOUT_MS", 60000), lm._float_env("GROQ_TIMEOUT_SECONDS", 15.0),
+        lm._float_env("COHERE_TIMEOUT_SECONDS", 45.0), lm._float_env("NVIDIA_TIMEOUT_SECONDS", 30.0)))
     models = {"gemini": manager.gemini_models, "groq": manager.groq_models, "cohere": manager.cohere_models,
               "nvidia": manager.nvidia_models, "claude": manager.claude_models[:1]}
     active = [p for p in models if p in manager.providers]
+    n_pings = sum(len(models[p]) for p in active)
+    n_requests = n_pings if ping_only else n_pings + len(active) + 1  # + one prompt per provider, + extra true_false
+    print(f"will send ~{n_requests} live requests")
+    if "--yes" not in sys.argv:
+        sys.exit("Refusing to send live requests without --yes (add --yes to confirm).")
     for provider in active:
         for model in models[provider]:
             run("ping", provider, model, PING_SYSTEM, PING_USER, 32)

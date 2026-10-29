@@ -650,17 +650,14 @@ class MultiLLMManager:
                 status = getattr(exc, "status_code", None)
                 if status is None:
                     status = getattr(getattr(exc, "response", None), "status_code", None)
-                if (
-                    _is_timeout_error(exc)
-                    or status in (401, 403, 429)
-                    or "429" in error_text
-                    or "401" in error_text
-                    or "403" in error_text
-                    or "resource_exhausted" in error_text
-                ):
+                # HTTP status is authoritative; text matching only when there is none
+                # (413 bodies contain numbers like "Requested 8403/9429").
+                if status is None:
+                    text_break = bool(re.search(r"\b(429|401|403)\b", error_text)) or "resource_exhausted" in error_text
+                else:
+                    text_break = False
+                if _is_timeout_error(exc) or status in (401, 403, 429) or text_break:
                     # 413 (TPM/ITPM) is per model (gpt-oss 8000, qwen 7000): try the next model.
-                    # İstek tüm modeller için aynı boyutta; aynı payload'ı tekrar
-                    # göndermek yalnızca gecikme yaratır.
                     break
                 continue
         if last_error:
