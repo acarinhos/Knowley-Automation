@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import os
 import re
+import threading
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 
@@ -304,6 +306,7 @@ def update_question(
     from firebase_admin import firestore
 
     ref.update({**updates, "updated_at": firestore.SERVER_TIMESTAMP})
+    invalidate_count_cache()
     return {"id": doc_id, "collection": collection, "updated_fields": sorted(updates)}
 
 
@@ -314,16 +317,25 @@ def delete_question(db: Any, doc_id: str, collection: Any = None) -> Dict[str, A
     if not ref.get().exists:
         raise KeyError(doc_id)
     ref.delete()
+    invalidate_count_cache()
     return {"id": doc_id, "collection": collection, "deleted": True}
 
 
-# shortcut: Python-side filters need a full field-masked scan; capped, so the total is reported as a lower bound ("≥N") beyond this. Add indexes + count() aggregation to make it exact.
+# shortcut: Python-side filters need a full field-masked scan; capped, so beyond this the total is a lower bound ("≥N"). Add indexes + count() aggregation to make it exact.
 COUNT_SCAN_CAP = 20000
+COUNT_CACHE_TTL = 60.0
+_COUNT_CACHE: Dict[Any, Any] = {}
+_COUNT_LOCK = threading.Lock()
+
+
+def invalidate_count_cache() -> None:
+    with _COUNT_LOCK:
+        _COUNT_CACHE.clear()
 
 
 def count_questions(db: Any, params: Mapping[str, Any]) -> Dict[str, Any]:
-    """Filtreye uyan toplam. Yalnızca koleksiyon/tarih filtresi varsa Firestore count() ile kesin;
-    aksi halde list_questions ile aynı eşleştirmeyle sınırlı tarama (tavanda exact=False)."""
+    """Filtreye uyan toplam, listeyle aynı küme (created_at olmayan belgeler ikisinde de yok).
+    Yalnızca koleksiyon/tarih filtresi varsa Firestore count(); aksi halde sınırlı tarama. 60 sn önbellekli."""
     from google.cloud.firestore_v1.base_query import FieldFilter
 
     collection = _collection(params.get("collection"))
@@ -334,29 +346,45 @@ def count_questions(db: Any, params: Mapping[str, Any]) -> Dict[str, Any]:
         raise ValueError("Geçersiz zorluk filtresi.")
     start, end = _parse_day(params.get("created_from")), _parse_day(params.get("created_to"), end_of_day=True)
 
-    query = db.collection(collection)
+    key = (collection, tuple(sorted(filters.items())), start, end)
+    now = time.monotonic()
+    with _COUNT_LOCK:
+        hit = _COUNT_CACHE.get(key)
+    if hit and now - hit[0] < COUNT_CACHE_TTL:
+        return {**hit[1], "cached": True}
+
+    # order_by("created_at") is what the list uses; it also drops documents without that field.
+    query = db.collection(collection).order_by("created_at", direction="DESCENDING")
     if start:
         query = query.where(filter=FieldFilter("created_at", ">=", start))
     if end:
         query = query.where(filter=FieldFilter("created_at", "<", end))
 
     if not any(filters.values()):
-        return {"collection": collection, "count": int(query.count().get()[0][0].value), "exact": True, "method": "aggregation"}
-
-    paths = ["translations.tr.question", "translations.en.question", "supported_languages", "categories",
-             "category", "target_country", "target_country_code", "countries", "difficulty", "difficulty_local", "question"]
-    if filters["language"]:
-        paths.append(f"translations.{filters['language']}.question")
-    query = query.order_by("__name__").select(paths)  # stable order for start_after paging
-    total, scanned = 0, 0
-    while scanned < COUNT_SCAN_CAP:
-        size = min(SCAN_BATCH * 5, COUNT_SCAN_CAP - scanned)
-        batch = query.limit(size).get()
-        for snapshot in batch:
-            scanned += 1
-            if _matches(question_row(snapshot.id, snapshot.to_dict() or {}, filters["language"]), filters):
-                total += 1
-        if len(batch) < size:
-            return {"collection": collection, "count": total, "exact": True, "method": "scan", "scanned": scanned}
-        query = query.start_after(batch[-1])
-    return {"collection": collection, "count": total, "exact": False, "method": "scan", "scanned": scanned}
+        result = {"collection": collection, "count": int(query.count().get()[0][0].value), "exact": True, "method": "aggregation"}
+    else:
+        # created_at stays in the mask so start_after can use the snapshot as a cursor.
+        paths = ["translations.tr.question", "translations.en.question", "supported_languages", "categories",
+                 "category", "target_country", "target_country_code", "countries", "difficulty", "difficulty_local",
+                 "question", "created_at"]
+        if filters["language"]:
+            paths.append(f"translations.{filters['language']}.question")
+        query = query.select(paths)
+        total, scanned, truncated = 0, 0, False
+        while not truncated:
+            size = min(SCAN_BATCH * 5, COUNT_SCAN_CAP + 1 - scanned)  # one extra read decides exactness
+            batch = query.limit(size).get()
+            for snapshot in batch:
+                if scanned >= COUNT_SCAN_CAP:
+                    truncated = True
+                    break
+                scanned += 1
+                if _matches(question_row(snapshot.id, snapshot.to_dict() or {}, filters["language"]), filters):
+                    total += 1
+            if truncated or len(batch) < size:
+                break
+            query = query.start_after(batch[-1])
+        result = {"collection": collection, "count": total, "exact": not truncated, "method": "scan", "scanned": scanned}
+    with _COUNT_LOCK:
+        _COUNT_CACHE[key] = (now, result)
+    return {**result, "cached": False}

@@ -30,28 +30,39 @@ class Ref:
 
 
 class Query:
-    def __init__(self, store, docs):
-        self.store, self.docs = store, docs
+    def __init__(self, store, docs, fields=None):
+        self.store, self.docs, self.fields = store, docs, fields
 
-    def order_by(self, *a, **k):
-        return self
+    def _with(self, docs=None, fields=None):
+        return Query(self.store, self.docs if docs is None else docs, self.fields if fields is None else fields)
 
-    def select(self, *a, **k):
-        return self
+    def order_by(self, field, *a, **k):
+        if field != "created_at":
+            return self
+        dated = [d for d in self.docs if d[1].get("created_at") is not None]  # Firestore drops docs lacking the field
+        return self._with(sorted(dated, key=lambda x: x[1]["created_at"], reverse=True))
+
+    def select(self, paths):
+        return self._with(fields={path.split(".")[0] for path in paths})
 
     def where(self, filter):
         op = {">=": lambda a, b: a >= b, "<": lambda a, b: a < b}[filter.op_string]
-        return Query(self.store, [d for d in self.docs if op(d[1]["created_at"], filter.value)])
+        return self._with([d for d in self.docs if op(d[1]["created_at"], filter.value)])
 
     def start_after(self, snap):
+        if snap.to_dict() is not None and "created_at" not in snap.to_dict():
+            raise KeyError("cursor snapshot lacks the order-by field")
         ids = [d[0] for d in self.docs]
-        return Query(self.store, self.docs[ids.index(snap.id) + 1:])
+        return self._with(self.docs[ids.index(snap.id) + 1:])
 
     def limit(self, n):
-        return Query(self.store, self.docs[:n])
+        return self._with(self.docs[:n])
 
     def get(self):
-        return [Snap(i, d) for i, d in self.docs]
+        def masked(data):
+            return data if self.fields is None else {k: v for k, v in data.items() if k in self.fields}
+
+        return [Snap(i, masked(d)) for i, d in self.docs]
 
     def count(self):
         from types import SimpleNamespace
@@ -70,9 +81,7 @@ class Db:
             def document(self, doc_id):
                 return Ref(db.store, doc_id)
 
-        ordered = sorted(((i, d) for i, d in self.store.items() if i != "__updates__"),
-                         key=lambda x: x[1]["created_at"], reverse=True)
-        return Col(self.store, ordered)
+        return Col(self.store, [(i, d) for i, d in self.store.items() if i != "__updates__"])
 
 
 def doc(n, category="Tarih", language="tr", day=1, difficulty="Orta"):
@@ -86,6 +95,7 @@ def doc(n, category="Tarih", language="tr", day=1, difficulty="Orta"):
 
 class QuestionAdminTests(unittest.TestCase):
     def setUp(self):
+        qa.invalidate_count_cache()
         self.db = Db({f"q{i}": doc(i, "Tarih" if i % 2 else "Spor", day=i) for i in range(1, 11)})
 
     def test_pagination_and_cursor(self):
@@ -175,12 +185,48 @@ class QuestionAdminTests(unittest.TestCase):
         self.assertTrue(count(category="Spor")["exact"])
         for params in ({"category": "Spor"}, {"created_from": "2026-09-01"}, {"q": "soru"}):
             self.assertEqual(count(**params)["count"], len(qa.list_questions(self.db, {**params, "limit": 100})["items"]))
+        qa.invalidate_count_cache()
         with mock.patch.object(qa, "COUNT_SCAN_CAP", 4):
             capped = count(category="Spor")
         self.assertFalse(capped["exact"])
         self.assertEqual(capped["scanned"], 4)
         with self.assertRaises(ValueError):
             count(difficulty="x")
+    def test_count_equals_reachable_list_with_undated_docs(self):
+        undated = doc(60, "Spor")
+        del undated["created_at"]
+        self.db.store["undated"] = undated
+        qa.invalidate_count_cache()
+        self.assertEqual(qa.count_questions(self.db, {})["count"], 10)  # aggregation path ignores the undated doc
+        self.assertEqual(qa.count_questions(self.db, {"category": "Spor"})["count"], 5)  # scan path too
+        self.assertEqual(len(qa.list_questions(self.db, {"category": "Spor", "limit": 100})["items"]), 5)
+
+    def test_count_scan_pages_past_batch_boundary(self):
+        for n in range(20, 60):
+            self.db.store[f"x{n}"] = doc(n, "Spor", day=(n % 28) + 1)
+        qa.invalidate_count_cache()
+        with mock.patch.object(qa, "SCAN_BATCH", 1):  # batches of 5 -> many start_after hops
+            result = qa.count_questions(self.db, {"category": "Spor", "created_from": "2026-09-01"})
+        self.assertEqual(result["count"], 45)
+        self.assertTrue(result["exact"])
+
+    def test_count_cap_boundary_and_cache(self):
+        qa.invalidate_count_cache()
+        with mock.patch.object(qa, "COUNT_SCAN_CAP", 10):
+            exact = qa.count_questions(self.db, {"category": "Spor"})  # exactly 10 docs == cap
+        self.assertTrue(exact["exact"])
+        qa.invalidate_count_cache()
+        self.db.store["more"] = doc(70, "Spor", day=2)
+        with mock.patch.object(qa, "COUNT_SCAN_CAP", 10):
+            self.assertFalse(qa.count_questions(self.db, {"category": "Spor"})["exact"])
+        qa.invalidate_count_cache()
+        first = qa.count_questions(self.db, {"category": "Spor"})
+        self.db.store["later"] = doc(71, "Spor", day=3)
+        self.assertEqual(qa.count_questions(self.db, {"category": "Spor"}), {**first, "cached": True})
+        with mock.patch.dict(os.environ, {"KNOWLEY_QUESTION_EDITS_ENABLED": "true"}):
+            qa.delete_question(self.db, "q1")  # a write invalidates the cache
+        self.assertEqual(qa.count_questions(self.db, {"category": "Spor"})["count"], first["count"] + 1)
+
 
 class HttpTests(unittest.TestCase):
     def setUp(self):
