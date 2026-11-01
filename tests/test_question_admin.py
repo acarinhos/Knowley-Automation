@@ -142,6 +142,74 @@ class QuestionAdminTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 qa.delete_question(self.db, "../x")
 
+    def test_category_branches(self):
+        multi = doc(50)
+        multi["categories"] = ["Tarih", "Spor"]
+        single = doc(51)
+        single["category"] = ["Tarih"]
+        self.db.store.update({"multi": multi, "single": single})
+        with mock.patch.dict(os.environ, {"KNOWLEY_QUESTION_EDITS_ENABLED": "true"}):
+            with self.assertRaises(ValueError):
+                qa.update_question(self.db, "multi", {"category": "Spor"}, ["Tarih", "Spor"], lambda c: [])
+            qa.update_question(self.db, "single", {"category": "Spor"}, ["Tarih", "Spor"], lambda c: [])
+            _, written = self.db.store["__updates__"][-1]
+            self.assertEqual(written["category"], ["Spor"])
+            self.assertNotIn("sub_categories", written)  # empty sub_category must not wipe existing value
+            with self.assertRaises(ValueError):
+                qa.update_question(self.db, "q1", {"question": "x", "language": "tr"}, [], lambda c: [], collection="tfquestions")
+
+
+class HttpTests(unittest.TestCase):
+    def setUp(self):
+        import json
+        import threading
+        from http.server import ThreadingHTTPServer
+        from types import SimpleNamespace
+
+        import ui_server
+
+        self.json = json
+        self.db = Db({"q1": doc(1)})
+        repo = SimpleNamespace(categories=lambda: ["Tarih"], subcategories=lambda c, n=None: [])
+        self.patches = [
+            mock.patch.object(ui_server, "get_manager", lambda: SimpleNamespace(repository=repo)),
+            mock.patch.object(ui_server, "init_firebase", lambda: self.db),
+            mock.patch.dict(os.environ, {"KNOWLEY_QUESTION_EDITS_ENABLED": "false"}),
+        ]
+        for patcher in self.patches:
+            patcher.start()
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), ui_server.KnowleyHandler)
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+        for patcher in self.patches:
+            patcher.stop()
+
+    def call(self, method, path, body=None):
+        import http.client
+
+        conn = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=10)
+        data = self.json.dumps(body) if body is not None else None
+        conn.request(method, path, body=data, headers={"Content-Type": "application/json"})
+        response = conn.getresponse()
+        return response.status, self.json.loads(response.read() or b"{}")
+
+    def test_writes_are_403_when_flag_off(self):
+        self.assertEqual(self.call("PATCH", "/api/admin/questions/q1", {"category": "Tarih"})[0], 403)
+        self.assertEqual(self.call("DELETE", "/api/admin/questions/q1")[0], 403)
+        self.assertIn("q1", self.db.store)
+
+    def test_list_works_and_errors_do_not_leak(self):
+        status, body = self.call("GET", "/api/admin/questions?limit=5")
+        self.assertEqual((status, [r["id"] for r in body["items"]]), (200, ["q1"]))
+        self.assertEqual(self.call("GET", "/api/admin/questions?difficulty=x")[0], 400)
+        with mock.patch("ui_server.init_firebase", side_effect=RuntimeError("secret-path")):
+            status, body = self.call("GET", "/api/admin/questions")
+        self.assertEqual(status, 503)
+        self.assertNotIn("secret-path", self.json.dumps(body))
+
 
 if __name__ == "__main__":
     unittest.main()

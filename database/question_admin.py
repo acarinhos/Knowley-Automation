@@ -18,6 +18,8 @@ MAX_PAGE_SIZE = 100
 # shortcut: filters other than the date range run in Python on a bounded scan (no composite indexes); raise the cap or add indexes if filtered pages come back sparse.
 MAX_SCAN_PER_PAGE = 600
 SCAN_BATCH = 200
+# tf/fs documents duplicate the statement in binary_fallback/payload and tie correct_answer to it; only list/delete are safe there.
+EDITABLE_COLLECTIONS = ("questions",)
 DIFFICULTIES = ("Kolay", "Orta", "Zor")
 EDITABLE_FIELDS = {"language", "question", "options", "correct_answer", "category", "sub_category"}
 DOC_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
@@ -262,13 +264,21 @@ def _validate_update(
             raise ValueError("Geçersiz kategori.")
         from config.categories_config import get_category_color, get_subcategory_image
 
+        current = data.get("categories") or data.get("category") or []
+        if isinstance(current, str):
+            current = [current]
+        if len(current) > 1:
+            raise ValueError("Birden fazla kategorisi olan sorunun kategorisi buradan değiştirilemez.")
         updates["categories"] = [category]
+        if "category" in data and data["category"] is not None:
+            updates["category"] = [category] if isinstance(data["category"], list) else category
         updates["categories_meta"] = [{"name": category, "color": get_category_color(category)}]
         sub = _text(payload.get("sub_category"))
         if sub and sub not in subcategories_for(category):
             raise ValueError("Alt kategori seçilen kategoriye ait değil.")
-        updates["sub_categories"] = [sub] if sub else []
-        updates["sub_categories_meta"] = [{"name": sub, "image_url": get_subcategory_image(category, sub)}] if sub else []
+        if sub:
+            updates["sub_categories"] = [sub]
+            updates["sub_categories_meta"] = [{"name": sub, "image_url": get_subcategory_image(category, sub)}]
     elif "sub_category" in payload:
         raise ValueError("Alt kategori yalnızca kategoriyle birlikte değiştirilebilir.")
     return updates
@@ -284,6 +294,8 @@ def update_question(
 ) -> Dict[str, Any]:
     require_edits_enabled()
     collection = _collection(collection or payload.get("collection"))
+    if collection not in EDITABLE_COLLECTIONS:
+        raise ValueError("Bu koleksiyonda düzenleme desteklenmiyor; yalnızca listeleme ve silme yapılabilir.")
     ref = db.collection(collection).document(_doc_id(doc_id))
     snapshot = ref.get()
     if not snapshot.exists:

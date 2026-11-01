@@ -572,6 +572,7 @@ class KnowleyHandler(BaseHTTPRequestHandler):
                     "countries": [{"code": c["code"], "name": c["name"]} for c in repo.countries()],
                     "languages": [{"code": code, "label": LANGUAGE_CODE_TO_SHEET_NAME[code]} for code in SUPPORTED_LANGUAGE_CODES],
                     "edits_enabled": question_admin.question_edits_enabled(),
+                    "editable_collections": list(question_admin.EDITABLE_COLLECTIONS),
                 })
             elif method == "GET" and not sub:
                 self._json(question_admin.list_questions(init_firebase(), query))
@@ -597,8 +598,9 @@ class KnowleyHandler(BaseHTTPRequestHandler):
             self._json({"error": "Soru bulunamadı."}, HTTPStatus.NOT_FOUND)
         except (ValueError, TypeError) as exc:
             self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
-        except Exception as exc:
-            self._json({"error": "Soru işlemi tamamlanamadı.", "detail": str(exc)[:300]}, HTTPStatus.SERVICE_UNAVAILABLE)
+        except Exception:
+            traceback.print_exc()  # details stay in the server log, not in the response
+            self._json({"error": "Soru işlemi tamamlanamadı."}, HTTPStatus.SERVICE_UNAVAILABLE)
 
     def do_PATCH(self) -> None:
         parsed = urlparse(self.path)
