@@ -315,3 +315,48 @@ def delete_question(db: Any, doc_id: str, collection: Any = None) -> Dict[str, A
         raise KeyError(doc_id)
     ref.delete()
     return {"id": doc_id, "collection": collection, "deleted": True}
+
+
+# shortcut: Python-side filters need a full field-masked scan; capped, so the total is reported as a lower bound ("≥N") beyond this. Add indexes + count() aggregation to make it exact.
+COUNT_SCAN_CAP = 20000
+
+
+def count_questions(db: Any, params: Mapping[str, Any]) -> Dict[str, Any]:
+    """Filtreye uyan toplam. Yalnızca koleksiyon/tarih filtresi varsa Firestore count() ile kesin;
+    aksi halde list_questions ile aynı eşleştirmeyle sınırlı tarama (tavanda exact=False)."""
+    from google.cloud.firestore_v1.base_query import FieldFilter
+
+    collection = _collection(params.get("collection"))
+    filters = {key: _text(params.get(key)) for key in ("category", "language", "country", "difficulty", "q")}
+    if filters["language"]:
+        _language_field(filters["language"])
+    if filters["difficulty"] and filters["difficulty"] not in DIFFICULTIES:
+        raise ValueError("Geçersiz zorluk filtresi.")
+    start, end = _parse_day(params.get("created_from")), _parse_day(params.get("created_to"), end_of_day=True)
+
+    query = db.collection(collection)
+    if start:
+        query = query.where(filter=FieldFilter("created_at", ">=", start))
+    if end:
+        query = query.where(filter=FieldFilter("created_at", "<", end))
+
+    if not any(filters.values()):
+        return {"collection": collection, "count": int(query.count().get()[0][0].value), "exact": True, "method": "aggregation"}
+
+    paths = ["translations.tr.question", "translations.en.question", "supported_languages", "categories",
+             "category", "target_country", "target_country_code", "countries", "difficulty", "difficulty_local", "question"]
+    if filters["language"]:
+        paths.append(f"translations.{filters['language']}.question")
+    query = query.order_by("__name__").select(paths)  # stable order for start_after paging
+    total, scanned = 0, 0
+    while scanned < COUNT_SCAN_CAP:
+        size = min(SCAN_BATCH * 5, COUNT_SCAN_CAP - scanned)
+        batch = query.limit(size).get()
+        for snapshot in batch:
+            scanned += 1
+            if _matches(question_row(snapshot.id, snapshot.to_dict() or {}, filters["language"]), filters):
+                total += 1
+        if len(batch) < size:
+            return {"collection": collection, "count": total, "exact": True, "method": "scan", "scanned": scanned}
+        query = query.start_after(batch[-1])
+    return {"collection": collection, "count": total, "exact": False, "method": "scan", "scanned": scanned}

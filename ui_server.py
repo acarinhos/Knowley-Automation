@@ -574,6 +574,8 @@ class KnowleyHandler(BaseHTTPRequestHandler):
                     "edits_enabled": question_admin.question_edits_enabled(),
                     "editable_collections": list(question_admin.EDITABLE_COLLECTIONS),
                 })
+            elif method == "GET" and sub == "count":
+                self._json(question_admin.count_questions(init_firebase(), query))
             elif method == "GET" and not sub:
                 self._json(question_admin.list_questions(init_firebase(), query))
             elif method == "GET":

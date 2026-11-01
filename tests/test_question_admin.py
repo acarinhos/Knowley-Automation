@@ -53,6 +53,11 @@ class Query:
     def get(self):
         return [Snap(i, d) for i, d in self.docs]
 
+    def count(self):
+        from types import SimpleNamespace
+
+        return SimpleNamespace(get=lambda: [[SimpleNamespace(value=len(self.docs))]])
+
 
 class Db:
     def __init__(self, docs):
@@ -158,6 +163,24 @@ class QuestionAdminTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 qa.update_question(self.db, "q1", {"question": "x", "language": "tr"}, [], lambda c: [], collection="tfquestions")
 
+    def test_count_matches_filters(self):
+        count = lambda **p: qa.count_questions(self.db, p)
+        self.assertEqual((count()["count"], count()["method"]), (10, "aggregation"))
+        self.assertEqual(count(created_from="2026-09-03", created_to="2026-09-05")["count"], 3)
+        self.assertEqual(count(category="Spor")["count"], 5)
+        self.assertEqual(count(category="Spor", created_from="2026-09-03", created_to="2026-09-05")["count"], 1)
+        self.assertEqual(count(category="Tarih", difficulty="Orta", q="soru 7")["count"], 1)
+        self.assertEqual(count(difficulty="Zor")["count"], 0)
+        self.assertEqual(count(language="en")["count"], 0)
+        self.assertTrue(count(category="Spor")["exact"])
+        for params in ({"category": "Spor"}, {"created_from": "2026-09-01"}, {"q": "soru"}):
+            self.assertEqual(count(**params)["count"], len(qa.list_questions(self.db, {**params, "limit": 100})["items"]))
+        with mock.patch.object(qa, "COUNT_SCAN_CAP", 4):
+            capped = count(category="Spor")
+        self.assertFalse(capped["exact"])
+        self.assertEqual(capped["scanned"], 4)
+        with self.assertRaises(ValueError):
+            count(difficulty="x")
 
 class HttpTests(unittest.TestCase):
     def setUp(self):
@@ -200,6 +223,10 @@ class HttpTests(unittest.TestCase):
         self.assertEqual(self.call("PATCH", "/api/admin/questions/q1", {"category": "Tarih"})[0], 403)
         self.assertEqual(self.call("DELETE", "/api/admin/questions/q1")[0], 403)
         self.assertIn("q1", self.db.store)
+
+    def test_count_route(self):
+        status, body = self.call("GET", "/api/admin/questions/count")
+        self.assertEqual((status, body["count"], body["exact"]), (200, 1, True))
 
     def test_list_works_and_errors_do_not_leak(self):
         status, body = self.call("GET", "/api/admin/questions?limit=5")
