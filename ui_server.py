@@ -31,6 +31,7 @@ from database.question_report import (
     fetch_question_report,
     question_report_country_label,
 )
+from database import question_admin
 from database.question_requests import (
     RequestRateLimitExceeded,
     create_question_request,
@@ -513,6 +514,9 @@ class KnowleyHandler(BaseHTTPRequestHandler):
                     HTTPStatus.SERVICE_UNAVAILABLE,
                 )
             return
+        if parsed.path.startswith("/api/admin/questions"):
+            self._admin_questions("GET", parsed)
+            return
         if parsed.path.startswith("/api/jobs/"):
             job_id = parsed.path.split("/")[3]
             try:
@@ -553,6 +557,62 @@ class KnowleyHandler(BaseHTTPRequestHandler):
             self._json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)
         except Exception:
             self._json({"error": "Soru talebi kaydedilemedi."}, HTTPStatus.SERVICE_UNAVAILABLE)
+
+    def _admin_questions(self, method: str, parsed: Any) -> None:
+        """Admin soru yönetimi (yerel proxy arkasında). Yazma: KNOWLEY_QUESTION_EDITS_ENABLED gerekir."""
+        sub = parsed.path[len("/api/admin/questions"):].strip("/")
+        query = {key: values[0] for key, values in parse_qs(parsed.query).items()}
+        try:
+            repo = get_manager().repository
+            if method == "GET" and sub == "options":
+                self._json({
+                    "categories": repo.categories(),
+                    "difficulties": list(question_admin.DIFFICULTIES),
+                    "collections": list(question_admin.ALL_QUESTION_COLLECTIONS),
+                    "countries": [{"code": c["code"], "name": c["name"]} for c in repo.countries()],
+                    "languages": [{"code": code, "label": LANGUAGE_CODE_TO_SHEET_NAME[code]} for code in SUPPORTED_LANGUAGE_CODES],
+                    "edits_enabled": question_admin.question_edits_enabled(),
+                })
+            elif method == "GET" and not sub:
+                self._json(question_admin.list_questions(init_firebase(), query))
+            elif method == "GET":
+                self._json(question_admin.get_question(init_firebase(), sub, query.get("collection")))
+            elif method == "PATCH" and sub and "/" not in sub:
+                question_admin.require_edits_enabled()
+                payload = self._read_json()
+                if not isinstance(payload, dict):
+                    raise ValueError("İstek gövdesi JSON nesnesi olmalıdır.")
+                self._json(question_admin.update_question(
+                    init_firebase(), sub, payload, repo.categories(),
+                    lambda category: [item["subcategory"] for item in repo.subcategories(category, None)],
+                    query.get("collection"),
+                ))
+            elif method == "DELETE" and sub and "/" not in sub:
+                self._json(question_admin.delete_question(init_firebase(), sub, query.get("collection")))
+            else:
+                self._json({"error": "Uç nokta bulunamadı."}, HTTPStatus.NOT_FOUND)
+        except question_admin.EditsDisabledError as exc:
+            self._json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
+        except KeyError:
+            self._json({"error": "Soru bulunamadı."}, HTTPStatus.NOT_FOUND)
+        except (ValueError, TypeError) as exc:
+            self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+        except Exception as exc:
+            self._json({"error": "Soru işlemi tamamlanamadı.", "detail": str(exc)[:300]}, HTTPStatus.SERVICE_UNAVAILABLE)
+
+    def do_PATCH(self) -> None:
+        parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/admin/questions/"):
+            self._admin_questions("PATCH", parsed)
+        else:
+            self._json({"error": "Uç nokta bulunamadı."}, HTTPStatus.NOT_FOUND)
+
+    def do_DELETE(self) -> None:
+        parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/admin/questions/"):
+            self._admin_questions("DELETE", parsed)
+        else:
+            self._json({"error": "Uç nokta bulunamadı."}, HTTPStatus.NOT_FOUND)
 
     def do_OPTIONS(self) -> None:
         origin = self._allowed_request_origin()
