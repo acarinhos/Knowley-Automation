@@ -227,6 +227,31 @@ class QuestionAdminTests(unittest.TestCase):
             qa.delete_question(self.db, "q1")  # a write invalidates the cache
         self.assertEqual(qa.count_questions(self.db, {"category": "Spor"})["count"], first["count"] + 1)
 
+    def test_stats_same_set_as_count_and_list(self):
+        undated = doc(60)
+        del undated["created_at"]
+        self.db.store["undated"] = undated
+        old = doc(61, "Spor", day=2)
+        old["dbVersion"] = "1.0.2"
+        old["supported_languages"] = ["tr", "en"]
+        self.db.store["old"] = old
+        qa.invalidate_count_cache()
+        stats = qa.question_stats(self.db, {})
+        self.assertEqual(stats["total"], qa.count_questions(self.db, {})["count"])
+        self.assertEqual(stats["total"], 11)  # undated excluded, all versions included
+        self.assertEqual(stats["versions"], ["1.1.0", "1.0.2"])
+        record = next(r for r in stats["questions"] if r["id"] == "old")
+        self.assertEqual((record["version"], record["created"], record["scope"], record["languages"]),
+                         ("1.0.2", "2026-09-02", "global", ["tr", "en"]))
+        self.assertTrue(stats["exact"])
+        self.assertTrue(qa.question_stats(self.db, {})["cached"])
+        with mock.patch.object(qa, "COUNT_SCAN_CAP", 5):
+            qa.invalidate_count_cache()
+            capped = qa.question_stats(self.db, {})
+        self.assertEqual((capped["total"], capped["exact"]), (5, False))
+        with self.assertRaises(ValueError):
+            qa.question_stats(self.db, {"collection": "users"})
+
 
 class HttpTests(unittest.TestCase):
     def setUp(self):
@@ -239,7 +264,7 @@ class HttpTests(unittest.TestCase):
 
         self.json = json
         self.db = Db({"q1": doc(1)})
-        repo = SimpleNamespace(categories=lambda: ["Tarih"], subcategories=lambda c, n=None: [])
+        repo = SimpleNamespace(categories=lambda: ["Tarih"], countries=lambda: [{"code": "TR", "name": "Türkiye"}], subcategories=lambda c, n=None: [])
         self.patches = [
             mock.patch.object(ui_server, "get_manager", lambda: SimpleNamespace(repository=repo)),
             mock.patch.object(ui_server, "init_firebase", lambda: self.db),
@@ -269,6 +294,11 @@ class HttpTests(unittest.TestCase):
         self.assertEqual(self.call("PATCH", "/api/admin/questions/q1", {"category": "Tarih"})[0], 403)
         self.assertEqual(self.call("DELETE", "/api/admin/questions/q1")[0], 403)
         self.assertIn("q1", self.db.store)
+
+    def test_stats_route(self):
+        status, body = self.call("GET", "/api/admin/questions/stats")
+        self.assertEqual((status, body["total"], body["categories"]), (200, 1, ["Tarih"]))
+        self.assertEqual(body["countries"][0]["code"], "GL")
 
     def test_count_route(self):
         status, body = self.call("GET", "/api/admin/questions/count")

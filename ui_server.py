@@ -574,6 +574,15 @@ class KnowleyHandler(BaseHTTPRequestHandler):
                     "edits_enabled": question_admin.question_edits_enabled(),
                     "editable_collections": list(question_admin.EDITABLE_COLLECTIONS),
                 })
+            elif method == "GET" and sub == "stats":
+                stats = question_admin.question_stats(init_firebase(), query)
+                canonical = canonicalize_question_report_countries({"questions": stats["questions"]}, repo.countries())
+                countries = [
+                    {"code": "GL", "name": "Global", "label": "Global · GL"},
+                    *({"code": c.get("code") or "", "name": c.get("name") or "",
+                       "label": question_report_country_label(c.get("code"), c.get("name"))} for c in repo.countries()),
+                ]
+                self._json({**stats, "questions": canonical["questions"], "countries": countries, "categories": repo.categories()})
             elif method == "GET" and sub == "count":
                 self._json(question_admin.count_questions(init_firebase(), query))
             elif method == "GET" and not sub:

@@ -388,3 +388,61 @@ def count_questions(db: Any, params: Mapping[str, Any]) -> Dict[str, Any]:
     with _COUNT_LOCK:
         _COUNT_CACHE[key] = (now, result)
     return {**result, "cached": False}
+
+
+def _created_day(value: Any) -> str:
+    if isinstance(value, datetime):
+        return (value if value.tzinfo else value.replace(tzinfo=timezone.utc)).astimezone(timezone.utc).strftime("%Y-%m-%d")
+    return value[:10] if isinstance(value, str) else ""
+
+
+def question_stats(db: Any, params: Mapping[str, Any]) -> Dict[str, Any]:
+    """Rapor verisi: Sorular listesi/sayacıyla aynı küme (created_at'i olan belgeler), tüm sürümler.
+    Sınıflandırma alanları sınırlı taramayla (COUNT_SCAN_CAP, 60 sn önbellek) tek geçişte çekilir;
+    gruplama ve filtreleme istemcide yapılır."""
+    from database.question_report import QUESTION_REPORT_FIELDS, normalize_question_report_record
+
+    collection = _collection(params.get("collection"))
+    key = ("stats", collection)
+    now = time.monotonic()
+    with _COUNT_LOCK:
+        hit = _COUNT_CACHE.get(key)
+    if hit and now - hit[0] < COUNT_CACHE_TTL:
+        return {**hit[1], "cached": True}
+
+    query = db.collection(collection).order_by("created_at", direction="DESCENDING")
+    query = query.select(sorted({*QUESTION_REPORT_FIELDS, "created_at", "supported_languages"}))
+    records: List[Dict[str, Any]] = []
+    scanned, truncated = 0, False
+    while not truncated:
+        size = min(SCAN_BATCH * 5, COUNT_SCAN_CAP + 1 - scanned)  # one extra read decides exactness
+        batch = query.limit(size).get()
+        for snapshot in batch:
+            if scanned >= COUNT_SCAN_CAP:
+                truncated = True
+                break
+            scanned += 1
+            data = snapshot.to_dict() or {}
+            record = normalize_question_report_record(data, snapshot.id)
+            record.update(
+                version=_text(data.get("dbVersion")) or _text(data.get("version")) or "—",
+                created=_created_day(data.get("created_at")),
+                scope="global" if record["country_code"] == "GL" else "local",
+                languages=[code for code in (data.get("supported_languages") or []) if isinstance(code, str)],
+            )
+            records.append(record)
+        if truncated or len(batch) < size:
+            break
+        query = query.start_after(batch[-1])
+    result = {
+        "collection": collection,
+        "total": len(records),
+        "exact": not truncated,
+        "scanned": scanned,
+        "versions": sorted({record["version"] for record in records}, reverse=True),
+        "questions": records,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    with _COUNT_LOCK:
+        _COUNT_CACHE[key] = (now, result)
+    return {**result, "cached": False}
