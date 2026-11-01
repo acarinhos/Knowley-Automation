@@ -300,6 +300,10 @@ class HttpTests(unittest.TestCase):
         self.assertEqual((status, body["total"], body["categories"]), (200, 1, ["Tarih"]))
         self.assertEqual(body["countries"][0]["code"], "GL")
 
+    def test_version_route(self):
+        status, body = self.call("GET", "/api/admin/version")
+        self.assertEqual((status, body["revision"]), (200, qa.API_REVISION))
+
     def test_count_route(self):
         status, body = self.call("GET", "/api/admin/questions/count")
         self.assertEqual((status, body["count"], body["exact"]), (200, 1, True))

@@ -15,6 +15,8 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 from core.question_types import ALL_QUESTION_COLLECTIONS
 from core.translation_service import SUPPORTED_LANGUAGE_CODES
 
+# Bump whenever an /api/admin/questions endpoint is added; the local proxy refuses stale services.
+API_REVISION = 3
 DEFAULT_PAGE_SIZE = 25
 MAX_PAGE_SIZE = 100
 # shortcut: filters other than the date range run in Python on a bounded scan (no composite indexes); raise the cap or add indexes if filtered pages come back sparse.

@@ -514,6 +514,9 @@ class KnowleyHandler(BaseHTTPRequestHandler):
                     HTTPStatus.SERVICE_UNAVAILABLE,
                 )
             return
+        if parsed.path == "/api/admin/version":
+            self._json({"revision": question_admin.API_REVISION})
+            return
         if parsed.path.startswith("/api/admin/questions"):
             self._admin_questions("GET", parsed)
             return
