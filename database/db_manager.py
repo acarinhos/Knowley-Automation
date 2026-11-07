@@ -16,6 +16,8 @@ def init_firebase():
     if not firebase_admin._apps:
         cred_path = os.getenv("FIREBASE_CREDENTIALS_PATH")
         if cred_path:
+            # Relative paths (e.g. ./serviceAccountKey.json) are relative to the repo root, not the cwd.
+            cred_path = str(env_path.parent / cred_path)
             if not os.path.exists(cred_path):
                 raise FileNotFoundError(f"Firebase kimlik dosyası bulunamadı: {cred_path}")
             cred = credentials.Certificate(cred_path)
